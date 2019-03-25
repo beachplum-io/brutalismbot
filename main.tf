@@ -262,7 +262,7 @@ resource aws_sns_topic mirror {
 }
 
 resource aws_sns_topic uninstall {
-  name = "slack_brutalismbot_event_app_uninstall"
+  name = "slack_brutalismbot_event_app_uninstalled"
 }
 
 resource aws_sns_topic_subscription oauth {
@@ -275,6 +275,12 @@ resource aws_sns_topic_subscription mirror {
   endpoint  = "${aws_lambda_function.mirror.arn}"
   protocol  = "lambda"
   topic_arn = "${aws_sns_topic.mirror.arn}"
+}
+
+resource aws_sns_topic_subscription uninstall {
+  endpoint  = "${aws_lambda_function.uninstall.arn}"
+  protocol  = "lambda"
+  topic_arn = "${aws_sns_topic.uninstall.arn}"
 }
 
 module slackbot {
