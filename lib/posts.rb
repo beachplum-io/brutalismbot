@@ -30,16 +30,16 @@ end
 
 def get_min_time(s3:, bucket:, prefix:)
   max_key = each_post(s3: s3, bucket: bucket, prefix: prefix).max
+  puts "MAX s3://#{bucket}/#{max_key}"
 
   # Go up a level in prefix if no keys found
   if max_key.nil?
     previous_prefix = prefix.split(/[^\/]+\/\z/).first
     get_min_time s3: s3, bucket: bucket, prefix: previous_prefix
+  end
 
   # Otherwise, return the max time as int
-  else
-    max_key.split(/\//).last.split(/\.json/).first.to_i
-  end
+  max_key.split(/\//).last.split(/\.json/).first.to_i
 end
 
 def get_posts(url:, user_agent:, min_time:)
@@ -58,8 +58,8 @@ def get_posts(url:, user_agent:, min_time:)
 end
 
 def cache_post(s3:, bucket:, prefix:, post:)
-  utc    = post.dig "data", "created_utc"
-  time   = Time.at utc.to_i
+  utc    = post.dig("data", "created_utc").to_i
+  time   = Time.at utc
   prefix = get_prefix prefix: prefix, time: time
   key    = "#{prefix}#{utc}.json"
   body   = JSON.unparse post
