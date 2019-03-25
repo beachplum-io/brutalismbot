@@ -1,5 +1,7 @@
 # Brutalismbot
 
+<img alt="brutalismbot" src="./docs/brutalismbot-banner.png"/>
+
 Mirror posts from [/r/brutalism](https://reddit.com/r/brutalism) to Slack.
 
 <a href="https://slack.com/oauth/authorize?client_id=588825324710.578676076417&scope=incoming-webhook">
