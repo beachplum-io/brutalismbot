@@ -54,7 +54,8 @@ class Post < Hash
 end
 
 def each_auth(s3:, **params)
-  keys = [] unless block_given?
+  keys = []
+  vals = []
 
   loop do
     # Get S3 page
@@ -63,7 +64,8 @@ def each_auth(s3:, **params)
 
     # Yield keys
     res[:contents].each do |obj|
-      block_given? ? yield(obj[:key]) : keys << obj[:key]
+      keys << obj[:key]
+      vals << yield(obj[:key]) if block_given?
     end
 
     # Continue or break
@@ -71,7 +73,7 @@ def each_auth(s3:, **params)
     params[:continuation_token] = res[:next_continuation_token]
   end
 
-  keys unless block_given?
+  block_given? ? vals : keys
 end
 
 def get_post(s3:, bucket:, key:)
