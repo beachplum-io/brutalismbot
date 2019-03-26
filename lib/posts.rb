@@ -62,7 +62,7 @@ end
 
 def cache_post(s3:, bucket:, prefix:, post:)
   utc    = post.dig("data", "created_utc").to_i
-  time   = Time.at utc
+  time   = Time.at(utc).utc
   prefix = get_prefix prefix: prefix, time: time
   key    = "#{prefix}#{utc}.json"
   body   = JSON.unparse post
