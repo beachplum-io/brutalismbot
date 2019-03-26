@@ -1,5 +1,6 @@
 require "aws-sdk-s3"
 
+DRYRUN    = ENV["DRYRUN"]
 S3        = Aws::S3::Client.new
 S3_BUCKET = ENV["S3_BUCKET"] || "brutalismbot"
 S3_PREFIX = ENV["S3_PREFIX"] || "oauth/v1/"
@@ -12,10 +13,14 @@ def get_key(prefix:, body:)
 end
 
 def put_key(s3:, bucket:, key:, body:)
-  puts "PUT s3://#{S3_BUCKET}/#{key}"
-  s3.put_object bucket: S3_BUCKET,
-                key:    key,
-                body:   body
+  if DRYRUN
+    puts "PUT DRYRUN s3://#{S3_BUCKET}/#{key}"
+  else
+    puts "PUT s3://#{S3_BUCKET}/#{key}"
+    s3.put_object bucket: S3_BUCKET,
+                  key:    key,
+                  body:   body
+  end
 end
 
 def handler(event:, context:)

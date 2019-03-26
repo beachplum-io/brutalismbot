@@ -2,6 +2,7 @@ require "aws-sdk-s3"
 require "aws-sdk-sns"
 require "net/https"
 
+DRYRUN        = ENV["DRYRUN"]
 S3            = Aws::S3::Client.new
 SNS           = Aws::SNS::Client.new
 S3_BUCKET     = ENV["S3_BUCKET"]     || "brutalismbot"
@@ -80,15 +81,12 @@ end
 
 def publish(sns:, topic_arn:, **params)
   message = JSON.unparse(params)
-  puts "PUBLISH #{JSON.unparse({topic_arn: topic_arn, message: message})}"
-  sns.publish topic_arn: topic_arn,
-              message:   message
-end
-
-def backfill
-  each_auth(bucket: S3_BUCKET, prefix: "posts/v1/") do |key|
-    event = {Records: [{s3: {bucket: {name: S3_BUCKET}, object: {key: key}}}]}
-    handler(event: JSON.parse(JSON.unparse(event)), context: nil)
+  publish = {topic_arn: topic_arn, message: message}
+  if DRYRUN
+    puts "PUBLISH DRYRUN #{JSON.unparse(publish)}"
+  else
+    puts "PUBLISH #{JSON.unparse(publish)}"
+    sns.publish **publish
   end
 end
 

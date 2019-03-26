@@ -1,5 +1,6 @@
 require "aws-sdk-s3"
 
+DRYRUN    = ENV["DRYRUN"]
 S3        = Aws::S3::Client.new
 S3_BUCKET = ENV["S3_BUCKET"] || "brutalismbot"
 S3_PREFIX = ENV["S3_PREFIX"] || "oauth/v1/"
@@ -30,15 +31,19 @@ def handler(event:, context:)
   puts "EVENT #{JSON.unparse event}"
 
   # Interate over OAuth SNS records
-  event["Records"].map do |record|
+  event["Records"].each do |record|
     message   = record.dig "Sns", "Message"
     uninstall = JSON.parse message
     team_id   = uninstall.dig "team_id"
     prefix    = "#{S3_PREFIX}team=#{team_id}"
 
     each_auth(s3: S3, bucket: S3_BUCKET, prefix: prefix) do |key|
-      puts "DELETE s3://#{S3_BUCKET}/#{key}"
-      S3.delete_object bucket: S3_BUCKET, key: key
+      if DRYRUN
+        puts "DELETE DRYRUN s3://#{S3_BUCKET}/#{key}"
+      else
+        puts "DELETE s3://#{S3_BUCKET}/#{key}"
+        S3.delete_object bucket: S3_BUCKET, key: key
+      end
     end
   end
 end

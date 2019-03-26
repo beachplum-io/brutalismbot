@@ -1,7 +1,8 @@
 require "aws-sdk-s3"
 require "net/https"
 
-S3 = Aws::S3::Client.new
+DRYRUN = ENV["DRYRUN"]
+S3     = Aws::S3::Client.new
 
 def get_message(record:)
   message = record.dig "Sns", "Message"
@@ -16,10 +17,15 @@ end
 def post(url:, body:)
   uri = URI url
   Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
-    puts "POST #{uri}"
-    req = Net::HTTP::Post.new uri, 'content-type' => 'application/json'
-    req.body = JSON.unparse body
-    http.request req
+    if DRYRUN
+      puts "POST DRYRUN #{uri}"
+      OpenStruct.new code: 200, body: '{}'
+    else
+      puts "POST #{uri}"
+      req = Net::HTTP::Post.new uri, 'content-type' => 'application/json'
+      req.body = JSON.unparse body
+      http.request req
+    end
   end
 end
 

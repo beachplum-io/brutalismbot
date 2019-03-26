@@ -1,6 +1,8 @@
 require "aws-sdk-s3"
 require "net/https"
 
+DRYRUN     = ENV["DRYRUN"]
+MIN_TIME   = ENV["MIN_TIME"] && ENV["MIN_TIME"].to_i
 S3         = Aws::S3::Client.new
 S3_BUCKET  = ENV["S3_BUCKET"]  || "brutalismbot"
 S3_PREFIX  = ENV["S3_PREFIX"]  || "posts/v1/"
@@ -64,10 +66,14 @@ def cache_post(s3:, bucket:, prefix:, post:)
   prefix = get_prefix prefix: prefix, time: time
   key    = "#{prefix}#{utc}.json"
   body   = JSON.unparse post
-  puts "PUT s3://#{bucket}/#{key}"
-  s3.put_object bucket: S3_BUCKET,
-                key:    key,
-                body:   body
+  if DRYRUN
+    puts "PUT DRYRUN s3://#{bucket}/#{key}"
+  else
+    puts "PUT s3://#{bucket}/#{key}"
+    s3.put_object bucket: S3_BUCKET,
+                  key:    key,
+                  body:   body
+  end
 end
 
 def get_prefix(prefix:, time:)
@@ -86,9 +92,7 @@ def handler(event:, context:)
                       time:   Time.now.utc
 
   # Get max time of cached posts
-  min_time = get_min_time s3:     S3,
-                          bucket: S3_BUCKET,
-                          prefix: prefix
+  min_time = MIN_TIME || get_min_time(s3: S3, bucket: S3_BUCKET, prefix: prefix)
 
   # Get latest posts to /r/brutalism
   posts = get_posts url:        URL,
