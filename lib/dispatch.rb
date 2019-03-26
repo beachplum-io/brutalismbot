@@ -14,7 +14,8 @@ class Post < Hash
   def content_type(user_agent:)
     url = self.dig "data", "url"
     uri = URI url
-    Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
+    ssl = uri.scheme == "https"
+    Net::HTTP.start(uri.host, uri.port, use_ssl: ssl) do |http|
       puts "HEAD #{uri}"
       req = Net::HTTP::Head.new uri, "user-agent" => user_agent
       res = http.request req

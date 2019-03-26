@@ -47,7 +47,8 @@ end
 
 def get_posts(url:, user_agent:, min_time:)
   uri = URI url
-  Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
+  ssl = uri.scheme == "https"
+  Net::HTTP.start(uri.host, uri.port, use_ssl: ssl) do |http|
     puts "GET #{uri}"
     req   = Net::HTTP::Get.new uri, "user-agent" => user_agent
     res   = http.request req
