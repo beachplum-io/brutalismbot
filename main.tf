@@ -263,11 +263,11 @@ resource aws_s3_bucket_notification posts {
 }
 
 resource aws_sns_topic mirror {
-  name = "slack_brutalismbot_mirror"
+  name = "brutalismbot_mirror"
 }
 
 resource aws_sns_topic uninstall {
-  name = "slack_brutalismbot_event_app_uninstalled"
+  name = "brutalismbot_event_app_uninstalled"
 }
 
 resource aws_sns_topic_subscription oauth {
@@ -290,7 +290,7 @@ resource aws_sns_topic_subscription uninstall {
 
 module slackbot {
   source               = "amancevice/slackbot/aws"
-  version              = "13.0.0"
+  version              = "13.1.0"
   api_description      = "Brutalismbot REST API"
   api_name             = "brutalismbot"
   base_url             = "/brutalismbot"
@@ -301,4 +301,5 @@ module slackbot {
   role_name            = "brutalismbot"
   role_tags            = "${local.tags}"
   secret_name          = "brutalismbot"
+  sns_topic_prefix     = "brutalismbot"
 }

@@ -36,10 +36,11 @@ def get_min_time(s3:, bucket:, prefix:)
   if max_key.nil?
     previous_prefix = prefix.split(/[^\/]+\/\z/).first
     get_min_time s3: s3, bucket: bucket, prefix: previous_prefix
-  end
 
   # Otherwise, return the max time as int
-  max_key.split(/\//).last.split(/\.json/).first.to_i
+  else
+    max_key.split(/\//).last.split(/\.json/).first.to_i
+  end
 end
 
 def get_posts(url:, user_agent:, min_time:)
