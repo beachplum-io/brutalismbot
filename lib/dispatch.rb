@@ -98,7 +98,7 @@ def handler(event:, context:)
   puts "EVENT #{JSON.unparse event}"
 
   # Interate over S3 put event records
-  event["Records"].each do |record|
+  event["Records"].map do |record|
 
     # Get post body / content-type
     bucket       = URI.unescape record.dig("s3", "bucket", "name")
@@ -124,5 +124,5 @@ def handler(event:, context:)
       puts "ERROR #{error}"
       raise TypeError.new error
     end
-  end
+  end.flatten
 end
