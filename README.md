@@ -14,8 +14,8 @@ After granting Brutalismbot permission to post to a #channel on your Slack works
 
 Every hour Brutalismbot requests posts from reddit's REST API at [`/r/brutalism/new.json`](https://reddit.com/r/brutalism/new).
 
-New posts that haven't been seen before are saved, transformed into Slack messages using [Block Kit](https://api.slack.com/block-kit), and published to your #channel via the incoming webhook URL.
+New image posts that haven't been seen before are saved, transformed into Slack messages using [Block Kit](https://api.slack.com/block-kit), and published to your #channel via the incoming webhook URL.
 
 Example post:
 
-<img alt="post" src="./docs/post.png"/>
+<img alt="post" src="./docs/post.png" width="500"/>
