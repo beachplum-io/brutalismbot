@@ -49,7 +49,7 @@ data archive_file uninstall {
 }
 
 data aws_kms_key key {
-  key_id = "alias/slack/brutalismbot"
+  key_id = "alias/brutalismbot"
 }
 
 data aws_iam_policy_document s3 {
@@ -129,6 +129,7 @@ resource aws_lambda_function oauth {
   role             = "${module.slackbot.role_arn}"
   runtime          = "ruby2.5"
   source_code_hash = "${filebase64sha256("${data.archive_file.oauth.output_path}")}"
+  tags             = "${local.tags}"
 
   environment {
     variables {
@@ -146,6 +147,7 @@ resource aws_lambda_function posts {
   role             = "${module.slackbot.role_arn}"
   runtime          = "ruby2.5"
   source_code_hash = "${filebase64sha256("${data.archive_file.posts.output_path}")}"
+  tags             = "${local.tags}"
   timeout          = 15
 
   environment {
@@ -164,6 +166,7 @@ resource aws_lambda_function dispatch {
   role             = "${module.slackbot.role_arn}"
   runtime          = "ruby2.5"
   source_code_hash = "${filebase64sha256("${data.archive_file.dispatch.output_path}")}"
+  tags             = "${local.tags}"
   timeout          = 30
 
   environment {
@@ -183,6 +186,7 @@ resource aws_lambda_function mirror {
   role             = "${module.slackbot.role_arn}"
   runtime          = "ruby2.5"
   source_code_hash = "${filebase64sha256("${data.archive_file.mirror.output_path}")}"
+  tags             = "${local.tags}"
 }
 
 resource aws_lambda_function uninstall {
@@ -193,6 +197,7 @@ resource aws_lambda_function uninstall {
   role             = "${module.slackbot.role_arn}"
   runtime          = "ruby2.5"
   source_code_hash = "${filebase64sha256("${data.archive_file.uninstall.output_path}")}"
+  tags             = "${local.tags}"
 }
 
 resource aws_lambda_permission oauth {
@@ -295,5 +300,5 @@ module slackbot {
   log_group_tags       = "${local.tags}"
   role_name            = "brutalismbot"
   role_tags            = "${local.tags}"
-  secret_name          = "slack/brutalismbot"
+  secret_name          = "brutalismbot"
 }
