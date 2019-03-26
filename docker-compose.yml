@@ -21,7 +21,7 @@ services:
   # Dispatch /r/brutalism posts
   dispatch:
     <<: *base
-    command: dispatch.handler '{"Records":[{"s3":{"bucket":{"name":"brutalismbot"},"object":{"key":"posts/v1/year%3D2019/month%3D2019-03/day%3D2019-03-25/1553565987.json"}}}]}'
+    command: dispatch.handler '{"Records":[{"s3":{"bucket":{"name":"brutalismbot"},"object":{"key":"posts/v1/year%3D2019/month%3D2019-03/day%3D2019-03-26/1553565987.json"}}}]}'
 
   # Mirror /r/brutalism posts
   mirror:
