@@ -1,6 +1,7 @@
 require "aws-sdk-s3"
 require "aws-sdk-sns"
 require "net/https"
+require_relative "./util"
 
 DRYRUN        = ENV["DRYRUN"]
 S3            = Aws::S3::Client.new
@@ -13,14 +14,8 @@ USER_AGENT    = "brutalismbot 0.1"
 class Post < Hash
   def content_type(user_agent:)
     url = self.dig "data", "url"
-    uri = URI url
-    ssl = uri.scheme == "https"
-    Net::HTTP.start(uri.host, uri.port, use_ssl: ssl) do |http|
-      puts "HEAD #{uri}"
-      req = Net::HTTP::Head.new uri, "user-agent" => user_agent
-      res = http.request req
-      res.header.content_type
-    end
+    res = request_url url: url, user_agent: user_agent, method: Net::HTTP::Head
+    res.header.content_type
   end
 
   def to_slack
@@ -53,29 +48,6 @@ class Post < Hash
   end
 end
 
-def each_auth(s3:, **params)
-  keys = []
-  vals = []
-
-  loop do
-    # Get S3 page
-    puts "GET s3://#{params[:bucket]}/#{params[:prefix]}"
-    res = s3.list_objects_v2 **params
-
-    # Yield keys
-    res[:contents].each do |obj|
-      keys << obj[:key]
-      vals << yield(obj[:key]) if block_given?
-    end
-
-    # Continue or break
-    break unless res[:is_truncated]
-    params[:continuation_token] = res[:next_continuation_token]
-  end
-
-  block_given? ? vals : keys
-end
-
 def get_post(s3:, bucket:, key:)
   obj  = s3.get_object bucket: bucket, key: key
   post = JSON.parse obj[:body].read
@@ -87,6 +59,7 @@ def publish(sns:, topic_arn:, **params)
   publish = {topic_arn: topic_arn, message: message}
   if DRYRUN
     puts "PUBLISH DRYRUN #{JSON.unparse(publish)}"
+    params
   else
     puts "PUBLISH #{JSON.unparse(publish)}"
     sns.publish **publish
@@ -110,7 +83,7 @@ def handler(event:, context:)
     if content_type =~ /\Aimage\//
 
       # Publish SNS message for each OAuth
-      each_auth(s3:S3, bucket: S3_BUCKET, prefix: S3_PREFIX) do |key|
+      s3_keys(s3:S3, bucket: S3_BUCKET, prefix: S3_PREFIX).map(&:key).map do |key|
         publish sns:       SNS,
                 topic_arn: SNS_TOPIC_ARN,
                 bucket:    S3_BUCKET,

@@ -37,5 +37,5 @@ def handler(event:, context:)
     # Put OAuth event on S3
     put_key s3: S3, bucket: S3_BUCKET, key: key, body: body
 
-  end.map(&:to_h)
+  end.map &:to_h
 end

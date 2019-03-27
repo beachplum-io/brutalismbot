@@ -18,33 +18,9 @@ locals {
   }
 }
 
-data archive_file oauth {
-  output_path = "${path.module}/dist/oauth.zip"
-  source_file = "${path.module}/lib/oauth.rb"
-  type        = "zip"
-}
-
-data archive_file posts {
-  output_path = "${path.module}/dist/posts.zip"
-  source_file = "${path.module}/lib/posts.rb"
-  type        = "zip"
-}
-
-data archive_file dispatch {
-  output_path = "${path.module}/dist/dispatch.zip"
-  source_file = "${path.module}/lib/dispatch.rb"
-  type        = "zip"
-}
-
-data archive_file mirror {
-  output_path = "${path.module}/dist/mirror.zip"
-  source_file = "${path.module}/lib/mirror.rb"
-  type        = "zip"
-}
-
-data archive_file uninstall {
-  output_path = "${path.module}/dist/uninstall.zip"
-  source_file = "${path.module}/lib/uninstall.rb"
+data archive_file package {
+  output_path = "${path.module}/dist/package.zip"
+  source_dir  = "${path.module}/lib"
   type        = "zip"
 }
 
@@ -123,12 +99,12 @@ resource aws_iam_role_policy brutalismbot_s3 {
 
 resource aws_lambda_function oauth {
   description      = "Cache OAuth events"
-  filename         = "${data.archive_file.oauth.output_path}"
+  filename         = "${data.archive_file.package.output_path}"
   function_name    = "brutalismbot-oauth-cache"
   handler          = "oauth.handler"
   role             = "${module.slackbot.role_arn}"
   runtime          = "ruby2.5"
-  source_code_hash = "${filebase64sha256("${data.archive_file.oauth.output_path}")}"
+  source_code_hash = "${filebase64sha256("${data.archive_file.package.output_path}")}"
   tags             = "${local.tags}"
 
   environment {
@@ -141,12 +117,12 @@ resource aws_lambda_function oauth {
 
 resource aws_lambda_function posts {
   description      = "Cache posts from /r/brutalism"
-  filename         = "${data.archive_file.posts.output_path}"
+  filename         = "${data.archive_file.package.output_path}"
   function_name    = "brutalismbot-posts-cache"
   handler          = "posts.handler"
   role             = "${module.slackbot.role_arn}"
   runtime          = "ruby2.5"
-  source_code_hash = "${filebase64sha256("${data.archive_file.posts.output_path}")}"
+  source_code_hash = "${filebase64sha256("${data.archive_file.package.output_path}")}"
   tags             = "${local.tags}"
   timeout          = 15
 
@@ -160,12 +136,12 @@ resource aws_lambda_function posts {
 
 resource aws_lambda_function dispatch {
   description      = "Dispatch posts from /r/brutalism"
-  filename         = "${data.archive_file.dispatch.output_path}"
+  filename         = "${data.archive_file.package.output_path}"
   function_name    = "brutalismbot-posts-dispatch"
   handler          = "dispatch.handler"
   role             = "${module.slackbot.role_arn}"
   runtime          = "ruby2.5"
-  source_code_hash = "${filebase64sha256("${data.archive_file.dispatch.output_path}")}"
+  source_code_hash = "${filebase64sha256("${data.archive_file.package.output_path}")}"
   tags             = "${local.tags}"
   timeout          = 30
 
@@ -180,23 +156,23 @@ resource aws_lambda_function dispatch {
 
 resource aws_lambda_function mirror {
   description      = "Mirror posts from /r/brutalism to Slack"
-  filename         = "${data.archive_file.mirror.output_path}"
+  filename         = "${data.archive_file.package.output_path}"
   function_name    = "brutalismbot-posts-mirror"
   handler          = "mirror.handler"
   role             = "${module.slackbot.role_arn}"
   runtime          = "ruby2.5"
-  source_code_hash = "${filebase64sha256("${data.archive_file.mirror.output_path}")}"
+  source_code_hash = "${filebase64sha256("${data.archive_file.package.output_path}")}"
   tags             = "${local.tags}"
 }
 
 resource aws_lambda_function uninstall {
   description      = "Uninstall brutalismbot from workspace"
-  filename         = "${data.archive_file.uninstall.output_path}"
+  filename         = "${data.archive_file.package.output_path}"
   function_name    = "brutalismbot-uninstall"
   handler          = "uninstall.handler"
   role             = "${module.slackbot.role_arn}"
   runtime          = "ruby2.5"
-  source_code_hash = "${filebase64sha256("${data.archive_file.uninstall.output_path}")}"
+  source_code_hash = "${filebase64sha256("${data.archive_file.package.output_path}")}"
   tags             = "${local.tags}"
 }
 
