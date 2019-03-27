@@ -7,7 +7,7 @@ provider aws {
   profile    = "${var.aws_profile}"
   region     = "${var.aws_region}"
   secret_key = "${var.aws_secret_access_key}"
-  version    = "~> 2.2"
+  version    = "~> 2.3"
 }
 
 locals {
@@ -266,9 +266,11 @@ resource aws_sns_topic_subscription uninstall {
 
 module slackbot {
   source               = "amancevice/slackbot/aws"
-  version              = "13.1.0"
+  version              = "13.2.0"
   api_description      = "Brutalismbot REST API"
   api_name             = "brutalismbot"
+  api_stage_name       = "v1"
+  api_stage_tags       = "${local.tags}"
   base_url             = "/brutalismbot"
   kms_key_id           = "${data.aws_kms_key.key.key_id}"
   lambda_function_name = "brutalismbot-api"
