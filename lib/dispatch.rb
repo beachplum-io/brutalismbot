@@ -9,44 +9,7 @@ SNS           = Aws::SNS::Client.new
 S3_BUCKET     = ENV["S3_BUCKET"]     || "brutalismbot"
 S3_PREFIX     = ENV["S3_PREFIX"]     || "oauth/v1/"
 SNS_TOPIC_ARN = ENV["SNS_TOPIC_ARN"] || "arn:aws:sns:us-east-1:556954866954:slack_brutalismbot_mirror"
-USER_AGENT    = "brutalismbot 0.1"
-
-class Post < Hash
-  def content_type(user_agent:)
-    url = self.dig "data", "url"
-    res = request_url url: url, user_agent: user_agent, method: Net::HTTP::Head
-    res.header.content_type
-  end
-
-  def to_slack
-    url       = self.dig "data", "url"
-    title     = self.dig "data", "title"
-    permalink = self.dig "data", "permalink"
-    {
-      blocks: [
-        {
-          type: "image",
-          title: {
-            type: "plain_text",
-            text: "/r/brutalism",
-            emoji: true,
-          },
-          image_url: url,
-          alt_text: title,
-        },
-        {
-          type: "context",
-          elements: [
-            {
-              type: "mrkdwn",
-              text: "<https://reddit.com#{permalink}|#{title}>",
-            },
-          ],
-        },
-      ],
-    }
-  end
-end
+USER_AGENT    = ENV["USER_AGENT"]    || "brutalismbot 0.1"
 
 def get_post(s3:, bucket:, key:)
   obj  = s3.get_object bucket: bucket, key: key

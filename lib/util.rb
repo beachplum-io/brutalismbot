@@ -1,3 +1,40 @@
+class Post < Hash
+  def content_type(user_agent:)
+    url = self.dig "data", "url"
+    res = request_url url: url, user_agent: user_agent, method: Net::HTTP::Head
+    res.header.content_type
+  end
+
+  def to_slack
+    url       = self.dig "data", "url"
+    title     = self.dig "data", "title"
+    permalink = self.dig "data", "permalink"
+    {
+      blocks: [
+        {
+          type: "image",
+          title: {
+            type: "plain_text",
+            text: "/r/brutalism",
+            emoji: true,
+          },
+          image_url: url,
+          alt_text: title,
+        },
+        {
+          type: "context",
+          elements: [
+            {
+              type: "mrkdwn",
+              text: "<https://reddit.com#{permalink}|#{title}>",
+            },
+          ],
+        },
+      ],
+    }
+  end
+end
+
 def s3_keys(s3:, **params)
   keys = []
 

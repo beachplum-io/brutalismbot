@@ -11,6 +11,9 @@ provider aws {
 }
 
 locals {
+  url_new    = "https://www.reddit.com/r/brutalism/new.json?sort=new"
+  url_top    = "https://www.reddit.com/r/brutalism/top.json?limit=1"
+  user_agent = "brutalismbot 0.1"
   tags {
     App     = "brutalismbot"
     Release = "${var.release}"
@@ -128,8 +131,10 @@ resource aws_lambda_function posts {
 
   environment {
     variables {
-      S3_BUCKET = "${aws_s3_bucket.brutalismbot.bucket}"
-      S3_PREFIX = "posts/v1/"
+      S3_BUCKET  = "${aws_s3_bucket.brutalismbot.bucket}"
+      S3_PREFIX  = "posts/v1/"
+      URL        = "${local.url_new}"
+      USER_AGENT = "${local.user_agent}"
     }
   }
 }
@@ -150,6 +155,7 @@ resource aws_lambda_function dispatch {
       S3_BUCKET     = "${aws_s3_bucket.brutalismbot.bucket}"
       S3_PREFIX     = "oauth/v1/"
       SNS_TOPIC_ARN = "${aws_sns_topic.mirror.arn}"
+      USER_AGENT    = "${local.user_agent}"
     }
   }
 }
