@@ -4,12 +4,13 @@ require "net/https"
 require_relative "./util"
 
 DRYRUN        = ENV["DRYRUN"]
-S3            = Aws::S3::Client.new
-SNS           = Aws::SNS::Client.new
 S3_BUCKET     = ENV["S3_BUCKET"]     || "brutalismbot"
 S3_PREFIX     = ENV["S3_PREFIX"]     || "oauth/v1/"
 SNS_TOPIC_ARN = ENV["SNS_TOPIC_ARN"] || "arn:aws:sns:us-east-1:556954866954:slack_brutalismbot_mirror"
 USER_AGENT    = ENV["USER_AGENT"]    || "brutalismbot 0.1"
+
+S3  = Aws::S3::Client.new
+SNS = Aws::SNS::Client.new
 
 def get_post(s3:, bucket:, key:)
   obj  = s3.get_object bucket: bucket, key: key

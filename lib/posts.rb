@@ -4,11 +4,12 @@ require_relative "./util"
 
 DRYRUN     = ENV["DRYRUN"]
 MIN_TIME   = ENV["MIN_TIME"] && ENV["MIN_TIME"].to_i
-S3         = Aws::S3::Client.new
 S3_BUCKET  = ENV["S3_BUCKET"]  || "brutalismbot"
 S3_PREFIX  = ENV["S3_PREFIX"]  || "posts/v1/"
 URL        = ENV["URL"]        || "https://www.reddit.com/r/brutalism/new.json?sort=new"
 USER_AGENT = ENV["USER_AGENT"] || "brutalismbot 0.1"
+
+S3 = Aws::S3::Client.new
 
 def get_prefix(prefix:, time:)
   year  = time.strftime '%Y'

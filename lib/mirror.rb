@@ -2,7 +2,8 @@ require "aws-sdk-s3"
 require "net/https"
 
 DRYRUN = ENV["DRYRUN"]
-S3     = Aws::S3::Client.new
+
+S3 = Aws::S3::Client.new
 
 def get_message(record:)
   message = record.dig "Sns", "Message"

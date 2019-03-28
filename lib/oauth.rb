@@ -1,9 +1,10 @@
 require "aws-sdk-s3"
 
 DRYRUN    = ENV["DRYRUN"]
-S3        = Aws::S3::Client.new
 S3_BUCKET = ENV["S3_BUCKET"] || "brutalismbot"
 S3_PREFIX = ENV["S3_PREFIX"] || "oauth/v1/"
+
+S3 = Aws::S3::Client.new
 
 def get_key(prefix:, body:)
   message    = JSON.parse body
