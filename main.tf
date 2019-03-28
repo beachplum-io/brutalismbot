@@ -41,6 +41,11 @@ data aws_iam_policy_document s3 {
   }
 }
 
+resource aws_cloudwatch_dashboard dash {
+  dashboard_name = "Brutalismbot"
+  dashboard_body = "${file("${path.module}/dashboard.json")}"
+}
+
 resource aws_cloudwatch_event_rule posts {
   description         = "Cache posts from /r/brutalism to S3"
   name                = "brutalismbot-cache-posts"
