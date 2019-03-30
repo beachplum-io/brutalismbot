@@ -1,9 +1,12 @@
 {
   "widgets": [
     {
+      "type": "metric",
+      "x": 0,
+      "y": 0,
+      "width": 24,
       "height": 6,
       "properties": {
-        "end": "P0D",
         "metrics": [
           [
             "AWS/Lambda",
@@ -17,7 +20,7 @@
           ],
           [
             "...",
-            "brutalismbot-posts-cache",
+            "brutalismbot-install",
             {
               "period": 86400,
               "stat": "Sum"
@@ -25,7 +28,7 @@
           ],
           [
             "...",
-            "brutalismbot-posts-dispatch",
+            "brutalismbot-cache",
             {
               "period": 86400,
               "stat": "Sum"
@@ -33,15 +36,7 @@
           ],
           [
             "...",
-            "brutalismbot-posts-mirror",
-            {
-              "period": 86400,
-              "stat": "Sum"
-            }
-          ],
-          [
-            "...",
-            "brutalismbot-oauth-cache",
+            "brutalismbot-mirror",
             {
               "period": 86400,
               "stat": "Sum"
@@ -56,31 +51,27 @@
             }
           ]
         ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "us-east-1",
+        "setPeriodToTimeRange": false,
         "legend": {
           "position": "right"
         },
         "liveData": true,
-        "region": "us-east-1",
-        "setPeriodToTimeRange": false,
-        "stacked": false,
-        "start": "-P7D",
-        "title": "Brutalismbot Errors",
-        "view": "timeSeries",
         "yAxis": {
           "left": {
             "label": "Errors",
             "showUnits": false
           },
           "right": {
-            "label": "",
-            "showUnits": true
+            "showUnits": true,
+            "label": ""
           }
-        }
-      },
-      "type": "metric",
-      "width": 24,
-      "x": 0,
-      "y": 0
+        },
+        "title": "Brutalismbot Errors",
+        "period": 300
+      }
     }
   ]
 }

@@ -7,13 +7,10 @@ provider aws {
   profile    = "${var.aws_profile}"
   region     = "${var.aws_region}"
   secret_key = "${var.aws_secret_access_key}"
-  version    = "~> 2.3"
+  version    = "~> 2.4"
 }
 
 locals {
-  url_new    = "https://www.reddit.com/r/brutalism/new.json?sort=new"
-  url_top    = "https://www.reddit.com/r/brutalism/top.json?limit=1"
-  user_agent = "brutalismbot 0.1"
   tags {
     App     = "brutalismbot"
     Release = "${var.release}"
@@ -46,31 +43,25 @@ resource aws_cloudwatch_dashboard dash {
   dashboard_body = "${file("${path.module}/dashboard.json")}"
 }
 
-resource aws_cloudwatch_event_rule posts {
+resource aws_cloudwatch_event_rule cache {
   description         = "Cache posts from /r/brutalism to S3"
-  name                = "brutalismbot-cache-posts"
+  name                = "${aws_lambda_function.cache.function_name}"
   schedule_expression = "rate(1 hour)"
 }
 
-resource aws_cloudwatch_event_target posts {
-  rule  = "${aws_cloudwatch_event_rule.posts.name}"
-  arn   = "${aws_lambda_function.posts.arn}"
+resource aws_cloudwatch_event_target cache {
+  rule  = "${aws_cloudwatch_event_rule.cache.name}"
+  arn   = "${aws_lambda_function.cache.arn}"
 }
 
-resource aws_cloudwatch_log_group oauth {
-  name              = "/aws/lambda/${aws_lambda_function.oauth.function_name}"
+resource aws_cloudwatch_log_group install {
+  name              = "/aws/lambda/${aws_lambda_function.install.function_name}"
   retention_in_days = 30
   tags              = "${local.tags}"
 }
 
-resource aws_cloudwatch_log_group posts {
-  name              = "/aws/lambda/${aws_lambda_function.posts.function_name}"
-  retention_in_days = 30
-  tags              = "${local.tags}"
-}
-
-resource aws_cloudwatch_log_group dispatch {
-  name              = "/aws/lambda/${aws_lambda_function.dispatch.function_name}"
+resource aws_cloudwatch_log_group cache {
+  name              = "/aws/lambda/${aws_lambda_function.cache.function_name}"
   retention_in_days = 30
   tags              = "${local.tags}"
 }
@@ -99,17 +90,17 @@ resource aws_kms_alias brutalismbot {
 }
 */
 
-resource aws_iam_role_policy brutalismbot_s3 {
+resource aws_iam_role_policy s3_access {
   name   = "s3"
   policy = "${data.aws_iam_policy_document.s3.json}"
   role   = "${module.slackbot.role_name}"
 }
 
-resource aws_lambda_function oauth {
-  description      = "Cache OAuth events"
+resource aws_lambda_function install {
+  description      = "Install OAuth credentials"
   filename         = "${data.archive_file.package.output_path}"
-  function_name    = "brutalismbot-oauth-cache"
-  handler          = "oauth.handler"
+  function_name    = "brutalismbot-install"
+  handler          = "handlers.install"
   role             = "${module.slackbot.role_arn}"
   runtime          = "ruby2.5"
   source_code_hash = "${filebase64sha256("${data.archive_file.package.output_path}")}"
@@ -118,16 +109,15 @@ resource aws_lambda_function oauth {
   environment {
     variables {
       S3_BUCKET = "${aws_s3_bucket.brutalismbot.bucket}"
-      S3_PREFIX = "oauth/v1/"
     }
   }
 }
 
-resource aws_lambda_function posts {
+resource aws_lambda_function cache {
   description      = "Cache posts from /r/brutalism"
   filename         = "${data.archive_file.package.output_path}"
-  function_name    = "brutalismbot-posts-cache"
-  handler          = "posts.handler"
+  function_name    = "brutalismbot-cache"
+  handler          = "handlers.cache"
   role             = "${module.slackbot.role_arn}"
   runtime          = "ruby2.5"
   source_code_hash = "${filebase64sha256("${data.archive_file.package.output_path}")}"
@@ -136,19 +126,16 @@ resource aws_lambda_function posts {
 
   environment {
     variables {
-      S3_BUCKET  = "${aws_s3_bucket.brutalismbot.bucket}"
-      S3_PREFIX  = "posts/v1/"
-      URL        = "${local.url_new}"
-      USER_AGENT = "${local.user_agent}"
+      S3_BUCKET = "${aws_s3_bucket.brutalismbot.bucket}"
     }
   }
 }
 
-resource aws_lambda_function dispatch {
-  description      = "Dispatch posts from /r/brutalism"
+resource aws_lambda_function mirror {
+  description      = "Mirror posts from /r/brutalism"
   filename         = "${data.archive_file.package.output_path}"
-  function_name    = "brutalismbot-posts-dispatch"
-  handler          = "dispatch.handler"
+  function_name    = "brutalismbot-mirror"
+  handler          = "handlers.mirror"
   role             = "${module.slackbot.role_arn}"
   runtime          = "ruby2.5"
   source_code_hash = "${filebase64sha256("${data.archive_file.package.output_path}")}"
@@ -157,62 +144,47 @@ resource aws_lambda_function dispatch {
 
   environment {
     variables {
-      S3_BUCKET     = "${aws_s3_bucket.brutalismbot.bucket}"
-      S3_PREFIX     = "oauth/v1/"
-      SNS_TOPIC_ARN = "${aws_sns_topic.mirror.arn}"
-      USER_AGENT    = "${local.user_agent}"
+      S3_BUCKET = "${aws_s3_bucket.brutalismbot.bucket}"
     }
   }
-}
-
-resource aws_lambda_function mirror {
-  description      = "Mirror posts from /r/brutalism to Slack"
-  filename         = "${data.archive_file.package.output_path}"
-  function_name    = "brutalismbot-posts-mirror"
-  handler          = "mirror.handler"
-  role             = "${module.slackbot.role_arn}"
-  runtime          = "ruby2.5"
-  source_code_hash = "${filebase64sha256("${data.archive_file.package.output_path}")}"
-  tags             = "${local.tags}"
 }
 
 resource aws_lambda_function uninstall {
   description      = "Uninstall brutalismbot from workspace"
   filename         = "${data.archive_file.package.output_path}"
   function_name    = "brutalismbot-uninstall"
-  handler          = "uninstall.handler"
+  handler          = "handlers.uninstall"
   role             = "${module.slackbot.role_arn}"
   runtime          = "ruby2.5"
   source_code_hash = "${filebase64sha256("${data.archive_file.package.output_path}")}"
   tags             = "${local.tags}"
+
+  environment {
+    variables {
+      S3_BUCKET = "${aws_s3_bucket.brutalismbot.bucket}"
+    }
+  }
 }
 
-resource aws_lambda_permission oauth {
+resource aws_lambda_permission install {
   action        = "lambda:InvokeFunction"
-  function_name = "${aws_lambda_function.oauth.function_name}"
+  function_name = "${aws_lambda_function.install.function_name}"
   principal     = "sns.amazonaws.com"
   source_arn    = "${module.slackbot.oauth_topic_arn}"
 }
 
-resource aws_lambda_permission posts {
+resource aws_lambda_permission cache {
   action        = "lambda:InvokeFunction"
-  function_name = "${aws_lambda_function.posts.function_name}"
+  function_name = "${aws_lambda_function.cache.function_name}"
   principal     = "events.amazonaws.com"
-  source_arn    = "${aws_cloudwatch_event_rule.posts.arn}"
-}
-
-resource aws_lambda_permission dispatch {
-  action        = "lambda:InvokeFunction"
-  function_name = "${aws_lambda_function.dispatch.arn}"
-  principal     = "s3.amazonaws.com"
-  source_arn    = "${aws_s3_bucket.brutalismbot.arn}"
+  source_arn    = "${aws_cloudwatch_event_rule.cache.arn}"
 }
 
 resource aws_lambda_permission mirror {
   action        = "lambda:InvokeFunction"
   function_name = "${aws_lambda_function.mirror.arn}"
-  principal     = "sns.amazonaws.com"
-  source_arn    = "${aws_sns_topic.mirror.arn}"
+  principal     = "s3.amazonaws.com"
+  source_arn    = "${aws_s3_bucket.brutalismbot.arn}"
 }
 
 resource aws_lambda_permission uninstall {
@@ -237,36 +209,26 @@ resource aws_s3_bucket brutalismbot {
   }*/
 }
 
-resource aws_s3_bucket_notification posts {
+resource aws_s3_bucket_notification mirror {
   bucket = "${aws_s3_bucket.brutalismbot.id}"
 
   lambda_function {
-    id                  = "dispatch-posts"
-    lambda_function_arn = "${aws_lambda_function.dispatch.arn}"
+    id                  = "mirror"
+    lambda_function_arn = "${aws_lambda_function.mirror.arn}"
     events              = ["s3:ObjectCreated:*"]
     filter_prefix       = "posts/v1/"
     filter_suffix       = ".json"
   }
 }
 
-resource aws_sns_topic mirror {
-  name = "brutalismbot_mirror"
-}
-
 resource aws_sns_topic uninstall {
   name = "brutalismbot_event_app_uninstalled"
 }
 
-resource aws_sns_topic_subscription oauth {
-  endpoint  = "${aws_lambda_function.oauth.arn}"
+resource aws_sns_topic_subscription install {
+  endpoint  = "${aws_lambda_function.install.arn}"
   protocol  = "lambda"
   topic_arn = "${module.slackbot.oauth_topic_arn}"
-}
-
-resource aws_sns_topic_subscription mirror {
-  endpoint  = "${aws_lambda_function.mirror.arn}"
-  protocol  = "lambda"
-  topic_arn = "${aws_sns_topic.mirror.arn}"
 }
 
 resource aws_sns_topic_subscription uninstall {
@@ -277,7 +239,7 @@ resource aws_sns_topic_subscription uninstall {
 
 module slackbot {
   source               = "amancevice/slackbot/aws"
-  version              = "13.2.0"
+  version              = "13.2.1"
   api_description      = "Brutalismbot REST API"
   api_name             = "brutalismbot"
   api_stage_name       = "v1"
@@ -290,5 +252,5 @@ module slackbot {
   role_name            = "brutalismbot"
   role_tags            = "${local.tags}"
   secret_name          = "brutalismbot"
-  sns_topic_prefix     = "brutalismbot"
+  sns_topic_prefix     = "brutalismbot_"
 }

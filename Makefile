@@ -1,15 +1,15 @@
-.PHONY: oauth posts dispatch mirror
+.PHONY: install cache mirror uninstall
 
-oauth:
+install:
 	docker-compose run --rm $@
 
-posts:
+cache:
 	docker-compose run --rm -e MIN_TIME $@
 
-dispatch:
+mirror:
 	docker-compose run --rm $@
 
-mirror:
+uninstall:
 	docker-compose run --rm $@
 
 clean:
