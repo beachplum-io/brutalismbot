@@ -69,9 +69,13 @@ resource aws_cloudfront_distribution website {
   }
 
   default_cache_behavior {
-    allowed_methods  = ["GET", "HEAD"]
-    cached_methods   = ["GET", "HEAD"]
-    target_origin_id = "${aws_s3_bucket.website.bucket}"
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
+    default_ttl            = 86400
+    max_ttl                = 31536000
+    min_ttl                = 0
+    target_origin_id       = "${aws_s3_bucket.website.bucket}"
+    viewer_protocol_policy = "redirect-to-https"
 
     forwarded_values {
       query_string = false
@@ -80,11 +84,6 @@ resource aws_cloudfront_distribution website {
         forward = "none"
       }
     }
-
-    viewer_protocol_policy = "allow-all"
-    min_ttl                = 0
-    default_ttl            = 86400
-    max_ttl                = 31536000
   }
 
   origin {
