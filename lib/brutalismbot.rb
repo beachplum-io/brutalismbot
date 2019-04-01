@@ -59,7 +59,7 @@ module Brutalismbot
     end
 
     def delete(team_id:, dryrun:nil)
-      prefix = "#{@prefix}team_id=#{team_id}/"
+      prefix = "#{@prefix}team=#{team_id}/"
       puts "GET s3://#{@bucket.name}/#{prefix}*"
       @bucket.objects(prefix: prefix).map do |object|
         if dryrun
@@ -73,7 +73,7 @@ module Brutalismbot
     end
 
     def put(auth:, dryrun:nil)
-      super key:    "#{@prefix}team_id=#{auth.team_id}/channel_id=#{auth.channel_id}/oauth.json",
+      super key:    "#{@prefix}team=#{auth.team_id}/channel=#{auth.channel_id}/oauth.json",
             body:   auth.to_json,
             dryrun: dryrun
     end
