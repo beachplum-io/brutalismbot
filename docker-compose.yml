@@ -16,6 +16,8 @@ services:
   # Cache /r/brutalism posts
   cache:
     <<: *base
+    environment:
+      MIN_TIME:
     command: handlers.cache
 
   # Mirror /r/brutalism posts

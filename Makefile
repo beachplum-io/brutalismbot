@@ -4,7 +4,7 @@ install:
 	docker-compose run --rm $@
 
 cache:
-	docker-compose run --rm -e MIN_TIME $@
+	docker-compose run --rm $@
 
 mirror:
 	docker-compose run --rm $@
