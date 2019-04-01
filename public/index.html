@@ -133,38 +133,61 @@
 
       <div class="container">
 
+        <!-- Intro -->
         <div class="row">
 
           <a href="#">
             <h2>A Slack More Brutalist</h2>
           </a>
 
-          <div>
+          <p>
             A Slack app that mirrors posts from
-            <a href="https://www.reddit.com/r/brutalism/new">/r/brutalism</a>
+            <a href="https://www.reddit.com/r/brutalism">/r/brutalism</a>
             to a #channel of your choosing using
             <a href="https://api.slack.com/incoming-webhooks">incoming webhooks</a>.
-          </div>
+          </p>
 
-          <br/>
+        </div>
 
-          <div>
-            <a href="https://github.com/amancevice/brutalismbot/issues">File issues</a>
-            and view the source code on
-            <a href="https://github.com/amancevice/brutalismbot">GitHub.</a>
-          </div>
-
-        </div><br/>
-
+        <!-- Slack button -->
         <div class="row">
+
           <a href="https://slack.com/oauth/authorize?client_id=588825324710.578676076417&scope=incoming-webhook">
             <img alt="Add to Slack" height="40" width="139" src="https://platform.slack-edge.com/img/add_to_slack.png" srcset="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x">
           </a>
+
         </div><br/>
 
+        <!-- How it works -->
         <div class="row">
 
-          <a href="#privacy-policy"><h3>Privacy Policy</h3></a>
+          <a href="#how-it-works">
+            <h3>How it Works</h3>
+          </a>
+
+          <p>After granting Brutalismbot permission to post to a #channel on your Slack workspace, Brutalismbot will save a copy of the incoming webhook URL to which it will publish posts.</p>
+          <p>
+            Every hour Brutalismbot requests posts from reddit's REST API at
+            <a href="https://www.reddit.com/r/brutalism/new.json">/r/brutalism/new.json</a>.
+          </p>
+          <p>
+            New image posts that haven't been seen before are saved, transformed into Slack messages using
+            <a href="https://api.slack.com/block-kit">Block Kit</a>,
+            and published to your #channel via the incoming webhook URL.
+          </p>
+          <p>
+            <a href="https://github.com/amancevice/brutalismbot/issues">File issues</a>
+            and view the source code on
+            <a href="https://github.com/amancevice/brutalismbot">GitHub.</a>
+          </p>
+        </div>
+
+        <!-- Privacy policy -->
+        <div class="row">
+
+          <a href="#privacy-policy">
+            <h3>Privacy Policy</h3>
+          </a>
 
           <div class="fineprint">
             <p><em>Last updated March 29th, 2019</em></p>
