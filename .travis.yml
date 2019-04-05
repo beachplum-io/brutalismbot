@@ -13,5 +13,5 @@ jobs:
       script: make plan
       if: tag IS blank
     - stage: apply
-      script: make apply release=${TRAVIS_TAG}
+      script: make plan apply release=${TRAVIS_TAG}
       if: tag IS present
