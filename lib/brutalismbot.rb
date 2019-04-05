@@ -2,6 +2,9 @@ module Brutalismbot
   S3_BUCKET = ENV["S3_BUCKET"] || "brutalismbot"
   VERSION   = ENV["VERSION"]   || "v1"
 
+  class Error < StandardError
+  end
+
   class Client
     def initialize(bucket:nil, version:nil)
       @bucket  = bucket  || Aws::S3::Bucket.new(name: S3_BUCKET)

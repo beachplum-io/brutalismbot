@@ -3,8 +3,11 @@ services:
 
   # Base config
   base: &base
+    environment:
+      AWS_ACCESS_KEY_ID:
+      AWS_SECRET_ACCESS_KEY:
+      AWS_DEFAULT_REGION: us-east-1
     image: lambci/lambda:ruby2.5
-    env_file: .env
     volumes:
       - ./lib:/var/task
 
@@ -29,3 +32,15 @@ services:
   uninstall:
     <<: *base
     command: handlers.uninstall '{"Records":[{"Sns":{"Message":"{\"token\":\"<token>\",\"team_id\":\"T1234568\",\"api_app_id\":\"A12345678\",\"event\":{\"type\":\"app_uninstalled\"},\"type\":\"event_callback\",\"event_id\":\"Ev12345678\",\"event_time\":1553557314}"}}]}'
+
+  # Deployment
+  terraform:
+    <<: *base
+    image: hashicorp/terraform
+    volumes:
+      - ./:/var/task
+      - terraform:/var/task/.terraform
+    working_dir: /var/task
+
+volumes:
+  terraform:

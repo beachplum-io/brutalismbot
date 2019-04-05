@@ -3,12 +3,13 @@ provider aws {
   profile    = "${var.aws_profile}"
   region     = "${var.aws_region}"
   secret_key = "${var.aws_secret_access_key}"
-  version    = "~> 2.3"
+  version    = "~> 2.5"
 }
 
 locals {
   tags {
-    App     = "socialismbot"
+    App     = "brutalismbot"
+    Name    = "brutalismbot.com"
     Repo    = "${var.repo}"
     Release = "${var.release}"
   }

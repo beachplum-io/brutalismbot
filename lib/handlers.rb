@@ -4,9 +4,9 @@ require_relative "./event"
 require_relative "./r"
 require_relative "./slack"
 
-DRYRUN     = ENV["DRYRUN"]
-MIN_TIME   = ENV["MIN_TIME"] && ENV["MIN_TIME"].to_i
-S3_BUCKET  = ENV["S3_BUCKET"]
+DRYRUN    = ENV["DRYRUN"]
+MIN_TIME  = ENV["MIN_TIME"] && ENV["MIN_TIME"].to_i
+S3_BUCKET = ENV["S3_BUCKET"]
 
 BUCKET       = Aws::S3::Bucket.new name: S3_BUCKET
 BRUTALISMBOT = Brutalismbot::Client.new bucket: BUCKET
