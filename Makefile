@@ -14,10 +14,8 @@ mirror:
 uninstall:
 	docker-compose run --rm $@
 
-.terraform:
+init:
 	docker-compose run --rm terraform init
-
-init: .terraform
 
 plan:
 	docker-compose run --rm -e TF_VAR_release=$(release) terraform plan

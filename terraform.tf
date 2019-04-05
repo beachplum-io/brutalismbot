@@ -269,6 +269,7 @@ module slackbot {
   base_url             = "/slack"
   kms_key_id           = "${data.aws_kms_key.key.key_id}"
   lambda_function_name = "brutalismbot-api"
+  lambda_layer_name    = "brutalismbot"
   lambda_tags          = "${local.tags}"
   log_group_tags       = "${local.tags}"
   role_name            = "brutalismbot"
