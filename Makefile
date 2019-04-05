@@ -1,6 +1,6 @@
 release ?= $(shell git describe --tags --always)
 
-.PHONY: init plan apply install cache mirror uninstall
+.PHONY: init plan apply install cache mirror uninstall clean
 
 install:
 	docker-compose run --rm $@
@@ -14,13 +14,15 @@ mirror:
 uninstall:
 	docker-compose run --rm $@
 
-init:
-	docker-compose run --rm terraform $@
+.terraform:
+	docker-compose run --rm terraform init
 
-plan:
+init: .terraform
+
+plan: init
 	docker-compose run --rm -e TF_VAR_release=$(release) terraform $@
 
-apply:
+apply: init
 	docker-compose run --rm -e TF_VAR_release=$(release) terraform $@ -auto-approve
 
 clean:
