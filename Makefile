@@ -15,13 +15,13 @@ uninstall:
 	docker-compose run --rm $@
 
 init:
-	docker-compose run --rm terraform init
+	docker-compose run --rm terraform $@
 
 plan:
-	docker-compose run --rm -e TF_VAR_release=$(release) terraform plan
+	docker-compose run --rm -e TF_VAR_release=$(release) terraform $@
 
 apply:
-	docker-compose run --rm -e TF_VAR_release=$(release) terraform apply -auto-approve
+	docker-compose run --rm -e TF_VAR_release=$(release) terraform $@ -auto-approve
 
 clean:
 	rm -rf .terraform
