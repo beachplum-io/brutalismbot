@@ -5,11 +5,11 @@ services:
   base: &base
     environment:
       AWS_ACCESS_KEY_ID:
+      AWS_DEFAULT_REGION:
       AWS_SECRET_ACCESS_KEY:
-      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
+      DRYRUN:
       MIN_TIME:
-      S3_BUCKET: ${S3_BUCKET:-brutalismbot}
-      DRYRUN: 1
+      S3_BUCKET:
     image: lambci/lambda:ruby2.5
     volumes:
       - ./lib:/var/task
