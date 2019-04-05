@@ -1,4 +1,4 @@
-release ?= $(shell date -u +%Y.%-m.%-d)
+release ?= $(shell git describe --tags)
 
 .PHONY: init plan apply install cache mirror uninstall
 
