@@ -1,4 +1,4 @@
-release ?= $(shell git describe --tags)
+release ?= $(shell git describe --tags --always)
 
 .PHONY: init plan apply install cache mirror uninstall
 
