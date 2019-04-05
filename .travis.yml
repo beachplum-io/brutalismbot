@@ -3,8 +3,6 @@ rvm:
 - '2.5'
 services:
 - docker
-before_install:
-- git describe --tags --always
 install:
 - make init
 jobs:
