@@ -20,3 +20,27 @@ New image posts that haven't been seen before are saved, transformed into Slack 
 Example post:
 
 <img alt="post" src="./docs/post.png" width="500"/>
+
+## Architecture
+
+The app consists of 3 parts: install/uninstall, caching new posts, and mirroring posts to installed workspaces.
+
+### Install/Uninstall
+
+<img alt="install-uninstall" src="./docs/install-uninstall.png"/>
+
+When the app is installed, Slack sends a `POST` request of the OAuth event to the Brutalismbot REST API with the incoming webhook URL. The event is published to an SNS topic that triggers a Lambda to persist the OAuth to S3.
+
+When the app is uninstalled, Slack sends a `POST` request of the uninstall event to the Brutalismbot REST API. The event is published to an SNS topic that triggers a Lambda to remove the OAuth from S3.
+
+### Cache
+
+<img alt="cache" src="./docs/cache.png" width="500"/>
+
+Every hour (ish) a CloudWatch event triggers a Lambda to get new posts from the /r/brutalism REST API and persists the JSON representation of the post to S3.
+
+### Mirror
+
+<img alt="mirror" src="./docs/mirror.png" width="500"/>
+
+When a new post is persisted to S3, an S3 bucket notification triggers a Lambda to convert the post to a Slack message and post to every installed workspace.
