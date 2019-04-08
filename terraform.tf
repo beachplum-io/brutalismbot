@@ -28,7 +28,7 @@ locals {
 }
 
 data archive_file package {
-  output_path = "${path.module}/dist/brutalismbot-${var.release}.zip"
+  output_path = "${path.module}/.terraform/package.zip"
   source_dir  = "${path.module}/lib"
   type        = "zip"
 }
