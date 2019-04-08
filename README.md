@@ -29,7 +29,7 @@ The app consists of 3 parts: install/uninstall, caching new posts, and mirroring
 
 <img alt="install-uninstall" src="./docs/install-uninstall.png"/>
 
-When the app is installed, Slack sends a `POST` request of the OAuth event to the Brutalismbot REST API with the incoming webhook URL. The event is published to an SNS topic that triggers a Lambda to persist the OAuth to S3.
+When the app is installed, The Brutalismbot REST API sends a `POST` request to Slack's [oauth.access](https://api.slack.com/methods/oauth.access) REST endpoint. The resulting OAuth payload (with incoming webhook URL) is published to an SNS topic that triggers a Lambda that persists the payload to S3 and sends the current top bost on /r/brutalism to the new workspace using the webhook URL.
 
 When the app is uninstalled, Slack sends a `POST` request of the uninstall event to the Brutalismbot REST API. The event is published to an SNS topic that triggers a Lambda to remove the OAuth from S3.
 
