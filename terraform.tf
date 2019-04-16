@@ -261,7 +261,7 @@ resource aws_sns_topic_subscription uninstall {
 
 module slackbot {
   source               = "amancevice/slackbot/aws"
-  version              = "13.4.0"
+  version              = "13.5.0"
   api_description      = "Brutalismbot REST API"
   api_name             = "brutalismbot"
   api_stage_name       = "v1"
