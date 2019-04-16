@@ -10,6 +10,14 @@ services:
       DRYRUN:
       MIN_TIME:
       S3_BUCKET:
+      TF_VAR_slack_client_id:
+      TF_VAR_slack_client_secret:
+      TF_VAR_slack_oauth_error_uri:
+      TF_VAR_slack_oauth_redirect_uri:
+      TF_VAR_slack_oauth_success_uri:
+      TF_VAR_slack_signing_secret:
+      TF_VAR_slack_signing_version:
+      TF_VAR_slack_token:
     image: lambci/lambda:ruby2.5
     volumes:
       - ./lib:/var/task
