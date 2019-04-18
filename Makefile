@@ -1,30 +1,31 @@
-release ?= $(shell git describe --tags --always)
+release := $(shell git describe --tags --abbrev=0)
+package := brutalismbot-$(shell git describe --tags --always).zip
+bucket  := brutalismbot
+key     := terraform/pkg/$(package)
 
-.PHONY: init plan apply install cache mirror uninstall clean
+.PHONY: deploy init plan apply test clean
 
-install:
-	docker-compose run --rm install
+pkg:
+	mkdir pkg && (cd lib && zip -r - .) > pkg/$(package)
 
-cache:
-	docker-compose run --rm cache
+deploy:
+	(cd lib && zip -r - .) | aws s3 cp - s3://$(bucket)/$(key)
 
-mirror:
-	docker-compose run --rm mirror
-
-uninstall:
-	docker-compose run --rm uninstall
-
-.terraform:
+init:
 	docker-compose run --rm terraform init
 
-init: .terraform
+plan:
+	docker-compose run --rm terraform plan -var release=$(release)
 
-plan: init
-	docker-compose run --rm -e TF_VAR_release=$(release) terraform plan
+apply: plan
+	docker-compose run --rm terraform apply -var release=$(release) -auto-approve
 
-apply: init
-	docker-compose run --rm -e TF_VAR_release=$(release) terraform apply -auto-approve
+test:
+	docker-compose run --rm install
+	docker-compose run --rm cache
+	docker-compose run --rm mirror
+	docker-compose run --rm uninstall
 
 clean:
-	rm -rf .terraform
-	docker-compose down --volumes
+	rm -rf .terraform pkg
+	docker-compose down

@@ -1,15 +1,23 @@
 language: ruby
 rvm:
-- '2.5'
-services:
-- docker
+- 2.5.3
 install:
 - make init
-jobs:
-  include:
-    - stage: plan
-      script: make plan
-      if: tag IS blank
-    - stage: apply
-      script: make plan apply release=${TRAVIS_TAG}
-      if: tag IS present
+script:
+- make plan
+before_deploy:
+- make pkg
+after_deploy:
+- make apply
+deploy:
+- provider: s3
+  access_key_id: "${AWS_ACCESS_KEY_ID}"
+  secret_access_key: "${AWS_SECRET_ACCESS_KEY}"
+  bucket: brutalismbot
+  local-dir: pkg
+  upload-dir: terraform/pkg
+  acl: private
+  skip_cleanup: true
+  on:
+    repo: brutalismbot/brutalismbot
+    tags: true
