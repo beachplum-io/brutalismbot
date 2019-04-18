@@ -28,4 +28,4 @@ test:
 
 clean:
 	rm -rf .terraform pkg
-	docker-compose down
+	docker-compose down --volumes
