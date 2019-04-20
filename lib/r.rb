@@ -37,9 +37,7 @@ module R
       end
 
       def after(time)
-        PostCollection.new uri:        @uri,
-                           user_agent: @user_agent,
-                           min_time:   time
+        PostCollection.new uri: @uri, user_agent: @user_agent, min_time: time
       end
 
       def each

@@ -16,13 +16,11 @@ module Brutalismbot
     end
 
     def auths
-      AuthCollection.new bucket: @bucket,
-                         prefix: "oauth/#{@version}/"
+      AuthCollection.new bucket: @bucket, prefix: "oauth/#{@version}/"
     end
 
     def posts
-      PostCollection.new bucket: @bucket,
-                         prefix: "posts/#{@version}/"
+      PostCollection.new bucket: @bucket, prefix: "posts/#{@version}/"
     end
   end
 
@@ -46,8 +44,7 @@ module Brutalismbot
         puts "PUT DRYRUN s3://#{@bucket.name}/#{key}"
       else
         puts "PUT s3://#{@bucket.name}/#{key}"
-        @bucket.put_object key:  key,
-                           body: body
+        @bucket.put_object key: key, body: body
       end
 
       {bucket: @bucket.name, key: key}
@@ -76,9 +73,8 @@ module Brutalismbot
     end
 
     def put(auth:, dryrun:nil)
-      super key:    "#{@prefix}team=#{auth.team_id}/channel=#{auth.channel_id}/oauth.json",
-            body:   auth.to_json,
-            dryrun: dryrun
+      key = "#{@prefix}team=#{auth.team_id}/channel=#{auth.channel_id}/oauth.json"
+      super key: key, body: auth.to_json, dryrun: dryrun
     end
   end
 
@@ -121,9 +117,8 @@ module Brutalismbot
     end
 
     def put(post:, dryrun:nil)
-      super key:    "#{prefix_for post.created_utc}#{post.created_utc.to_i}.json",
-            body:   post.to_json,
-            dryrun: dryrun
+      key = "#{prefix_for post.created_utc}#{post.created_utc.to_i}.json"
+      super key: key, body: post.to_json, dryrun: dryrun
     end
   end
 end
