@@ -3,7 +3,10 @@ package := brutalismbot-$(shell git describe --tags --always).zip
 bucket  := brutalismbot
 key     := terraform/pkg/$(package)
 
-.PHONY: deploy init plan apply test clean
+.PHONY: lock deploy init plan apply test clean
+
+lock:
+	bundle install
 
 pkg:
 	mkdir pkg && (cd lib && zip -r - .) > pkg/$(package)
