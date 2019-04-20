@@ -11,8 +11,9 @@ module Brutalismbot
       @version = version || VERSION
     end
 
-    def subreddit
-      R::Brutalism::Client.new user_agent: "brutalismbot #{@version}"
+    def subreddit(endpoint:nil, user_agent:nil)
+      user_agent ||= "#{@bucket.name} #{@version}"
+      R::Brutalism::Client.new endpoint: endpoint, user_agent: user_agent
     end
 
     def auths
