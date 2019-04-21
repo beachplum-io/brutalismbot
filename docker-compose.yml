@@ -3,21 +3,13 @@ services:
 
   # Base config
   base: &base
-    environment:
+    environment: &env
       AWS_ACCESS_KEY_ID:
       AWS_DEFAULT_REGION:
       AWS_SECRET_ACCESS_KEY:
       DRYRUN:
       MIN_TIME:
       S3_BUCKET:
-      TF_VAR_slack_client_id:
-      TF_VAR_slack_client_secret:
-      TF_VAR_slack_oauth_error_uri:
-      TF_VAR_slack_oauth_redirect_uri:
-      TF_VAR_slack_oauth_success_uri:
-      TF_VAR_slack_signing_secret:
-      TF_VAR_slack_signing_version:
-      TF_VAR_slack_token:
     image: lambci/lambda:ruby2.5
     volumes:
       - ./lib:/var/task
@@ -35,7 +27,7 @@ services:
   # Mirror /r/brutalism posts
   mirror:
     <<: *base
-    command: handlers.mirror '{"Records":[{"s3":{"bucket":{"name":"brutalismbot"},"object":{"key":"posts/v1/year%3D2019/month%3D2019-03/day%3D2019-03-26/1553565987.json"}}}]}'
+    command: handlers.mirror '{"Records":[{"s3":{"bucket":{"name":"brutalismbot"},"object":{"key":"posts/v1/year%3D2019/month%3D2019-04/day%3D2019-04-20/1555799559.json"}}}]}'
 
   # Uninstall app
   uninstall:
@@ -45,6 +37,16 @@ services:
   # Deployment
   terraform:
     <<: *base
+    environment:
+      <<: *env
+      TF_VAR_slack_client_id:
+      TF_VAR_slack_client_secret:
+      TF_VAR_slack_oauth_error_uri:
+      TF_VAR_slack_oauth_redirect_uri:
+      TF_VAR_slack_oauth_success_uri:
+      TF_VAR_slack_signing_secret:
+      TF_VAR_slack_signing_version:
+      TF_VAR_slack_token:
     image: hashicorp/terraform
     volumes:
       - ./:/var/task
