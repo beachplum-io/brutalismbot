@@ -43,7 +43,9 @@ end
 def mirror(event:, context:)
   Event::S3[event].each do |message|
     # Get post
-    post = BRUTALISMBOT.posts.get **message
+    bucket = Aws::S3::Bucket.new name: message[:bucket]
+    object = bucket.object(message[:key]).get.body.read
+    post   = R::Brutalism::Post[JSON.parse object]
 
     # Post to authed Slacks
     BRUTALISMBOT.auths.map do |auth|

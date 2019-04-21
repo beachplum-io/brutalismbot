@@ -82,31 +82,31 @@ module Brutalismbot
   class PostCollection < S3Collection
     def each
       super do |object|
-        body = object.get.body.read
-        json = JSON.parse body
-        yield R::Brutalism::Post[json]
+        yield R::Brutalism::Post[JSON.parse object.get.body.read]
       end
     end
 
-    def get(bucket:, key:)
-      @bucket.client.get_object(bucket: bucket, key: key) do |body|
-        return R::Brutalism::Post[JSON.parse body]
-      end
+    def latest
+      R::Brutalism::Post[JSON.parse max_key.get.body.read]
     end
 
-    def max_time(since:nil)
-      since ||= Time.now.utc
-      prefix  = prefix_for Time.at(since.to_i).utc
-
+    def max_key
       # Dig for max key
+      prefix = prefix_for Time.now.utc
       puts "GET s3://#{@bucket.name}/#{prefix}*"
-      until max_key = @bucket.objects(prefix: prefix).map(&:key).max
-        # Go up a level in prefix if no keys found
+
+      # Go up a level in prefix if no keys found
+      until (keys = @bucket.objects(prefix: prefix)).any?
         prefix = prefix.split(/[^\/]+\/\z/).first
         puts "GET s3://#{@bucket.name}/#{prefix}*"
       end
 
-      max_key.match(/(\d+).json\z/).to_a.last.to_i
+      # Return max by key
+      keys.max{|a,b| a.key <=> b.key }
+    end
+
+    def max_time
+      max_key.key.match(/(\d+).json\z/).to_a.last.to_i
     end
 
     def prefix_for(time)
