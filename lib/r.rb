@@ -104,7 +104,7 @@ module R
         end
         CGI.unescapeHTML source.dig("url")
       rescue NoMethodError
-        nil
+        dig("data", "media_metadata")&.values&.first&.dig("s", "u")
       end
     end
   end
