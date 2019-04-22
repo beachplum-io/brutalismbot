@@ -1,5 +1,5 @@
-release := $(shell git describe --tags --abbrev=0)
-package := brutalismbot-$(shell git describe --tags --always).zip
+release := $(shell git describe --tags --always)
+package := brutalismbot-$(release).zip
 bucket  := brutalismbot
 key     := terraform/pkg/$(package)
 
