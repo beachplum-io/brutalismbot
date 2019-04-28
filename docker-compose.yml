@@ -13,6 +13,7 @@ services:
     image: lambci/lambda:ruby2.5
     volumes:
       - ./lib:/var/task
+    working_dir: /var/task
 
   # Cache OAuth event
   install:
@@ -50,8 +51,3 @@ services:
     image: hashicorp/terraform
     volumes:
       - ./:/var/task
-      - terraform:/var/task/.terraform
-    working_dir: /var/task
-
-volumes:
-  terraform:
