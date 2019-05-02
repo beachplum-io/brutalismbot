@@ -5,23 +5,28 @@ key     := terraform/pkg/$(package)
 
 .PHONY: lock deploy init plan apply test clean
 
-lock:
+Gemfile.lock: Gemfile
 	bundle install
 
+lock: Gemfile.lock
+
 pkg:
-	mkdir pkg && (cd lib && zip -r - .) > pkg/$(package)
+	mkdir pkg
+	docker-compose run --rm -T build zip -r - . > pkg/$(package)
 
-deploy:
-	(cd lib && zip -r - .) | aws s3 cp - s3://$(bucket)/$(key)
+deploy: pkg
+	aws s3 cp pkg/$(package) s3://$(bucket)/$(key)
 
-init:
+.terraform:
 	docker-compose run --rm terraform init
 
-plan:
-	docker-compose run --rm terraform plan -var release=$(release)
+init: .terraform
+
+plan: .terraform
+	docker-compose run --rm terraform plan -var release=$(release) -out .terraform/planfile
 
 apply: plan
-	docker-compose run --rm terraform apply -var release=$(release) -auto-approve
+	docker-compose run --rm terraform apply -auto-approve .terraform/planfile
 
 test:
 	docker-compose run --rm install
@@ -31,4 +36,4 @@ test:
 
 clean:
 	rm -rf .terraform pkg
-	docker-compose down --volumes
+	docker-compose down

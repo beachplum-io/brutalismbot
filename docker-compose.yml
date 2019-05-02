@@ -15,6 +15,11 @@ services:
       - ./lib:/var/task
     working_dir: /var/task
 
+  # Build env
+  build:
+    <<: *base
+    image: lambci/lambda:build-ruby2.5
+
   # Cache OAuth event
   install:
     <<: *base
