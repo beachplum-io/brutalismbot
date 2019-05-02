@@ -23,10 +23,10 @@ deploy: pkg
 init: .terraform
 
 plan: .terraform
-	docker-compose run --rm terraform plan -var release=$(release) -out .terraform/planfile
+	docker-compose run --rm terraform plan -var release=$(release) -out .terraform/$(release).planfile
 
 apply: plan
-	docker-compose run --rm terraform apply -auto-approve .terraform/planfile
+	docker-compose run --rm terraform apply -auto-approve .terraform/$(release).planfile
 
 test:
 	docker-compose run --rm install
