@@ -4,8 +4,8 @@ require_relative "./event"
 require_relative "./r"
 require_relative "./slack"
 
-DRYRUN    = !ENV["DRYRUN"]&.empty?&.nil?
-MIN_TIME  = ENV["MIN_TIME"]&.to_i
+DRYRUN    = !ENV["DRYRUN"].to_s.empty?
+MIN_TIME  = !ENV["MIN_TIME"].to_s.empty? && ENV["MIN_TIME"].to_i || nil
 S3_BUCKET = ENV["S3_BUCKET"]
 
 BUCKET       = Aws::S3::Bucket.new name: S3_BUCKET

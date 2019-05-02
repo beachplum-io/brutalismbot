@@ -11,6 +11,7 @@ services:
       MIN_TIME:
       S3_BUCKET:
     image: lambci/lambda:ruby2.5
+    network_mode: bridge
     volumes:
       - ./lib:/var/task
     working_dir: /var/task
