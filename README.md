@@ -1,6 +1,6 @@
 <img alt="brutalismbot" src="./docs/banner.png"/>
 
-A Slack app that mirrors posts from
+A [Slack app](https://slack.com/apps/AH0KW28C9-brutalismbot) that mirrors posts from
 [/r/brutalism](https://www.reddit.com/r/brutalism/new)
 to a #channel of your choosing using
 [incoming webhooks](https://api.slack.com/incoming-webhooks).
