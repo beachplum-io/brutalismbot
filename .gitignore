@@ -8,16 +8,7 @@
 # .tfvars files
 *.tfvars
 
-/.bundle/
-/.yardoc
-/_yardoc/
-/coverage/
-/doc/
-/pkg/
-/spec/reports/
-/tmp/
-
-# rspec failure tracking
-.rspec_status
-
-.env
+**/.docker/
+*.env
+*.tfplan
+*.zip

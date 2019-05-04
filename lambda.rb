@@ -1,20 +1,26 @@
 require "aws-sdk-s3"
-require_relative "./brutalismbot"
-require_relative "./event"
-require_relative "./r"
-require_relative "./slack"
+require "bundler/setup"
+require "brutalismbot"
 
 DRYRUN    = !ENV["DRYRUN"].to_s.empty?
 MIN_TIME  = !ENV["MIN_TIME"].to_s.empty? && ENV["MIN_TIME"].to_i || nil
-S3_BUCKET = ENV["S3_BUCKET"]
+S3_BUCKET = ENV["S3_BUCKET"] || "brutalismbot"
 
 BUCKET       = Aws::S3::Bucket.new name: S3_BUCKET
-BRUTALISMBOT = Brutalismbot::Client.new bucket: BUCKET
+BRUTALISMBOT = Brutalismbot::S3::Client.new bucket: BUCKET
+
+def test(event:, context:)
+  {
+    DRYRUN:    DRYRUN,
+    MIN_TIME:  MIN_TIME,
+    S3_BUCKET: S3_BUCKET,
+  }
+end
 
 def install(event:, context:)
-  Event::SNS[event].map do |message|
+  Brutalismbot::Event::SNS[event].map do |message|
     # Get OAuth from SNS message
-    oauth = Slack::OAuth[message]
+    oauth = Brutalismbot::OAuth[message]
 
     # Put OAuth on S3
     BRUTALISMBOT.auths.put auth: oauth, dryrun: DRYRUN
@@ -41,7 +47,7 @@ def cache(event:, context:)
 end
 
 def mirror(event:, context:)
-  Event::S3[event].each do |message|
+  Brutalismbot::Event::S3[event].each do |message|
     # Get post
     bucket = Aws::S3::Bucket.new name: message[:bucket]
     object = bucket.object(message[:key]).get.body.read
@@ -55,9 +61,9 @@ def mirror(event:, context:)
 end
 
 def uninstall(event:, context:)
-  Event::SNS[event].each do |message|
+  Brutalismbot::Event::SNS[event].each do |message|
     # Get OAuth from SNS message
-    oauth = Slack::OAuth[message]
+    oauth = Brutalismbot::OAuth[message]
 
     # Remove all OAuths
     BRUTALISMBOT.auths.delete team_id: oauth.team_id, dryrun: DRYRUN
