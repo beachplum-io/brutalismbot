@@ -17,21 +17,23 @@ lock: Gemfile.lock
 
 init: .terraform
 
-plan: .terraform
-	docker-compose run --rm terraform plan -var release=$(release) -out .terraform/$(release).planfile
+.terraform/$(release).tfplan: .terraform
+	docker-compose run --rm terraform plan -var release=$(release) -out $@
 
-apply: plan
-	docker-compose run --rm terraform apply -auto-approve .terraform/$(release).planfile
+plan: .terraform/$(release).tfplan
+
+apply: .terraform/$(release).tfplan
+	docker-compose run --rm terraform apply -auto-approve $<
 
 pkg:
 	mkdir pkg
-	docker-compose run --rm -T build zip -r - . > pkg/$(package)
+	docker-compose run --rm -T zip -r - . > $@/$(package)
 
 sync: pkg
-	aws s3 sync pkg s3://$(bucket)/$(prefix)
+	docker-compose run --rm aws s3 sync $< s3://$(bucket)/$(prefix)
 
 sync-dryrun: pkg
-	aws s3 sync pkg s3://$(bucket)/$(prefix) --dryrun
+	docker-compose run --rm aws s3 sync $< s3://$(bucket)/$(prefix) --dryrun
 
 test:
 	docker-compose run --rm install
