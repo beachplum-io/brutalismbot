@@ -91,7 +91,7 @@ resource aws_lambda_function install {
   depends_on    = [null_resource.lambda]
   description   = "Install OAuth credentials"
   function_name = "brutalismbot-install"
-  handler       = "handlers.install"
+  handler       = "lambda.install"
   role          = data.aws_iam_role.role.arn
   runtime       = "ruby2.5"
   s3_bucket     = aws_s3_bucket.brutalismbot.bucket
@@ -110,7 +110,7 @@ resource aws_lambda_function cache {
   depends_on    = [null_resource.lambda]
   description   = "Cache posts from /r/brutalism"
   function_name = "brutalismbot-cache"
-  handler       = "handlers.cache"
+  handler       = "lambda.cache"
   role          = data.aws_iam_role.role.arn
   runtime       = "ruby2.5"
   s3_bucket     = aws_s3_bucket.brutalismbot.bucket
@@ -129,7 +129,7 @@ resource aws_lambda_function mirror {
   depends_on    = [null_resource.lambda]
   description   = "Mirror posts from /r/brutalism"
   function_name = "brutalismbot-mirror"
-  handler       = "handlers.mirror"
+  handler       = "lambda.mirror"
   role          = data.aws_iam_role.role.arn
   runtime       = "ruby2.5"
   s3_bucket     = aws_s3_bucket.brutalismbot.bucket
@@ -148,7 +148,7 @@ resource aws_lambda_function uninstall {
   depends_on    = [null_resource.lambda]
   description   = "Uninstall brutalismbot from workspace"
   function_name = "brutalismbot-uninstall"
-  handler       = "handlers.uninstall"
+  handler       = "lambda.uninstall"
   role          = data.aws_iam_role.role.arn
   runtime       = "ruby2.5"
   s3_bucket     = aws_s3_bucket.brutalismbot.bucket
