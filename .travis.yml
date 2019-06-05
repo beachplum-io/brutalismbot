@@ -2,8 +2,11 @@ language: ruby
 rvm:
 - 2.5.5
 install:
-- make
+- docker pull lambci/lambda:build-ruby2.5
+- docker pull lambci/lambda:ruby2.5
 script:
+- make
+after_success:
 - make test
 deploy:
 - provider: script
