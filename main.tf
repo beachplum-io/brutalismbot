@@ -88,14 +88,13 @@ resource aws_iam_role_policy s3_access {
 }
 
 resource aws_lambda_function test {
-  depends_on    = [null_resource.lambda]
   description   = "Test Brutalismbot Lambda package"
   function_name = "brutalismbot-test"
   handler       = "lambda.test"
   role          = data.aws_iam_role.role.arn
   runtime       = "ruby2.5"
   s3_bucket     = aws_s3_bucket.brutalismbot.bucket
-  s3_key        = local.lambda_s3_key
+  s3_key        = null_resource.lambda.triggers.s3_key
   tags          = local.tags
   timeout       = 3
 
@@ -107,14 +106,13 @@ resource aws_lambda_function test {
 }
 
 resource aws_lambda_function install {
-  depends_on    = [null_resource.lambda]
   description   = "Install OAuth credentials"
   function_name = "brutalismbot-install"
   handler       = "lambda.install"
   role          = data.aws_iam_role.role.arn
   runtime       = "ruby2.5"
   s3_bucket     = aws_s3_bucket.brutalismbot.bucket
-  s3_key        = local.lambda_s3_key
+  s3_key        = null_resource.lambda.triggers.s3_key
   tags          = local.tags
   timeout       = 3
 
@@ -126,14 +124,13 @@ resource aws_lambda_function install {
 }
 
 resource aws_lambda_function cache {
-  depends_on    = [null_resource.lambda]
   description   = "Cache posts from /r/brutalism"
   function_name = "brutalismbot-cache"
   handler       = "lambda.cache"
   role          = data.aws_iam_role.role.arn
   runtime       = "ruby2.5"
   s3_bucket     = aws_s3_bucket.brutalismbot.bucket
-  s3_key        = local.lambda_s3_key
+  s3_key        = null_resource.lambda.triggers.s3_key
   tags          = local.tags
   timeout       = 30
 
@@ -145,14 +142,13 @@ resource aws_lambda_function cache {
 }
 
 resource aws_lambda_function mirror {
-  depends_on    = [null_resource.lambda]
   description   = "Mirror posts from /r/brutalism"
   function_name = "brutalismbot-mirror"
   handler       = "lambda.mirror"
   role          = data.aws_iam_role.role.arn
   runtime       = "ruby2.5"
   s3_bucket     = aws_s3_bucket.brutalismbot.bucket
-  s3_key        = local.lambda_s3_key
+  s3_key        = null_resource.lambda.triggers.s3_key
   tags          = local.tags
   timeout       = 30
 
@@ -164,14 +160,13 @@ resource aws_lambda_function mirror {
 }
 
 resource aws_lambda_function uninstall {
-  depends_on    = [null_resource.lambda]
   description   = "Uninstall brutalismbot from workspace"
   function_name = "brutalismbot-uninstall"
   handler       = "lambda.uninstall"
   role          = data.aws_iam_role.role.arn
   runtime       = "ruby2.5"
   s3_bucket     = aws_s3_bucket.brutalismbot.bucket
-  s3_key        = local.lambda_s3_key
+  s3_key        = null_resource.lambda.triggers.s3_key
   tags          = local.tags
   timeout       = 3
 
