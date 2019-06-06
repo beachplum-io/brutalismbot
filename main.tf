@@ -87,6 +87,25 @@ resource aws_iam_role_policy s3_access {
   role   = data.aws_iam_role.role.id
 }
 
+resource aws_lambda_function test {
+  depends_on    = [null_resource.lambda]
+  description   = "Test Brutalismbot Lambda package"
+  function_name = "brutalismbot-test"
+  handler       = "lambda.test"
+  role          = data.aws_iam_role.role.arn
+  runtime       = "ruby2.5"
+  s3_bucket     = aws_s3_bucket.brutalismbot.bucket
+  s3_key        = local.lambda_s3_key
+  tags          = local.tags
+  timeout       = 3
+
+  environment {
+    variables = {
+      S3_BUCKET = aws_s3_bucket.brutalismbot.bucket
+    }
+  }
+}
+
 resource aws_lambda_function install {
   depends_on    = [null_resource.lambda]
   description   = "Install OAuth credentials"
@@ -227,7 +246,8 @@ resource aws_sns_topic_subscription uninstall {
 
 resource null_resource lambda {
   triggers = {
-    lambda_s3_key = local.lambda_s3_key
+    digest = filebase64sha256("lambda.zip")
+    s3_key = local.lambda_s3_key
   }
 
   provisioner "local-exec" {

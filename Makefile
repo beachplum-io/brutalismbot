@@ -7,14 +7,17 @@ image   := brutalismbot/$(name)
 iidfile := .docker/$(build)
 digest   = $(shell cat $<)
 
-$(planfile): $(iidfile)-build Gemfile.lock lambda.zip
+$(planfile): $(iidfile)-plan Gemfile.lock lambda.zip
 	docker run --rm $(digest) cat /var/task/$@ > $@
 
 lambda.zip: $(iidfile)-build
-	docker run --rm $(digest) cat /var/task/lambda.zip > $@
+	docker run --rm $(digest) zip -r - Gemfile* lambda.rb vendor > $@
 
 Gemfile.lock: $(iidfile)-build
 	docker run --rm $(digest) cat /var/task/$@ > $@
+
+vendor: | $(iidfile)-build
+	docker run --rm $(shell cat $|) tar cO vendor | tar xf -
 
 $(iidfile)-%: Gemfile | .docker
 	docker build \
@@ -59,10 +62,10 @@ test: $(iidfile)-runtime .env
 	docker run --rm --env-file .env --env DRYRUN=1 $(digest) lambda.uninstall \
 	'{"Records":[{"Sns":{"Message":"{\"token\":\"<token>\",\"team_id\":\"T1234568\",\"api_app_id\":\"A12345678\",\"event\":{\"type\":\"app_uninstalled\"},\"type\":\"event_callback\",\"event_id\":\"Ev12345678\",\"event_time\":1553557314}"}}]}'
 
-apply: $(iidfile)-build $(planfile) .env
+apply: $(iidfile)-plan $(planfile) .env
 	docker run --rm --env-file .env $(digest) \
 	terraform apply $(planfile)
 
 clean:
 	docker image rm -f $(image) $(shell sed G .docker/*)
-	rm -rf .docker *.tfplan *.zip
+	rm -rf .bundle .docker vendor *.tfplan *.zip
