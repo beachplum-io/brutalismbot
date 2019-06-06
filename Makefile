@@ -1,15 +1,16 @@
-runtime  := ruby2.5
-name     := brutalismbot
-build    := $(shell git describe --tags --always)
-planfile := $(name)-$(build).tfplan
+runtime := ruby2.5
+name    := brutalismbot
+build   := $(shell git describe --tags --always)
 
 image   := brutalismbot/$(name)
 iidfile := .docker/$(build)
 digest   = $(shell cat $<)
-digests  = $(foreach i,$(shell [ -d .docker ] && docker image ls -q --no-trunc),$(shell grep -rh $i .docker))
+digests  = \
+	$(foreach i,\
+	$(shell [ -d .docker ] && docker image ls -q --no-trunc),\
+	$(shell grep -rh $i .docker))
 
-$(planfile): $(iidfile)-plan Gemfile.lock lambda.zip
-	docker run --rm $(digest) cat /var/task/$@ > $@
+$(iidfile)-plan: Gemfile.lock lambda.zip
 
 lambda.zip: $(iidfile)-build
 	docker run --rm $(digest) zip -r - Gemfile* lambda.rb vendor > $@
@@ -22,7 +23,6 @@ $(iidfile)-%: Gemfile | .docker
 	--build-arg AWS_ACCESS_KEY_ID \
 	--build-arg AWS_DEFAULT_REGION \
 	--build-arg AWS_SECRET_ACCESS_KEY \
-	--build-arg PLANFILE=$(planfile) \
 	--build-arg RUNTIME=$(runtime) \
 	--build-arg TF_VAR_release=$(build) \
 	--iidfile $(iidfile)-$* \
@@ -60,10 +60,9 @@ test: $(iidfile)-runtime .env
 	docker run --rm --env-file .env --env DRYRUN=1 $(digest) lambda.uninstall \
 	'{"Records":[{"Sns":{"Message":"{\"token\":\"<token>\",\"team_id\":\"T1234568\",\"api_app_id\":\"A12345678\",\"event\":{\"type\":\"app_uninstalled\"},\"type\":\"event_callback\",\"event_id\":\"Ev12345678\",\"event_time\":1553557314}"}}]}'
 
-apply: $(iidfile)-plan $(planfile) .env
-	docker run --rm --env-file .env $(digest) \
-	terraform apply $(planfile)
+apply: $(iidfile)-plan .env
+	docker run --rm --env-file .env $(digest) terraform apply terraform.tfplan
 
 clean:
 	docker rmi -f $(image) $(digests)
-	rm -rf .bundle .docker vendor *.tfplan *.zip
+	rm -rf .docker .terraform *.tfplan *.zip

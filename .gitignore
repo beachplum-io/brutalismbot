@@ -10,6 +10,7 @@
 
 **/.bundle/
 **/.docker/
+**/.terraform/
 **/vendor/
 *.env
 *.tfplan

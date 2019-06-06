@@ -11,12 +11,11 @@ COPY *.tf /var/task/
 ARG AWS_ACCESS_KEY_ID
 ARG AWS_DEFAULT_REGION=us-east-1
 ARG AWS_SECRET_ACCESS_KEY
-ARG PLANFILE=terraform.tfplan
 ARG TF_VAR_release
 RUN zip -r lambda.zip Gemfile* lambda.rb vendor
 RUN terraform init
 RUN terraform fmt -check
-RUN terraform plan -out ${PLANFILE}
+RUN terraform plan -out terraform.tfplan
 
 FROM lambci/lambda:${RUNTIME} AS runtime
 COPY --from=build /var/task/ .
