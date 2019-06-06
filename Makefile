@@ -42,7 +42,7 @@ $(iidfile)-%: Gemfile | .docker
 
 .PHONY: shell test apply clean
 
-shell: $(iidfile)-build .env
+shell: $(iidfile)-plan .env
 	docker run --rm -it --env-file .env $(digest) /bin/bash
 
 test: $(iidfile)-runtime .env
