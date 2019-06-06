@@ -1,5 +1,4 @@
 require "aws-sdk-s3"
-require "bundler/setup"
 require "brutalismbot"
 
 DRYRUN    = !ENV["DRYRUN"].to_s.empty?

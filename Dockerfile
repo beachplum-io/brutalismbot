@@ -8,7 +8,7 @@ RUN zip -r lambda.zip *
 
 FROM install AS build
 COPY . .
-COPY --from=hashicorp/terraform:0.12.0 /bin/terraform /bin/
+COPY --from=hashicorp/terraform:0.12.1 /bin/terraform /bin/
 COPY --from=install /var/task/ .
 ARG AWS_ACCESS_KEY_ID
 ARG AWS_DEFAULT_REGION=us-east-1
