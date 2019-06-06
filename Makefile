@@ -6,6 +6,7 @@ planfile := $(name)-$(build).tfplan
 image   := brutalismbot/$(name)
 iidfile := .docker/$(build)
 digest   = $(shell cat $<)
+digests  = $(foreach i,$(shell [ -d .docker ] && docker image ls -q --no-trunc),$(shell grep -rh $i .docker))
 
 $(planfile): $(iidfile)-plan Gemfile.lock lambda.zip
 	docker run --rm $(digest) cat /var/task/$@ > $@
@@ -15,9 +16,6 @@ lambda.zip: $(iidfile)-build
 
 Gemfile.lock: $(iidfile)-build
 	docker run --rm $(digest) cat /var/task/$@ > $@
-
-vendor: | $(iidfile)-build
-	docker run --rm $(shell cat $|) tar cO vendor | tar xf -
 
 $(iidfile)-%: Gemfile | .docker
 	docker build \
@@ -67,5 +65,5 @@ apply: $(iidfile)-plan $(planfile) .env
 	terraform apply $(planfile)
 
 clean:
-	docker image rm -f $(image) $(shell sed G .docker/*)
+	docker rmi -f $(image) $(digests)
 	rm -rf .bundle .docker vendor *.tfplan *.zip
