@@ -94,7 +94,7 @@ resource aws_lambda_function test {
   role          = data.aws_iam_role.role.arn
   runtime       = "ruby2.5"
   s3_bucket     = aws_s3_bucket.brutalismbot.bucket
-  s3_key        = null_resource.lambda.triggers.s3_key
+  s3_key        = null_resource.lambda.triggers.lambda_s3_key
   tags          = local.tags
   timeout       = 3
 
@@ -112,7 +112,7 @@ resource aws_lambda_function install {
   role          = data.aws_iam_role.role.arn
   runtime       = "ruby2.5"
   s3_bucket     = aws_s3_bucket.brutalismbot.bucket
-  s3_key        = null_resource.lambda.triggers.s3_key
+  s3_key        = null_resource.lambda.triggers.lambda_s3_key
   tags          = local.tags
   timeout       = 3
 
@@ -130,7 +130,7 @@ resource aws_lambda_function cache {
   role          = data.aws_iam_role.role.arn
   runtime       = "ruby2.5"
   s3_bucket     = aws_s3_bucket.brutalismbot.bucket
-  s3_key        = null_resource.lambda.triggers.s3_key
+  s3_key        = null_resource.lambda.triggers.lambda_s3_key
   tags          = local.tags
   timeout       = 30
 
@@ -148,7 +148,7 @@ resource aws_lambda_function mirror {
   role          = data.aws_iam_role.role.arn
   runtime       = "ruby2.5"
   s3_bucket     = aws_s3_bucket.brutalismbot.bucket
-  s3_key        = null_resource.lambda.triggers.s3_key
+  s3_key        = null_resource.lambda.triggers.lambda_s3_key
   tags          = local.tags
   timeout       = 30
 
@@ -166,7 +166,7 @@ resource aws_lambda_function uninstall {
   role          = data.aws_iam_role.role.arn
   runtime       = "ruby2.5"
   s3_bucket     = aws_s3_bucket.brutalismbot.bucket
-  s3_key        = null_resource.lambda.triggers.s3_key
+  s3_key        = null_resource.lambda.triggers.lambda_s3_key
   tags          = local.tags
   timeout       = 3
 
@@ -241,8 +241,7 @@ resource aws_sns_topic_subscription uninstall {
 
 resource null_resource lambda {
   triggers = {
-    digest = filebase64sha256("lambda.zip")
-    s3_key = local.lambda_s3_key
+    lambda_s3_key = local.lambda_s3_key
   }
 
   provisioner "local-exec" {
