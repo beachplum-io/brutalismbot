@@ -44,3 +44,10 @@ Every hour (ish) a CloudWatch event triggers a Lambda to get new posts from the 
 <img alt="mirror" src="https://brutalismbot.com/arch-mirror.png" width="500"/>
 
 When a new post is persisted to S3, an S3 bucket notification triggers a Lambda to convert the post to a Slack message and post to every installed workspace.
+
+## See Also
+
+- [Brutalismbot API](https://github.com/brutalismbot/api)
+- [Brutalismbot Gem](https://github.com/brutalismbot/gem)
+- [Brutalismbot Mail](https://github.com/brutalismbot/mail)
+- [Brutalismbot Web](https://github.com/brutalismbot/brutalismbot.com)
