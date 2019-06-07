@@ -15,7 +15,8 @@ ARG TF_VAR_release
 RUN zip -r lambda.zip Gemfile* lambda.rb vendor
 RUN terraform init
 RUN terraform fmt -check
-RUN terraform plan -out terraform.tfplan
+RUN terraform plan -out terraform.zip
+CMD ["terraform", "apply", "terraform.zip"]
 
 FROM lambci/lambda:${RUNTIME} AS runtime
 COPY --from=build /var/task/ .

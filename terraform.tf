@@ -249,3 +249,17 @@ resource null_resource lambda {
     command = "aws s3 cp lambda.zip s3://${aws_s3_bucket.brutalismbot.bucket}/${local.lambda_s3_key}"
   }
 }
+
+variable release {
+  description = "Release tag."
+}
+
+variable repo {
+  description = "Project repository."
+  default     = "https://github.com/brutalismbot/brutalismbot"
+}
+
+output lambda_s3_url {
+  description = "Lambda function package S3 URL."
+  value       = "s3://${aws_s3_bucket.brutalismbot.bucket}/${local.lambda_s3_key}"
+}

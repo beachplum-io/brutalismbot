@@ -1,4 +1,4 @@
 *
-!*.tf
 !Gemfile*
 !lambda.rb
+!terraform.tf
