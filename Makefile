@@ -2,6 +2,13 @@ name    := brutalismbot
 runtime := ruby2.5
 build   := $(shell git describe --tags --always)
 
+release = $(firstword $(subst @, ,$*))
+tag     = brutalismbot/$(name):$(subst @,_,$*)
+target  = $(lastword $(subst @, ,$*))
+digests = $(foreach i,\
+	$(shell docker image ls -q --no-trunc),\
+	$(shell [ -d .docker ] && grep -ho "$i" .docker/*))
+
 .PHONY: all apply clean shell test
 
 all: Gemfile.lock lambda.zip .docker/$(build)@plan
@@ -15,10 +22,10 @@ all: Gemfile.lock lambda.zip .docker/$(build)@plan
 	--build-arg AWS_DEFAULT_REGION \
 	--build-arg AWS_SECRET_ACCESS_KEY \
 	--build-arg RUNTIME=$(runtime) \
-	--build-arg TF_VAR_release=$(firstword $(subst @, ,$*)) \
+	--build-arg TF_VAR_release=$(release) \
 	--iidfile $@ \
-	--target $(lastword $(subst @, ,$*)) \
-	--tag brutalismbot/$(name):$(subst @,_,$*) .
+	--tag $(tag) \
+	--target $(target) .
 
 Gemfile.lock: .docker/$(build)@build
 	docker run --rm -w /var/task/ $(shell cat $<) cat $@ > $@
@@ -34,11 +41,8 @@ apply: .docker/$(build)@plan | .docker/$(build)@build
 	$(shell cat $<)
 
 clean:
-	-docker rmi -f \
-	$(foreach i,\
-	$(shell docker image ls -q --no-trunc),\
-	$(shell [ -d .docker ] && grep -ho "$i" .docker/*))
-	-rm -rf .docker .terraform *.zip
+	-docker rmi -f $(digests)
+	-rm -rf .docker *.zip
 
 shell: .docker/$(build)@plan | .env .docker/$(build)@build
 	docker run --rm -it --env-file .env $(shell cat $<) /bin/bash
