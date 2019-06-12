@@ -223,7 +223,7 @@ resource aws_s3_bucket_notification mirror {
     id                  = "mirror"
     lambda_function_arn = aws_lambda_function.mirror.arn
     events              = ["s3:ObjectCreated:*"]
-    filter_prefix       = "posts/v1/"
+    filter_prefix       = "${var.s3_prefix}posts/"
     filter_suffix       = ".json"
   }
 }
