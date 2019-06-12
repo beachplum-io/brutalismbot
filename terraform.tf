@@ -119,6 +119,7 @@ resource aws_lambda_function install {
   environment {
     variables = {
       S3_BUCKET = aws_s3_bucket.brutalismbot.bucket
+      S3_PREFIX = var.s3_prefix
     }
   }
 }
@@ -137,6 +138,7 @@ resource aws_lambda_function cache {
   environment {
     variables = {
       S3_BUCKET = aws_s3_bucket.brutalismbot.bucket
+      S3_PREFIX = var.s3_prefix
     }
   }
 }
@@ -155,6 +157,7 @@ resource aws_lambda_function mirror {
   environment {
     variables = {
       S3_BUCKET = aws_s3_bucket.brutalismbot.bucket
+      S3_PREFIX = var.s3_prefix
     }
   }
 }
@@ -173,6 +176,7 @@ resource aws_lambda_function uninstall {
   environment {
     variables = {
       S3_BUCKET = aws_s3_bucket.brutalismbot.bucket
+      S3_PREFIX = var.s3_prefix
     }
   }
 }
@@ -207,7 +211,7 @@ resource aws_lambda_permission uninstall {
 
 resource aws_s3_bucket brutalismbot {
   acl           = "private"
-  bucket        = "brutalismbot"
+  bucket        = var.s3_bucket
   force_destroy = false
 }
 
@@ -256,6 +260,16 @@ variable release {
 variable repo {
   description = "Project repository."
   default     = "https://github.com/brutalismbot/brutalismbot"
+}
+
+variable s3_bucket {
+  description = "S3 bucket."
+  default     = "brutalismbot"
+}
+
+variable s3_prefix {
+  description = "S3 prefix."
+  default     = "data/v1/"
 }
 
 output lambda_s3_url {
