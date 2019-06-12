@@ -47,6 +47,7 @@ def test(event:, context:)
     DRYRUN:    DRYRUN,
     MIN_TIME:  MIN_TIME,
     S3_BUCKET: S3_BUCKET,
+    S3_PREFIX: S3_PREFIX,
   }
 end
 

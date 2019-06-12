@@ -50,6 +50,7 @@ resource aws_cloudwatch_event_rule cache {
   description         = "Cache posts from /r/brutalism to S3"
   name                = aws_lambda_function.cache.function_name
   schedule_expression = "rate(1 hour)"
+  tags                = local.tags
 }
 
 resource aws_cloudwatch_event_target cache {

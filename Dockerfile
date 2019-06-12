@@ -5,11 +5,12 @@ FROM lambci/lambda:build-${RUNTIME} AS build
 COPY lambda.rb Gemfile* /var/task/
 ARG BUNDLE_SILENCE_ROOT_WARNING=1
 RUN bundle install --path vendor/bundle/ --without development
-RUN zip -r lambda.zip Gemfile* lambda.rb vendor
+RUN zip -r lambda.zip .
 
 # Deploy
-FROM build AS deploy
+FROM lambci/lambda:build-${RUNTIME} AS deploy
 COPY --from=hashicorp/terraform:0.12.1 /bin/terraform /bin/
+COPY --from=build /var/task/lambda.zip .
 COPY *.tf /var/task/
 ARG AWS_ACCESS_KEY_ID
 ARG AWS_DEFAULT_REGION=us-east-1
@@ -21,4 +22,5 @@ RUN terraform plan -out terraform.zip
 CMD ["terraform", "apply", "terraform.zip"]
 
 FROM lambci/lambda:${RUNTIME} AS runtime
-COPY --from=build /var/task/ .
+COPY --from=build /var/task/lambda.rb .
+COPY --from=build /var/task/vendor vendor

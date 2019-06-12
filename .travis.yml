@@ -5,7 +5,7 @@ install:
 - docker pull lambci/lambda:build-ruby2.5
 - docker pull lambci/lambda:ruby2.5
 script:
-- make
+- make plan
 after_success:
 - make test
 deploy:
