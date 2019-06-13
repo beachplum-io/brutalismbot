@@ -2,11 +2,6 @@ name    := brutalismbot
 runtime := ruby2.5
 build   := $(shell git describe --tags --always)
 
-digests = $(foreach i,\
-	$(shell docker image ls -q --no-trunc),\
-	$(shell [ -d .docker ] && grep -ho "$i" .docker/*))
-runtest = docker run --rm --env-file .env --env DRYRUN=1 $(shell cat $<)
-
 .PHONY: all apply clean plan shell@%
 
 all: Gemfile.lock lambda.zip
@@ -38,8 +33,11 @@ apply: plan | .docker/$(build)@deploy
 	$(shell cat $|)
 
 clean:
-	-docker rmi -f $(digests)
+	-docker rmi -f $(shell awk {print} .docker/*)
 	-rm -rf .docker *.zip
 
-shell@%: .docker/$(build)@% | .env
-	docker run --rm -it --env-file .env --entrypoint /bin/bash $(shell cat $<)
+shell@%: .env | .docker/$(build)@%
+	docker run --rm -it \
+	--env-file .env \
+	--entrypoint /bin/bash \
+	$(shell cat $|)
