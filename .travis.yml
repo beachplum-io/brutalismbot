@@ -6,8 +6,6 @@ install:
 - docker pull lambci/lambda:ruby2.5
 script:
 - make plan
-after_success:
-- make test
 deploy:
 - provider: script
   script: make apply
