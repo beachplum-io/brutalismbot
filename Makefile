@@ -4,7 +4,7 @@ build   := $(shell git describe --tags --always)
 
 digests = $(foreach i,\
 	$(shell docker image ls -q --no-trunc),\
-	$(shell [ -d .docker ] && awk 1 .docker/*))
+	$(shell [ -d .docker ] && grep -ho "$i" .docker/*))
 runtest = docker run --rm --env-file .env --env DRYRUN=1 $(shell cat $<)
 
 .PHONY: all apply clean plan shell shell@% test
