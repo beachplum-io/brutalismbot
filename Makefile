@@ -2,16 +2,18 @@ name    := brutalismbot
 runtime := ruby2.5
 build   := $(shell git describe --tags --always)
 
-.PHONY: all apply clean plan shell@%
+rmi = docker image rm -f $(shell cat $(1)) && rm $(i);
+
+.PHONY: all apply clean plan shell@% test
 
 all: Gemfile.lock lambda.zip
 
 .docker:
 	mkdir -p $@
 
-.docker/$(build)@deploy: .docker/$(build)@build
-.docker/$(build)@runtime: .docker/$(build)@deploy
-.docker/$(build)@%: Gemfile | .docker
+.docker/$(build)@test: .docker/$(build)@build
+.docker/$(build)@plan: .docker/$(build)@test
+.docker/$(build)@%: .dockerignore Dockerfile Gemfile | .docker
 	docker build \
 	--build-arg AWS_ACCESS_KEY_ID \
 	--build-arg AWS_DEFAULT_REGION \
@@ -25,9 +27,11 @@ all: Gemfile.lock lambda.zip
 Gemfile.lock lambda.zip: .docker/$(build)@build
 	docker run --rm -w /var/task/ $(shell cat $<) cat $@ > $@
 
-plan: all .docker/$(build)@deploy
+test: .docker/$(build)@test
 
-apply: .docker/$(build)@deploy
+plan: .docker/$(build)@plan | all
+
+apply: .docker/$(build)@plan | all
 	docker run --rm \
 	--env AWS_ACCESS_KEY_ID \
 	--env AWS_DEFAULT_REGION \
@@ -35,7 +39,7 @@ apply: .docker/$(build)@deploy
 	$(shell cat $<)
 
 clean:
-	-docker rmi -f $(shell awk {print} .docker/*)
+	-$(foreach i,$(wildcard .docker/*),$(call rmi,$(i)))
 	-rm -rf .docker *.zip
 
 shell@%: .docker/$(build)@% .env
