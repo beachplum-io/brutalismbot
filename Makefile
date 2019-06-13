@@ -9,6 +9,8 @@ all: Gemfile.lock lambda.zip
 .docker:
 	mkdir -p $@
 
+.docker/$(build)@deploy: .docker/$(build)@build
+.docker/$(build)@runtime: .docker/$(build)@deploy
 .docker/$(build)@%: Gemfile | .docker
 	docker build \
 	--build-arg AWS_ACCESS_KEY_ID \
@@ -25,19 +27,19 @@ Gemfile.lock lambda.zip: .docker/$(build)@build
 
 plan: all .docker/$(build)@deploy
 
-apply: plan | .docker/$(build)@deploy
+apply: .docker/$(build)@deploy
 	docker run --rm \
 	--env AWS_ACCESS_KEY_ID \
 	--env AWS_DEFAULT_REGION \
 	--env AWS_SECRET_ACCESS_KEY \
-	$(shell cat $|)
+	$(shell cat $<)
 
 clean:
 	-docker rmi -f $(shell awk {print} .docker/*)
 	-rm -rf .docker *.zip
 
-shell@%: .env | .docker/$(build)@%
+shell@%: .docker/$(build)@% .env
 	docker run --rm -it \
 	--env-file .env \
 	--entrypoint /bin/bash \
-	$(shell cat $|)
+	$(shell cat $<)
