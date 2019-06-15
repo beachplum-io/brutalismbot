@@ -6,8 +6,7 @@ MIN_TIME  = !ENV["MIN_TIME"].to_s.empty? && ENV["MIN_TIME"].to_i || nil
 S3_BUCKET = ENV["S3_BUCKET"] || "brutalismbot"
 S3_PREFIX = ENV["S3_PREFIX"] || "data/v1/"
 
-BUCKET       = Aws::S3::Bucket.new name: S3_BUCKET
-BRUTALISMBOT = Brutalismbot::S3::Client.new bucket: BUCKET, prefix: S3_PREFIX
+BRUTALISMBOT = Brutalismbot::S3::Client.new
 
 Brutalismbot.logger = Logger.new STDOUT, formatter: -> (*x) { "#{x.last}\n" }
 
@@ -82,7 +81,7 @@ def mirror(event:, context:)
   Event::S3[event].map do |object|
     # Get post
     json = JSON.parse object.get.body.read
-    post = Brutalismbot::Post[json]
+    post = Brutalismbot::Post.new json
     body = post.to_slack.to_json
 
     # Post to authed Slacks
@@ -93,7 +92,7 @@ end
 def uninstall(event:, context:)
   Event::SNS[event].map do |message|
     # Get OAuth from SNS message
-    auth = Brutalismbot::Auth[message]
+    auth = Brutalismbot::Auth.new message
 
     # Remove all OAuths
     BRUTALISMBOT.auths.remove team: auth.team_id, dryrun: DRYRUN

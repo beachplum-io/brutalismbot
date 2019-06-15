@@ -2,7 +2,7 @@ ARG RUNTIME=ruby2.5
 
 # Build Lambda package
 FROM lambci/lambda:build-${RUNTIME} AS build
-COPY Gemfile* lambda.rb /var/task/
+COPY Gemfile* Rakefile lambda.rb /var/task/
 ARG BUNDLE_SILENCE_ROOT_WARNING=1
 RUN bundle install --path vendor/bundle/ --without development
 RUN zip -r lambda.zip Gemfile* lambda.rb vendor
@@ -10,11 +10,12 @@ RUN zip -r lambda.zip Gemfile* lambda.rb vendor
 # Run tests
 FROM lambci/lambda:build-${RUNTIME} AS test
 COPY --from=build /var/task/ .
-COPY Rakefile .
 ARG AWS_ACCESS_KEY_ID
 ARG AWS_DEFAULT_REGION=us-east-1
 ARG AWS_SECRET_ACCESS_KEY
 ARG BUNDLE_SILENCE_ROOT_WARNING=1
+ARG S3_BUCKET
+ARG S3_PREFIX
 RUN bundle install --with development
 RUN bundle exec rake
 
