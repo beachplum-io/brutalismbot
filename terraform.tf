@@ -19,6 +19,15 @@ provider null {
 locals {
   lambda_s3_key = "terraform/pkg/brutalismbot-${var.release}.zip"
 
+  install_filter_policy = {
+    type = ["oauth"]
+  }
+
+  uninstall_filter_policy = {
+    id   = ["app_uninstalled"]
+    type = ["event"]
+  }
+
   tags = {
     App     = "core"
     Name    = "brutalismbot"
@@ -42,8 +51,8 @@ data aws_iam_policy_document s3 {
   }
 }
 
-data aws_sns_topic oauth {
-  name = "brutalismbot_oauth"
+data aws_sns_topic topic {
+  name = "brutalismbot-api"
 }
 
 resource aws_cloudwatch_event_rule cache {
@@ -186,7 +195,7 @@ resource aws_lambda_permission install {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.install.function_name
   principal     = "sns.amazonaws.com"
-  source_arn    = data.aws_sns_topic.oauth.arn
+  source_arn    = data.aws_sns_topic.topic.arn
 }
 
 resource aws_lambda_permission cache {
@@ -207,7 +216,7 @@ resource aws_lambda_permission uninstall {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.uninstall.arn
   principal     = "sns.amazonaws.com"
-  source_arn    = aws_sns_topic.uninstall.arn
+  source_arn    = data.aws_sns_topic.topic.arn
 }
 
 resource aws_s3_bucket brutalismbot {
@@ -236,20 +245,18 @@ resource aws_s3_bucket_public_access_block brutalismbot {
   restrict_public_buckets = true
 }
 
-resource aws_sns_topic uninstall {
-  name = "brutalismbot_event_app_uninstalled"
-}
-
 resource aws_sns_topic_subscription install {
-  endpoint  = aws_lambda_function.install.arn
-  protocol  = "lambda"
-  topic_arn = data.aws_sns_topic.oauth.arn
+  endpoint      = aws_lambda_function.install.arn
+  filter_policy = jsonencode(local.install_filter_policy)
+  protocol      = "lambda"
+  topic_arn     = data.aws_sns_topic.topic.arn
 }
 
 resource aws_sns_topic_subscription uninstall {
-  endpoint  = aws_lambda_function.uninstall.arn
-  protocol  = "lambda"
-  topic_arn = aws_sns_topic.uninstall.arn
+  endpoint      = aws_lambda_function.uninstall.arn
+  filter_policy = jsonencode(local.uninstall_filter_policy)
+  protocol      = "lambda"
+  topic_arn     = data.aws_sns_topic.topic.arn
 }
 
 resource null_resource lambda {
