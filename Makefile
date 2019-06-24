@@ -4,9 +4,10 @@ s3_bucket := brutalismbot
 s3_prefix := data/v1/
 stages    := build test plan
 build     := $(shell git describe --tags --always)
+shells    := $(foreach stage,$(stages),shell@$(stage))
 digest     = $(shell cat .docker/$(build)$(1))
 
-.PHONY: all apply clean plan test $(foreach stage,$(stages),shell@$(stage))
+.PHONY: all apply clean $(stages) $(shells)
 
 all: Gemfile.lock lambda.zip
 
@@ -28,26 +29,21 @@ all: Gemfile.lock lambda.zip
 	--tag brutalismbot/$(name):$(build)-$* \
 	--target $* .
 
-Gemfile.lock lambda.zip: Gemfile | .docker/$(build)@build
-	docker run --rm -w /var/task/ $(call digest,@build) cat $@ > $@
-
-test: all .docker/$(build)@test
-
-plan: test .docker/$(build)@plan
+Gemfile.lock lambda.zip: build
+	docker run --rm -w /var/task/ $(call digest,@$<) cat $@ > $@
 
 apply: plan
 	docker run --rm \
 	--env AWS_ACCESS_KEY_ID \
 	--env AWS_DEFAULT_REGION \
 	--env AWS_SECRET_ACCESS_KEY \
-	$(call digest,@plan)
+	$(call digest,@$<)
 
 clean:
 	-docker image rm -f $(shell awk {print} .docker/*)
 	-rm -rf .docker *.zip
 
-shell@%: .docker/$(build)@% .env
-	docker run --rm -it \
-	--env-file .env \
-	--entrypoint /bin/bash \
-	$(call digest,@$*)
+$(stages): %: .docker/$(build)@%
+
+$(shells): shell@%: % .env
+	docker run --rm -it --env-file .env $(call digest,@$*) /bin/bash
