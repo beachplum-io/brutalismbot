@@ -1,6 +1,6 @@
-ENV["DRYRUN"]     = "1"
-ENV["MIN_TIME"] ||= (Time.now.utc.to_i - 36000).to_s
+ENV["DRYRUN"] = "1"
 require_relative "./lambda"
+LAST_SEEN = BRUTALISMBOT.subreddit.posts(:new, limit: 2).last.fullname
 
 def runtest(name, func)
   puts "\n=> #{name}"
@@ -9,47 +9,23 @@ end
 
 desc 'lambda.test'
 task :test do
-  runtest "TEST", -> { test event: nil, context: nil }
+  runtest "TEST", -> { test event: nil }
 end
 
 desc 'lambda.install'
-task :install do
-  event = {
-    "Records" => [
-      {
-        "Sns" => {
-          "Message" => {
-            ok:           true,
-            access_token: "<token>",
-            scope:        "identify,incoming-webhook",
-            user_id:      "<user>",
-            team_name:    "<team>",
-            team_id:      "T12345678",
-            incoming_webhook: {
-              channel:           "#brutalism",
-              channel_id:        "C12345678",
-              configuration_url: "https://team.slack.com/services/B12345678",
-              url:               "https://hooks.slack.com/services/T12345678/B12345678/123456781234567812345678",
-            },
-            scopes: [
-              "identify",
-              "incoming-webhook",
-            ],
-          }.to_json,
-        },
-      },
-    ],
-  }
-  runtest "INSTALL", -> { install event: event, context: nil }
+task :authorize do
+  event = {"Records" => [{"Sns" => {"Message" => Brutalismbot::Auth.stub.to_json}}]}
+  runtest "AUTHORIZE", -> { authorize event: event }
 end
 
 desc 'lambda.cache'
 task :cache do
-  runtest "CACHE", -> { cache event: nil, context: nil }
+  runtest "CACHE", -> { cache }
 end
 
 desc 'lambda.mirror'
 task :mirror do
+  key   = BRUTALISMBOT.posts.key_for BRUTALISMBOT.posts.last
   event = {
     "Records" => [
       {
@@ -58,13 +34,13 @@ task :mirror do
             "name" => "brutalismbot",
           },
           "object" => {
-            "key" => "data/v1/posts/year%3D2019/month%3D2019-04/day%3D2019-04-20/1555799559.json",
+            "key" => URI.escape(key),
           },
         },
       },
     ],
   }
-  runtest "MIRROR", -> { mirror event: event, context: nil }
+  runtest "MIRROR", -> { mirror event: event }
 end
 
 desc 'lambda.uninstall'
@@ -91,4 +67,4 @@ task :uninstall do
   runtest "UNINSTALL", -> { uninstall event:event, context:nil }
 end
 
-task :default => [:test, :cache, :mirror, :uninstall]
+task :default => [:test, :authorize, :cache, :mirror, :uninstall]
