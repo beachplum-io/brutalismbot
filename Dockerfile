@@ -7,14 +7,9 @@ RUN bundle install --path vendor/bundle/ --without development
 RUN zip -r lambda.zip Gemfile* lambda.rb vendor
 
 FROM lambci/lambda:build-${RUNTIME} AS test
-COPY --from=hashicorp/terraform:0.12.2 /bin/terraform /bin/
+COPY --from=hashicorp/terraform:0.12.3 /bin/terraform /bin/
 COPY --from=build /var/task/ .
-ARG AWS_ACCESS_KEY_ID
-ARG AWS_DEFAULT_REGION=us-east-1
-ARG AWS_SECRET_ACCESS_KEY
 ARG BUNDLE_SILENCE_ROOT_WARNING=1
-ARG S3_BUCKET
-ARG S3_PREFIX
 RUN bundle install --with development
 RUN bundle exec rake
 RUN terraform fmt -check

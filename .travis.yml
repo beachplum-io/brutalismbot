@@ -3,7 +3,6 @@ rvm:
 - 2.5.5
 install:
 - docker pull lambci/lambda:build-ruby2.5
-- docker pull lambci/lambda:ruby2.5
 script:
 - make plan
 deploy:
