@@ -3,6 +3,7 @@ rvm:
 - 2.5.5
 install:
 - docker pull lambci/lambda:build-ruby2.5
+- docker pull hashicorp/terraform:0.12.3
 script:
 - make plan
 deploy:
