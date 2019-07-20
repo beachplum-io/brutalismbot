@@ -1,9 +1,9 @@
 require "brutalismbot/s3"
 
-DRYRUN    = !ENV["DRYRUN"].to_s.empty?
-LAST_SEEN = ENV["LAST_SEEN"]
-S3_BUCKET = ENV["S3_BUCKET"] || "brutalismbot"
-S3_PREFIX = ENV["S3_PREFIX"] || "data/v1/"
+DRYRUN     = !ENV["DRYRUN"].to_s.empty?
+SINCE_TIME = !ENV["SINCE_TIME"].to_s.empty? && ENV["SINCE_TIME"].to_i || nil
+S3_BUCKET  = ENV["S3_BUCKET"] || "brutalismbot"
+S3_PREFIX  = ENV["S3_PREFIX"] || "data/v1/"
 
 Brutalismbot.logger = Logger.new(STDOUT, formatter: -> (*x) { "#{x.last}\n" })
 
@@ -70,11 +70,11 @@ def authorize(event:, context:nil)
 end
 
 def cache(event:nil, context:nil)
-  # Get latest cached Post fullname
-  last_seen = LAST_SEEN || BRUTALISMBOT.posts.last.fullname
+  # Get max time of cached posts
+  time = SINCE_TIME || BRUTALISMBOT.posts.max_time
 
   # Cache new posts to S3
-  BRUTALISMBOT.posts.pull before: last_seen
+  BRUTALISMBOT.posts.pull since: time
 end
 
 def mirror(event:, context:nil)
