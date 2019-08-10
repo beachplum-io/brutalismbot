@@ -1,14 +1,17 @@
 language: ruby
 rvm:
 - 2.5.5
-install:
+before_install:
 - docker pull lambci/lambda:build-ruby2.5
-- docker pull hashicorp/terraform:0.12.3
+- docker pull hashicorp/terraform:latest
+- gem install bundler -v 2.0.2
+install:
+- bundle install
 script:
-- make plan
+- bundle exec rum plan
 deploy:
 - provider: script
-  script: make apply
+  script: bundle exec rum apply
   skip_cleanup: true
   on:
     repo: brutalismbot/brutalismbot
