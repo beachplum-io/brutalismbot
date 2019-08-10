@@ -15,6 +15,7 @@ RUN bundle exec rake
 
 FROM hashicorp/terraform:${TERRAFORM_VERSION} AS plan
 COPY --from=test /var/task/ .
+RUN apk add python3 && pip3 install awscli
 ARG AWS_ACCESS_KEY_ID
 ARG AWS_DEFAULT_REGION=us-east-1
 ARG AWS_SECRET_ACCESS_KEY
