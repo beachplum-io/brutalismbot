@@ -13,7 +13,6 @@ rum :"brutalismbot/brutalismbot" do
   stage :test => :build
   stage :plan => :test
 
-  artifact "Gemfile.lock"  => :build
   artifact "lambda.zip" => :build
 
   desc 'Apply infrastructure'
