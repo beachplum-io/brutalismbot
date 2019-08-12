@@ -7,12 +7,12 @@ before_install:
 - gem install bundler -v 2.0.2
 - gem install rumrunner -v 0.4.0
 install:
-- bundle install
+- bundle install --deployment
 script:
-- rum plan
+- bundle exec rum plan
 deploy:
 - provider: script
-  script: rum apply
+  script: rvm use $(< .ruby-version) do bundle exec rum apply
   skip_cleanup: true
   on:
     repo: brutalismbot/brutalismbot
