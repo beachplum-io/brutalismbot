@@ -4,10 +4,10 @@ rum :"brutalismbot/brutalismbot" do
   tag %x(git describe --tags --always).strip
 
   env :AWS_ACCESS_KEY_ID
-  env :AWS_DEFAULT_REGION => "us-east-1"
   env :AWS_SECRET_ACCESS_KEY
-  env :RUNTIME => "ruby2.5"
-  env :TF_VAR_release => tag
+  env :AWS_DEFAULT_REGION => "us-east-1"
+  env :RUNTIME            => "ruby2.5"
+  env :TF_VAR_release     => tag
 
   stage :build
   stage :test => :build
@@ -18,5 +18,5 @@ rum :"brutalismbot/brutalismbot" do
   desc 'Apply infrastructure'
   run :apply => :plan
 
-  default ["Gemfile.lock", "lambda.zip"]
+  default "lambda.zip"
 end
