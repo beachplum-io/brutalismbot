@@ -1,9 +1,11 @@
 require "brutalismbot/s3"
 
-DRYRUN     = !ENV["DRYRUN"].to_s.empty?
-SINCE_TIME = !ENV["SINCE_TIME"].to_s.empty? && ENV["SINCE_TIME"].to_i || nil
-S3_BUCKET  = ENV["S3_BUCKET"] || "brutalismbot"
-S3_PREFIX  = ENV["S3_PREFIX"] || "data/v1/"
+DRYRUN    = !ENV["DRYRUN"].to_s.empty?
+MIN_TIME  = !ENV["MIN_TIME"].to_s.empty? && ENV["MIN_TIME"].to_i || nil
+MAX_TIME  = !ENV["MAX_TIME"].to_s.empty? && ENV["MAX_TIME"].to_i || nil
+LAG_TIME  = ENV["LAG_TIME"]  || "7200"
+S3_BUCKET = ENV["S3_BUCKET"] || "brutalismbot"
+S3_PREFIX = ENV["S3_PREFIX"] || "data/v1/"
 
 Brutalismbot.logger = Logger.new(STDOUT, formatter: -> (*x) { "#{x.last}\n" })
 
@@ -71,10 +73,11 @@ end
 
 def cache(event:nil, context:nil)
   # Get max time of cached posts
-  time = SINCE_TIME || BRUTALISMBOT.posts.max_time
+  min_time = MIN_TIME || BRUTALISMBOT.posts.max_time
+  max_time = MAX_TIME || (Time.now.utc - LAG_TIME.to_i).to_i
 
   # Cache new posts to S3
-  BRUTALISMBOT.posts.pull since: time
+  BRUTALISMBOT.posts.pull min_time, max_time
 end
 
 def mirror(event:, context:nil)
