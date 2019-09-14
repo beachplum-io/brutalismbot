@@ -72,12 +72,12 @@ def authorize(event:, context:nil)
 end
 
 def cache(event:nil, context:nil)
-  # Get max time of cached posts
+  # Get window for considering posts "new"
   min_time = MIN_TIME || BRUTALISMBOT.posts.max_time
   max_time = MAX_TIME || (Time.now.utc - LAG_TIME.to_i).to_i
 
   # Cache new posts to S3
-  BRUTALISMBOT.posts.pull min_time, max_time
+  BRUTALISMBOT.posts.pull min_time: min_time, max_time: max_time
 end
 
 def mirror(event:, context:nil)
