@@ -13,7 +13,6 @@ script:
 deploy:
 - provider: script
   script: rvm use $(< .ruby-version) do bundle exec rum apply
-  skip_cleanup: true
   on:
     repo: brutalismbot/brutalismbot
     tags: true
