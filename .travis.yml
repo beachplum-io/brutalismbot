@@ -1,6 +1,6 @@
 language: ruby
 rvm:
-- 2.5.5
+- 2.5.7
 before_install:
 - docker pull lambci/lambda:build-ruby2.5
 - docker pull hashicorp/terraform:latest
