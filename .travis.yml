@@ -5,14 +5,7 @@ before_install:
 - docker pull lambci/lambda:build-ruby2.5
 - docker pull hashicorp/terraform:latest
 - gem install bundler -v 2.0.2
-- gem install rumrunner -v 0.4.3
 install:
 - bundle install --deployment
 script:
 - bundle exec rum plan
-deploy:
-- provider: script
-  script: rvm use $(< .ruby-version) do bundle exec rum apply
-  on:
-    repo: brutalismbot/brutalismbot
-    tags: true
