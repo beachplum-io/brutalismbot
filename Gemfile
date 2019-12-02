@@ -2,7 +2,7 @@ ruby "2.5.7"
 
 source "https://rubygems.org"
 
-gem "brutalismbot", "1.0.0.beta.1"
+gem "brutalismbot", "1.0.0.beta.3"
 
 group :development do
   gem "aws-sdk-s3", "~> 1.0"

@@ -1,5 +1,9 @@
+ENV["DRYRUN"] = "1"
+
 require "brutalismbot/stub"
 require_relative "./lambda"
+
+BRUTALISMBOT.stub!
 
 def runtest(name, func)
   puts "\n=> #{name}"
@@ -8,7 +12,7 @@ end
 
 desc 'lambda.test'
 task :test do
-  runtest "TEST", -> { test }
+  runtest "TEST", -> { test event: {} }
 end
 
 desc 'lambda.pull'
@@ -68,7 +72,7 @@ namespace :slack do
         },
       ],
     }
-    runtest "UNINSTALL", -> { slack_uninstall event: event }
+    runtest "SLACK UNINSTALL", -> { slack_uninstall event: event }
   end
 end
 
