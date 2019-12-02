@@ -1,101 +1,72 @@
-require "brutalismbot/s3"
+require "brutalismbot"
 
-DRYRUN    = !ENV["DRYRUN"].to_s.empty?
-MIN_TIME  = !ENV["MIN_TIME"].to_s.empty? && ENV["MIN_TIME"].to_i || nil
-MAX_TIME  = !ENV["MAX_TIME"].to_s.empty? && ENV["MAX_TIME"].to_i || nil
-LAG_TIME  = ENV["LAG_TIME"]  || "7200"
-S3_BUCKET = ENV["S3_BUCKET"] || "brutalismbot"
-S3_PREFIX = ENV["S3_PREFIX"] || "data/v1/"
+DRYRUN = !ENV["DRYRUN"].to_s.empty?
 
-Brutalismbot.logger = Logger.new(STDOUT, formatter: -> (*x) { "#{x.last}\n" })
+BRUTALISMBOT = Brutalismbot::Client.new
 
-BRUTALISMBOT = Brutalismbot::S3::Client.new(
-  bucket:         S3_BUCKET,
-  prefix:         S3_PREFIX,
-  stub_responses: DRYRUN,
-)
+def each_record(event)
+  puts "EVENT #{event.to_json}"
+  event.fetch("Records", []).each{|record| yield record }
+end
 
-module Event
-  class RecordCollection < Hash
-    include Enumerable
-
-    def each
-      puts "EVENT #{to_json}"
-      dig("Records").each do |record|
-        yield record
-      end
-    end
+def each_message(event)
+  each_record event do |record|
+    yield record.dig "Sns", "Message"
   end
+end
 
-  class SNS < RecordCollection
-    def each
-      super do |record|
-        yield JSON.parse record.dig("Sns", "Message")
-      end
-    end
-  end
-
-  class S3 < RecordCollection
-    def each
-      super do |record|
-        name   = URI.unescape record.dig("s3", "bucket", "name")
-        key    = URI.unescape record.dig("s3", "object", "key")
-        bucket = BRUTALISMBOT.bucket name: name
-        yield bucket.object(key)
-      end
+def each_post(event)
+  each_record event do |record|
+    bucket = URI.unescape record.dig "s3", "bucket", "name"
+    prefix = URI.unescape record.dig "s3", "object", "key"
+    BRUTALISMBOT.posts.list(bucket: bucket, prefix: prefix).each do |post|
+      yield post
     end
   end
 end
 
-def test(event:, context:nil)
+def test(event:nil, context:nil)
   {
-    DRYRUN:    DRYRUN,
-    S3_BUCKET: S3_BUCKET,
-    S3_PREFIX: S3_PREFIX,
+    LAG_TIME: BRUTALISMBOT.lag_time,
+    MIN_TIME: BRUTALISMBOT.posts.max_time,
+    MAX_TIME: Time.now.utc.to_i - BRUTALISMBOT.lag_time,
+    DRYRUN:   DRYRUN,
+    EVENT:    event.to_json,
   }
 end
 
-def authorize(event:, context:nil)
-  Event::SNS[event].map do |message|
-    # Get OAuth from SNS message
-    auth = Brutalismbot::Auth[message]
+def pull(event:nil, context:nil)
+  BRUTALISMBOT.pull(dryrun: DRYRUN).map(&:to_h)
+end
+
+def push(event:nil, context:nil)
+  each_post event do |post|
+    BRUTALISMBOT.push post, dryrun: DRYRUN
+  end
+end
+
+def slack_install(event:nil, context:nil)
+  each_message event do |message|
+    # Get Auth from SNS message
+    auth = Brutalismbot::Slack::Auth.parse message
 
     # Put Auth on S3
-    BRUTALISMBOT.auths.put auth
+    BRUTALISMBOT.slack.install auth, dryrun: DRYRUN
 
     # Get current top post
-    top_post = BRUTALISMBOT.subreddit.posts(:top, limit: 1).first
+    post = BRUTALISMBOT.reddit.list(:top, limit: 1).first
 
     # Post to newly installed workspace
-    auth.post body: top_post.to_slack.to_json, dryrun: DRYRUN
+    auth.push post, dryrun: DRYRUN
   end
 end
 
-def cache(event:nil, context:nil)
-  # Get window for considering posts "new"
-  min_time = MIN_TIME || BRUTALISMBOT.posts.max_time
-  max_time = MAX_TIME || (Time.now.utc - LAG_TIME.to_i).to_i
-
-  # Cache new posts to S3
-  BRUTALISMBOT.posts.pull min_time: min_time, max_time: max_time
-end
-
-def mirror(event:, context:nil)
-  Event::S3[event].map do |object|
-    # Get Post from S3 event
-    post = Brutalismbot::Post[JSON.parse object.get.body.read]
-
-    # Post to authorized Slacks
-    BRUTALISMBOT.auths.mirror post, dryrun: DRYRUN
-  end
-end
-
-def uninstall(event:, context:nil)
-  Event::SNS[event].map do |message|
+def slack_uninstall(event:nil, context:nil)
+  each_message event do |message|
     # Get Auth from SNS message
-    auth = Brutalismbot::Auth[message]
+    auth = Brutalismbot::Slack::Auth.parse message
 
     # Remove Auth
-    BRUTALISMBOT.auths.delete auth
+    BRUTALISMBOT.slack.uninstall auth, dryrun: DRYRUN
   end
 end

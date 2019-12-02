@@ -4,8 +4,6 @@ terraform {
     key    = "terraform/brutalismbot.tfstate"
     region = "us-east-1"
   }
-
-  required_version = ">= 0.12.0"
 }
 
 provider aws {
@@ -17,13 +15,25 @@ provider null {
 }
 
 locals {
-  lambda_s3_key = "terraform/pkg/brutalismbot-${var.release}.zip"
+  release                     = var.release
+  repo                        = "https://github.com/brutalismbot/brutalismbot"
+  lag_time                    = "9000"
+  lambda_s3_key               = "terraform/pkg/brutalismbot-${local.release}.zip"
+  role_name                   = "brutalismbot"
+  s3_bucket                   = "brutalismbot"
+  s3_prefix_posts             = "data/v1/posts/"
+  s3_prefix_slack             = "data/v1/auths/"
+  topic_name                  = "brutalismbot-slack"
+  twitter_access_token        = var.twitter_access_token
+  twitter_access_token_secret = var.twitter_access_token_secret
+  twitter_consumer_key        = var.twitter_consumer_key
+  twitter_consumer_secret     = var.twitter_consumer_secret
 
-  install_filter_policy = {
+  filter_policy_slack_install = {
     type = ["oauth"]
   }
 
-  uninstall_filter_policy = {
+  filter_policy_slack_uninstall = {
     id   = ["app_uninstalled"]
     type = ["event"]
   }
@@ -31,13 +41,13 @@ locals {
   tags = {
     App     = "core"
     Name    = "brutalismbot"
-    Release = var.release
-    Repo    = var.repo
+    Release = local.release
+    Repo    = local.repo
   }
 }
 
 data aws_iam_role role {
-  name = "brutalismbot"
+  name = local.role_name
 }
 
 data aws_iam_policy_document s3 {
@@ -45,48 +55,48 @@ data aws_iam_policy_document s3 {
     actions = ["s3:*"]
 
     resources = [
-      "${aws_s3_bucket.brutalismbot.arn}",
+      aws_s3_bucket.brutalismbot.arn,
       "${aws_s3_bucket.brutalismbot.arn}/*",
     ]
   }
 }
 
 data aws_sns_topic topic {
-  name = "brutalismbot-api"
+  name = local.topic_name
 }
 
-resource aws_cloudwatch_event_rule cache {
-  description         = "Cache posts from /r/brutalism to S3"
-  name                = aws_lambda_function.cache.function_name
+resource aws_cloudwatch_event_rule pull {
+  description         = "Pull posts from /r/brutalism to S3"
+  name                = aws_lambda_function.pull.function_name
   schedule_expression = "rate(1 hour)"
   tags                = local.tags
 }
 
-resource aws_cloudwatch_event_target cache {
-  rule = aws_cloudwatch_event_rule.cache.name
-  arn  = aws_lambda_function.cache.arn
+resource aws_cloudwatch_event_target pull {
+  rule = aws_cloudwatch_event_rule.pull.name
+  arn  = aws_lambda_function.pull.arn
 }
 
-resource aws_cloudwatch_log_group install {
-  name              = "/aws/lambda/${aws_lambda_function.install.function_name}"
+resource aws_cloudwatch_log_group pull {
+  name              = "/aws/lambda/${aws_lambda_function.pull.function_name}"
   retention_in_days = 30
   tags              = local.tags
 }
 
-resource aws_cloudwatch_log_group cache {
-  name              = "/aws/lambda/${aws_lambda_function.cache.function_name}"
+resource aws_cloudwatch_log_group push {
+  name              = "/aws/lambda/${aws_lambda_function.push.function_name}"
   retention_in_days = 30
   tags              = local.tags
 }
 
-resource aws_cloudwatch_log_group mirror {
-  name              = "/aws/lambda/${aws_lambda_function.mirror.function_name}"
+resource aws_cloudwatch_log_group slack_install {
+  name              = "/aws/lambda/${aws_lambda_function.slack_install.function_name}"
   retention_in_days = 30
   tags              = local.tags
 }
 
-resource aws_cloudwatch_log_group uninstall {
-  name              = "/aws/lambda/${aws_lambda_function.uninstall.function_name}"
+resource aws_cloudwatch_log_group slack_uninstall {
+  name              = "/aws/lambda/${aws_lambda_function.slack_uninstall.function_name}"
   retention_in_days = 30
   tags              = local.tags
 }
@@ -97,47 +107,10 @@ resource aws_iam_role_policy s3_access {
   role   = data.aws_iam_role.role.id
 }
 
-resource aws_lambda_function test {
-  description   = "Test Brutalismbot Lambda package"
-  function_name = "brutalismbot-test"
-  handler       = "lambda.test"
-  role          = data.aws_iam_role.role.arn
-  runtime       = "ruby2.5"
-  s3_bucket     = aws_s3_bucket.brutalismbot.bucket
-  s3_key        = null_resource.lambda.triggers.lambda_s3_key
-  tags          = local.tags
-  timeout       = 3
-
-  environment {
-    variables = {
-      S3_BUCKET = aws_s3_bucket.brutalismbot.bucket
-    }
-  }
-}
-
-resource aws_lambda_function install {
-  description   = "Install OAuth credentials"
-  function_name = "brutalismbot-install"
-  handler       = "lambda.install"
-  role          = data.aws_iam_role.role.arn
-  runtime       = "ruby2.5"
-  s3_bucket     = aws_s3_bucket.brutalismbot.bucket
-  s3_key        = null_resource.lambda.triggers.lambda_s3_key
-  tags          = local.tags
-  timeout       = 3
-
-  environment {
-    variables = {
-      S3_BUCKET = aws_s3_bucket.brutalismbot.bucket
-      S3_PREFIX = var.s3_prefix
-    }
-  }
-}
-
-resource aws_lambda_function cache {
-  description   = "Cache posts from /r/brutalism"
-  function_name = "brutalismbot-cache"
-  handler       = "lambda.cache"
+resource aws_lambda_function pull {
+  description   = "Pull posts from /r/brutalism"
+  function_name = "brutalismbot-pull"
+  handler       = "lambda.pull"
   role          = data.aws_iam_role.role.arn
   runtime       = "ruby2.5"
   s3_bucket     = aws_s3_bucket.brutalismbot.bucket
@@ -147,16 +120,17 @@ resource aws_lambda_function cache {
 
   environment {
     variables = {
-      S3_BUCKET = aws_s3_bucket.brutalismbot.bucket
-      S3_PREFIX = var.s3_prefix
+      BRUTALISMBOT_LAG_TIME = local.lag_time
+      POSTS_S3_BUCKET       = aws_s3_bucket.brutalismbot.bucket
+      POSTS_S3_PREFIX       = local.s3_prefix_posts
     }
   }
 }
 
-resource aws_lambda_function mirror {
-  description   = "Mirror posts from /r/brutalism"
-  function_name = "brutalismbot-mirror"
-  handler       = "lambda.mirror"
+resource aws_lambda_function push {
+  description   = "Push posts from /r/brutalism"
+  function_name = "brutalismbot-push"
+  handler       = "lambda.push"
   role          = data.aws_iam_role.role.arn
   runtime       = "ruby2.5"
   s3_bucket     = aws_s3_bucket.brutalismbot.bucket
@@ -166,16 +140,22 @@ resource aws_lambda_function mirror {
 
   environment {
     variables = {
-      S3_BUCKET = aws_s3_bucket.brutalismbot.bucket
-      S3_PREFIX = var.s3_prefix
+      POSTS_S3_BUCKET             = aws_s3_bucket.brutalismbot.bucket
+      POSTS_S3_PREFIX             = local.s3_prefix_posts
+      SLACK_S3_BUCKET             = aws_s3_bucket.brutalismbot.bucket
+      SLACK_S3_PREFIX             = local.s3_prefix_slack
+      TWITTER_ACCESS_TOKEN        = local.twitter_access_token
+      TWITTER_ACCESS_TOKEN_SECRET = local.twitter_access_token_secret
+      TWITTER_CONSUMER_KEY        = local.twitter_consumer_key
+      TWITTER_CONSUMER_SECRET     = local.twitter_consumer_secret
     }
   }
 }
 
-resource aws_lambda_function uninstall {
-  description   = "Uninstall brutalismbot from workspace"
-  function_name = "brutalismbot-uninstall"
-  handler       = "lambda.uninstall"
+resource aws_lambda_function slack_install {
+  description   = "Install app to Slack workspace"
+  function_name = "brutalismbot-slack-install"
+  handler       = "lambda.slack_install"
   role          = data.aws_iam_role.role.arn
   runtime       = "ruby2.5"
   s3_bucket     = aws_s3_bucket.brutalismbot.bucket
@@ -185,54 +165,73 @@ resource aws_lambda_function uninstall {
 
   environment {
     variables = {
-      S3_BUCKET = aws_s3_bucket.brutalismbot.bucket
-      S3_PREFIX = var.s3_prefix
+      SLACK_S3_BUCKET = aws_s3_bucket.brutalismbot.bucket
+      SLACK_S3_PREFIX = local.s3_prefix_slack
     }
   }
 }
 
-resource aws_lambda_permission install {
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.install.function_name
-  principal     = "sns.amazonaws.com"
-  source_arn    = data.aws_sns_topic.topic.arn
+resource aws_lambda_function slack_uninstall {
+  description   = "Uninstall brutalismbot from Slack workspace"
+  function_name = "brutalismbot-slack-uninstall"
+  handler       = "lambda.slack_uninstall"
+  role          = data.aws_iam_role.role.arn
+  runtime       = "ruby2.5"
+  s3_bucket     = aws_s3_bucket.brutalismbot.bucket
+  s3_key        = null_resource.lambda.triggers.lambda_s3_key
+  tags          = local.tags
+  timeout       = 3
+
+  environment {
+    variables = {
+      SLACK_S3_BUCKET = aws_s3_bucket.brutalismbot.bucket
+      SLACK_S3_PREFIX = local.s3_prefix_slack
+    }
+  }
 }
 
-resource aws_lambda_permission cache {
+resource aws_lambda_permission pull {
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.cache.function_name
+  function_name = aws_lambda_function.pull.function_name
   principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.cache.arn
+  source_arn    = aws_cloudwatch_event_rule.pull.arn
 }
 
-resource aws_lambda_permission mirror {
+resource aws_lambda_permission push {
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.mirror.arn
+  function_name = aws_lambda_function.push.arn
   principal     = "s3.amazonaws.com"
   source_arn    = aws_s3_bucket.brutalismbot.arn
 }
 
-resource aws_lambda_permission uninstall {
+resource aws_lambda_permission slack_install {
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.uninstall.arn
+  function_name = aws_lambda_function.slack_install.function_name
+  principal     = "sns.amazonaws.com"
+  source_arn    = data.aws_sns_topic.topic.arn
+}
+
+resource aws_lambda_permission slack_uninstall {
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.slack_uninstall.arn
   principal     = "sns.amazonaws.com"
   source_arn    = data.aws_sns_topic.topic.arn
 }
 
 resource aws_s3_bucket brutalismbot {
   acl           = "private"
-  bucket        = var.s3_bucket
+  bucket        = local.s3_bucket
   force_destroy = false
 }
 
-resource aws_s3_bucket_notification mirror {
+resource aws_s3_bucket_notification push {
   bucket = aws_s3_bucket.brutalismbot.id
 
   lambda_function {
-    id                  = "mirror"
-    lambda_function_arn = aws_lambda_function.mirror.arn
+    id                  = "push"
+    lambda_function_arn = aws_lambda_function.push.arn
     events              = ["s3:ObjectCreated:*"]
-    filter_prefix       = "${var.s3_prefix}posts/"
+    filter_prefix       = local.s3_prefix_posts
     filter_suffix       = ".json"
   }
 }
@@ -246,15 +245,15 @@ resource aws_s3_bucket_public_access_block brutalismbot {
 }
 
 resource aws_sns_topic_subscription install {
-  endpoint      = aws_lambda_function.install.arn
-  filter_policy = jsonencode(local.install_filter_policy)
+  endpoint      = aws_lambda_function.slack_install.arn
+  filter_policy = jsonencode(local.filter_policy_slack_install)
   protocol      = "lambda"
   topic_arn     = data.aws_sns_topic.topic.arn
 }
 
 resource aws_sns_topic_subscription uninstall {
-  endpoint      = aws_lambda_function.uninstall.arn
-  filter_policy = jsonencode(local.uninstall_filter_policy)
+  endpoint      = aws_lambda_function.slack_uninstall.arn
+  filter_policy = jsonencode(local.filter_policy_slack_uninstall)
   protocol      = "lambda"
   topic_arn     = data.aws_sns_topic.topic.arn
 }
@@ -273,19 +272,20 @@ variable release {
   description = "Release tag."
 }
 
-variable repo {
-  description = "Project repository."
-  default     = "https://github.com/brutalismbot/brutalismbot"
+variable twitter_access_token {
+  description = "Twitter API access token."
 }
 
-variable s3_bucket {
-  description = "S3 bucket."
-  default     = "brutalismbot"
+variable twitter_access_token_secret {
+  description = "Twitter API access token secret."
 }
 
-variable s3_prefix {
-  description = "S3 prefix."
-  default     = "data/v1/"
+variable twitter_consumer_key {
+  description = "Twitter API Consumer Key."
+}
+
+variable twitter_consumer_secret {
+  description = "Twitter API Consumer Secret."
 }
 
 output lambda_s3_url {
