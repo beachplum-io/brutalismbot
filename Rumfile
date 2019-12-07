@@ -1,8 +1,10 @@
 #!/usr/bin/env ruby
 require "dotenv/load"
 
+VERSION = %x(git describe --tags --always).strip
+
 rum :"brutalismbot/brutalismbot" do
-  tag %x(git describe --tags --always).strip
+  tag VERSION
 
   env :AWS_ACCESS_KEY_ID
   env :AWS_DEFAULT_REGION
@@ -22,7 +24,7 @@ rum :"brutalismbot/brutalismbot" do
 
   desc "Publish lambda package"
   run :publish => :build do
-    cmd %W[aws s3 cp lambda.zip s3://brutalismbot/pkg/brutalismbot-#{tag}.zip]
+    cmd %W[aws s3 cp lambda.zip s3://brutalismbot/pkg/lambda/brutalismbot-#{VERSION}.zip]
   end
 
   desc "Apply infrastructure"
