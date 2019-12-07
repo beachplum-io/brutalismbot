@@ -11,15 +11,17 @@ provider aws {
 }
 
 locals {
-  release         = var.release
-  repo            = "https://github.com/brutalismbot/brutalismbot"
-  lag_time        = "9000"
-  lambda_s3_key   = "terraform/pkg/brutalismbot-${local.release}.zip"
-  role_name       = "brutalismbot"
-  s3_bucket       = "brutalismbot"
-  posts_s3_prefix = "data/v1/posts/"
-  slack_s3_prefix = "data/v1/auths/"
-  topic           = "brutalismbot-slack"
+  release              = var.release
+  repo                 = "https://github.com/brutalismbot/brutalismbot"
+  lag_time             = "9000"
+  lambda_layer_name    = "brutalismbot"
+  lambda_layer_version = "15"
+  lambda_s3_key        = "pkg/lambda/brutalismbot-2019.12.2.zip"
+  posts_s3_prefix      = "data/v1/posts/"
+  role_name            = "brutalismbot"
+  s3_bucket            = "brutalismbot"
+  slack_s3_prefix      = "data/v1/auths/"
+  slack_sns_topic_name = "brutalismbot-slack"
 
   twitter_access_token        = var.twitter_access_token
   twitter_access_token_secret = var.twitter_access_token_secret
@@ -49,10 +51,20 @@ data aws_iam_policy_document s3 {
   }
 }
 
+data aws_lambda_layer_version layer {
+  layer_name = local.lambda_layer_name
+  version    = local.lambda_layer_version
+}
+
+data aws_sns_topic slack {
+  name = local.slack_sns_topic_name
+}
+
 module pull {
   source           = "./terraform/pull"
   lag_time         = local.lag_time
-  lambda_role      = data.aws_iam_role.role.name
+  lambda_layer_arn = data.aws_lambda_layer_version.layer.arn
+  lambda_role_arn  = data.aws_iam_role.role.arn
   lambda_s3_bucket = aws_s3_bucket.brutalismbot.bucket
   lambda_s3_key    = local.lambda_s3_key
   posts_s3_bucket  = aws_s3_bucket.brutalismbot.bucket
@@ -62,7 +74,8 @@ module pull {
 
 module push {
   source                      = "./terraform/push"
-  lambda_role                 = data.aws_iam_role.role.name
+  lambda_layer_arn            = data.aws_lambda_layer_version.layer.arn
+  lambda_role_arn             = data.aws_iam_role.role.arn
   lambda_s3_bucket            = aws_s3_bucket.brutalismbot.bucket
   lambda_s3_key               = local.lambda_s3_key
   posts_s3_bucket             = aws_s3_bucket.brutalismbot.bucket
@@ -77,14 +90,24 @@ module push {
 }
 
 module slack {
-  source           = "./terraform/slack"
-  lambda_role      = data.aws_iam_role.role.name
+  source              = "./terraform/slack"
+  lambda_layer_arn    = data.aws_lambda_layer_version.layer.arn
+  lambda_role_arn     = data.aws_iam_role.role.arn
+  lambda_s3_bucket    = aws_s3_bucket.brutalismbot.bucket
+  lambda_s3_key       = local.lambda_s3_key
+  slack_s3_bucket     = aws_s3_bucket.brutalismbot.bucket
+  slack_s3_prefix     = local.slack_s3_prefix
+  slack_sns_topic_arn = data.aws_sns_topic.slack.arn
+  tags                = local.tags
+}
+
+module test {
+  source           = "./terraform/test"
+  lambda_layer_arn = data.aws_lambda_layer_version.layer.arn
+  lambda_role_arn  = data.aws_iam_role.role.arn
   lambda_s3_bucket = aws_s3_bucket.brutalismbot.bucket
-  lambda_s3_key    = local.lambda_s3_key
-  slack_s3_bucket  = aws_s3_bucket.brutalismbot.bucket
-  slack_s3_prefix  = local.slack_s3_prefix
+  lambda_s3_key    = "pkg/lambda/brutalismbot-2019.12.2.zip"
   tags             = local.tags
-  topic            = local.topic
 }
 
 resource aws_iam_role_policy s3_access {

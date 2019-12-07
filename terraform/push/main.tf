@@ -1,5 +1,6 @@
 locals {
-  lambda_role                 = var.lambda_role
+  lambda_layer_arn            = var.lambda_layer_arn
+  lambda_role_arn             = var.lambda_role_arn
   lambda_s3_bucket            = var.lambda_s3_bucket
   lambda_s3_key               = var.lambda_s3_key
   posts_s3_bucket             = var.posts_s3_bucket
@@ -11,10 +12,6 @@ locals {
   twitter_consumer_key        = var.twitter_consumer_key
   twitter_consumer_secret     = var.twitter_consumer_secret
   tags                        = var.tags
-}
-
-data aws_iam_role role {
-  name = local.lambda_role
 }
 
 data aws_s3_bucket brutalismbot {
@@ -31,7 +28,8 @@ resource aws_lambda_function push {
   description   = "Push posts from /r/brutalism"
   function_name = "brutalismbot-push"
   handler       = "lambda.push"
-  role          = data.aws_iam_role.role.arn
+  layers        = [local.lambda_layer_arn]
+  role          = local.lambda_role_arn
   runtime       = "ruby2.5"
   s3_bucket     = local.lambda_s3_bucket
   s3_key        = local.lambda_s3_key

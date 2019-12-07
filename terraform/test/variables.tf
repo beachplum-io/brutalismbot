@@ -14,18 +14,6 @@ variable lambda_s3_key {
   description = "Lambda function S3 key."
 }
 
-variable slack_s3_bucket {
-  description = "Slack S3 bucket."
-}
-
-variable slack_s3_prefix {
-  description = "Slack S3 prefix."
-}
-
-variable slack_sns_topic_arn {
-  description = "Slack SNS topic ARN."
-}
-
 variable tags {
   description = "Resource tags."
   type        = map

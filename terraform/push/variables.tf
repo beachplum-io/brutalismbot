@@ -1,5 +1,9 @@
-variable lambda_role {
-  description = "Lambda IAM Role name."
+variable lambda_layer_arn {
+  description = "Lambda layer ARN."
+}
+
+variable lambda_role_arn {
+  description = "Lambda IAM Role ARN."
 }
 
 variable lambda_s3_bucket {

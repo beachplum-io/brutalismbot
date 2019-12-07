@@ -1,10 +1,14 @@
+variable lambda_layer_arn {
+  description = "Lambda layer ARN."
+}
+
 variable lag_time {
   description = "Post age lag time."
   default     = "9000"
 }
 
-variable lambda_role {
-  description = "Lambda IAM Role name."
+variable lambda_role_arn {
+  description = "Lambda IAM Role ARN."
 }
 
 variable lambda_s3_bucket {

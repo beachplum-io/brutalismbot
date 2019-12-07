@@ -2,18 +2,16 @@ ARG RUNTIME=ruby2.5
 ARG TERRAFORM_VERSION=latest
 
 FROM lambci/lambda:build-${RUNTIME} AS build
-COPY Gemfile* lambda.rb ./
-ARG BUNDLE_SILENCE_ROOT_WARNING=1
-RUN bundle install --path vendor/bundle/ --without development
-RUN zip -r lambda.zip Gemfile* lambda.rb vendor
+COPY lambda.rb .
+RUN zip -r lambda.zip lambda.rb
 
 FROM lambci/lambda:build-${RUNTIME} AS test
-COPY --from=build /var/task/ .
+COPY Gemfile* lambda.rb ./
 ARG AWS_ACCESS_KEY_ID
 ARG AWS_DEFAULT_REGION=us-east-1
 ARG AWS_SECRET_ACCESS_KEY
 ARG BUNDLE_SILENCE_ROOT_WARNING=1
-RUN bundle install --with development
+RUN bundle install
 COPY Rakefile .
 RUN bundle exec rake
 

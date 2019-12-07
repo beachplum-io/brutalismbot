@@ -1,15 +1,12 @@
 locals {
   lag_time         = var.lag_time
-  lambda_role      = var.lambda_role
+  lambda_layer_arn = var.lambda_layer_arn
+  lambda_role_arn  = var.lambda_role_arn
   lambda_s3_bucket = var.lambda_s3_bucket
   lambda_s3_key    = var.lambda_s3_key
   posts_s3_bucket  = var.posts_s3_bucket
   posts_s3_prefix  = var.posts_s3_prefix
   tags             = var.tags
-}
-
-data aws_iam_role role {
-  name = local.lambda_role
 }
 
 resource aws_cloudwatch_event_rule pull {
@@ -34,7 +31,8 @@ resource aws_lambda_function pull {
   description   = "Pull posts from /r/brutalism"
   function_name = "brutalismbot-pull"
   handler       = "lambda.pull"
-  role          = data.aws_iam_role.role.arn
+  layers        = [local.lambda_layer_arn]
+  role          = local.lambda_role_arn
   runtime       = "ruby2.5"
   s3_bucket     = local.lambda_s3_bucket
   s3_key        = local.lambda_s3_key
