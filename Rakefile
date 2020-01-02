@@ -1,23 +1,26 @@
+pwd = File.expand_path("../lib", __FILE__)
+$LOAD_PATH.unshift(pwd) unless $LOAD_PATH.include?(pwd)
+
 ENV["DRYRUN"] = "1"
 
 require "brutalismbot/stub"
-require_relative "./lambda"
+require "lambda"
 
 BRUTALISMBOT.stub!
 
-def runtest(name, func)
+def runtest(name, &block)
   puts "\n=> #{name}"
-  puts func.call
+  puts block.call if block_given?
 end
 
 desc 'lambda.test'
 task :test do
-  runtest "TEST", -> { test event: {} }
+  runtest("TEST") { test event: {} }
 end
 
 desc 'lambda.pull'
 task :pull do
-  runtest "PULL", -> { pull }
+  runtest("PULL") { pull }
 end
 
 desc 'lambda.push'
@@ -33,7 +36,7 @@ task :push do
       },
     ],
   }
-  runtest "PUSH", -> { push event: event }
+  runtest("PUSH") { push event: event }
 end
 
 namespace :slack do
@@ -48,7 +51,7 @@ namespace :slack do
         },
       ],
     }
-    runtest "SLACK INSTALL", -> { slack_install event: event }
+    runtest("SLACK INSTALL") { slack_install event: event }
   end
 
   desc 'lambda.slack_uninstall'
@@ -72,10 +75,10 @@ namespace :slack do
         },
       ],
     }
-    runtest "SLACK UNINSTALL", -> { slack_uninstall event: event }
+    runtest("SLACK UNINSTALL") { slack_uninstall event: event }
   end
 end
 
-task :slack => [:"slack:install", :"slack:uninstall"]
+task :slack => %i[slack:install slack:uninstall]
 
-task :default => [:test, :pull, :push, :slack]
+task :default => %i[test pull push slack]

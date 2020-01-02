@@ -11,6 +11,7 @@
 **/.bundle/
 **/.docker/
 **/.terraform/
+**/pkg/
 **/vendor/
 *.env
 *.tfplan
