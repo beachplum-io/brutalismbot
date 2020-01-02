@@ -14,8 +14,6 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
-      with:
-        ruby-version: 2.5.x
     - name: rum
       run: |
         gem install bundler -v 2.1.2
