@@ -18,6 +18,7 @@ jobs:
         bundle install --jobs 4 --retry 3
         docker pull hashicorp/terraform:latest
         docker pull lambci/lambda:build-ruby2.5
+        docker pull lambci/lambda:ruby2.5
     - name: Run plan
       run: |
         bundle exec rum plan
