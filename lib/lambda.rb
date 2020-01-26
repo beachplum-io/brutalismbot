@@ -39,11 +39,7 @@ def test(event:nil, context:nil)
 end
 
 def pull(event:nil, context:nil)
-  items = BRUTALISMBOT.pull(dryrun: DRYRUN)
-  {
-    count: items.count,
-    items: items,
-  }
+  BRUTALISMBOT.pull limit: 1, dryrun: DRYRUN
 end
 
 def push(event:nil, context:nil)
@@ -53,11 +49,11 @@ def push(event:nil, context:nil)
 end
 
 def push_slack(event:nil, context:nil)
-  BRUTALISMBOT.slack.push(event, dryrun: DRYRUN)
+  BRUTALISMBOT.slack.push event, dryrun: DRYRUN
 end
 
 def push_twitter(event:nil, context:nil)
-  BRUTALISMBOT.twitter.push(event, dryrun: DRYRUN)
+  BRUTALISMBOT.twitter.push event, dryrun: DRYRUN
 end
 
 def slack_install(event:nil, context:nil)
