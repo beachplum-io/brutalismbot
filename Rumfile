@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 require "dotenv/load"
 
-VERSION   = %x(git describe --tags --always).strip
+VERSION   = ENV["BRUTALISMBOT_VERSION"] || %x(git describe --tags --always).strip
 S3_BUCKET = "brutalismbot"
 S3_PREFIX = "pkg/brutalismbot-#{VERSION}/"
 
@@ -19,15 +19,15 @@ rum :"brutalismbot/brutalismbot" do
   env :TF_VAR_twitter_consumer_secret     => ENV["TWITTER_CONSUMER_SECRET"]
 
   stage :build
-  stage :dev => :build
+  stage :dev  => :build
   stage :test => :dev
   stage :plan => :test
 
   artifact "pkg/function.zip" => :build
-  artifact "pkg/layer.zip" => :build
+  artifact "pkg/layer.zip"    => :build
 
-  desc "Upload Lambda Layer package"
-  run :upload => :build do
+  desc "Push Lambda Layer package"
+  run :push => :build do
     cmd %W[aws s3 sync pkg s3://#{S3_BUCKET}/#{S3_PREFIX}]
   end
 
@@ -41,8 +41,6 @@ rum :"brutalismbot/brutalismbot" do
       --compatible-runtimes ruby2.5
     ]
   end
-
-  task :publish => :upload
 
   desc "Apply infrastructure"
   run :apply => :plan

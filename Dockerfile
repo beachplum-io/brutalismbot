@@ -27,6 +27,9 @@ FROM lambci/lambda:build-${RUNTIME} AS test
 RUN gem install rake -v 13.0.1
 COPY --from=build /opt/ /opt/
 COPY Rakefile .
+ARG AWS_ACCESS_KEY_ID
+ARG AWS_DEFAULT_REGION=us-east-1
+ARG AWS_SECRET_ACCESS_KEY
 RUN rake
 
 # Plan deployment
