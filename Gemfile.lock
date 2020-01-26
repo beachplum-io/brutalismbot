@@ -19,7 +19,7 @@ GEM
       aws-sigv4 (~> 1.1)
     aws-sigv4 (1.1.0)
       aws-eventstream (~> 1.0, >= 1.0.2)
-    brutalismbot (1.0.0)
+    brutalismbot (1.1.0)
       twitter (~> 6.2)
     buftok (0.2.0)
     coderay (1.1.2)
@@ -34,7 +34,7 @@ GEM
       http_parser.rb (~> 0.6.0)
     http-cookie (1.0.3)
       domain_name (~> 0.5)
-    http-form_data (2.1.1)
+    http-form_data (2.2.0)
     http_parser.rb (0.6.0)
     jmespath (1.4.0)
     memoizable (0.4.2)
@@ -45,7 +45,7 @@ GEM
     pry (0.12.2)
       coderay (~> 1.1.0)
       method_source (~> 0.9.0)
-    public_suffix (4.0.2)
+    public_suffix (4.0.3)
     rake (13.0.1)
     rumrunner (0.5.0)
       rake (~> 13.0)
@@ -71,10 +71,10 @@ PLATFORMS
 
 DEPENDENCIES
   aws-sdk-s3 (~> 1.0)
-  brutalismbot (= 1.0.0)
+  brutalismbot (= 1.1.0)
   dotenv (~> 2.7)
   pry (~> 0.12)
   rumrunner (~> 0.5)
 
 BUNDLED WITH
-   2.1.1
+   2.1.4
