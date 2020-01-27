@@ -26,24 +26,29 @@ rum :"brutalismbot/brutalismbot" do
   artifact "pkg/function.zip" => :build
   artifact "pkg/layer.zip"    => :build
 
-  desc "Push Lambda Layer package"
-  run :push => :build do
-    cmd %W[aws s3 sync pkg s3://#{S3_BUCKET}/#{S3_PREFIX}]
-  end
-
-  desc "Publish Lambda Layer package"
-  run :publish => :build do
-    cmd %W[
-      aws lambda publish-layer-version
-      --layer-name brutalismbot
-      --description 'Brutalismbot v#{VERSION}'
-      --content S3Bucket=#{S3_BUCKET},S3Key=#{S3_PREFIX}layer.zip
-      --compatible-runtimes ruby2.5
-    ]
-  end
-
   desc "Apply infrastructure"
   run :apply => :plan
 
   default %W[pkg/function.zip pkg/layer.zip]
+end
+
+desc "List packages"
+task :ls do
+  sh "aws s3 ls --recursive s3://#{S3_BUCKET}/#{S3_PREFIX}"
+end
+
+desc "Push Lambda Layer package"
+task :push => %w[pkg/function.zip pkg/layer.zip] do
+  sh "aws s3 sync pkg s3://#{S3_BUCKET}/#{S3_PREFIX}"
+end
+
+desc "Publish Lambda Layer package"
+task :publish do
+  sh <<~EOS
+    aws lambda publish-layer-version \
+    --layer-name brutalismbot \
+    --description 'Brutalismbot v#{VERSION}' \
+    --content S3Bucket=#{S3_BUCKET},S3Key=#{S3_PREFIX}layer.zip \
+    --compatible-runtimes ruby2.5
+  EOS
 end
