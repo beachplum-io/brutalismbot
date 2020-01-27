@@ -39,24 +39,24 @@ def test(event:nil, context:nil)
 end
 
 def pull(event:nil, context:nil)
-  BRUTALISMBOT.pull limit: 1, dryrun: DRYRUN
+  BRUTALISMBOT.pull(limit: 1, dryrun: DRYRUN).each do |post|
+    post[:metadata][:id] << "--#{context.aws_request_id}" unless context.nil?
+  end
 end
 
-def push(event:nil, context:nil)
+def push(event:, context:nil)
   each_post event do |post|
     BRUTALISMBOT.push post, dryrun: DRYRUN
   end
 end
 
-def push_slack(event:nil, context:nil)
-  BRUTALISMBOT.slack.push event, dryrun: DRYRUN
-end
-
-def push_twitter(event:nil, context:nil)
+def push_twitter(event:, context:nil)
+  options = event.transform_keys(&:to_sym).slice(:bucket, :key)
+  BRUTALISMBOT.posts.get(**options)
   BRUTALISMBOT.twitter.push event, dryrun: DRYRUN
 end
 
-def slack_install(event:nil, context:nil)
+def slack_install(event:, context:nil)
   each_message event do |message|
     # Get Auth from SNS message
     auth = Brutalismbot::Slack::Auth.parse message
@@ -72,7 +72,7 @@ def slack_install(event:nil, context:nil)
   end
 end
 
-def slack_uninstall(event:nil, context:nil)
+def slack_uninstall(event:, context:nil)
   each_message event do |message|
     # Get Auth from SNS message
     auth = Brutalismbot::Slack::Auth.parse message
