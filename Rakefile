@@ -5,7 +5,6 @@ ENV["DRYRUN"] = "1"
 
 require "brutalismbot/stub"
 require "lambda"
-require "pry"
 
 BRUTALISMBOT.stub!
 

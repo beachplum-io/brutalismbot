@@ -1,5 +1,5 @@
 {
-  "StartAt": "FetchPost",
+  "StartAt": "PushToTwitter",
   "States": {
     "PushToTwitter": {
       "Type": "Task",

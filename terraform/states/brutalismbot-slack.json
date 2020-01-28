@@ -1,5 +1,5 @@
 {
-  "StartAt": "FetchSlack",
+  "StartAt": "PushToSlack",
   "States": {
     "PushToSlack": {
       "Type": "Task",
