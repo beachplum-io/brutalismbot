@@ -21,7 +21,9 @@ def each_message(event)
 end
 
 def reddit_pull(event:nil, context:nil)
-  BRUTALISMBOT.pull limit: LIMIT, dryrun: DRYRUN
+  puts "EVENT #{event.to_json}"
+  limit = event&.dig("Limit")&.to_i || LIMIT
+  BRUTALISMBOT.pull limit: limit, dryrun: DRYRUN
 end
 
 def s3_fetch(event:, context:nil)
