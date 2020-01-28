@@ -24,9 +24,10 @@ end
 
 def reddit_pull(event:nil, context:nil)
   puts "EVENT #{event.to_json}"
-  lag   = event&.dig("Lag")&.to_i   || LAG
-  limit = event&.dig("Limit")&.to_i || LIMIT
-  BRUTALISMBOT.pull lag: lag, limit: limit, dryrun: DRYRUN
+  dryrun = event&.dig("Dryrun") || DRYRUN
+  lag   = event&.dig("Lag")     || LAG
+  limit = event&.dig("Limit")   || LIMIT
+  BRUTALISMBOT.pull lag: lag, limit: limit, dryrun: dryrun
 end
 
 def s3_fetch(event:, context:nil)
@@ -58,9 +59,10 @@ end
 
 def slack_push(event:, context:nil)
   puts "EVENT #{event.to_json}"
-  auth = BRUTALISMBOT.slack.get(**event["Slack"].transform_keys(&:to_sym))
-  post = BRUTALISMBOT.posts.get(**event["Post"].transform_keys(&:to_sym))
-  auth.push post, dryrun: DRYRUN
+  dryrun = event&.dig("Dryrun") || DRYRUN
+  auth   = BRUTALISMBOT.slack.get(**event["Slack"].transform_keys(&:to_sym))
+  post   = BRUTALISMBOT.posts.get(**event["Post"].transform_keys(&:to_sym))
+  auth.push post, dryrun: dryrun
   post.to_slack
 end
 
@@ -86,7 +88,8 @@ end
 
 def twitter_push(event:, context:nil)
   puts "EVENT #{event.to_json}"
-  post = BRUTALISMBOT.posts.get(**event["Post"].transform_keys(&:to_sym))
-  BRUTALISMBOT.twitter.push post, dryrun: DRYRUN
+  dryrun = event&.dig("Dryrun") || DRYRUN
+  post   = BRUTALISMBOT.posts.get(**event["Post"].transform_keys(&:to_sym))
+  BRUTALISMBOT.twitter.push post, dryrun: dryrun
   {status: post.to_twitter, media: post.url}
 end
