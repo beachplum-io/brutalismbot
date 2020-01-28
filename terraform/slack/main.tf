@@ -37,6 +37,20 @@ module slack_install {
   }
 }
 
+module slack_list {
+  source = "../lambda"
+
+  description   = "Get slack authorizations"
+  function_name = "brutalismbot-slack-list"
+  handler       = "lambda.slack_list"
+
+  layers    = local.lambda_layers
+  role      = local.lambda_role_arn
+  s3_bucket = local.lambda_s3_bucket
+  s3_key    = local.lambda_s3_key
+  tags      = local.tags
+}
+
 module slack_uninstall {
   source = "../lambda"
 
