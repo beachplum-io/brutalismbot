@@ -1,21 +1,7 @@
 {
   "StartAt": "FetchSlack",
   "States": {
-    "FetchSlack": {
-      "Type": "Task",
-      "InputPath": "$.Slack",
-      "Resource": "${fetch_lambda_arn}",
-      "ResultPath": "$.Slack",
-      "Next": "FetchPost"
-    },
-    "FetchPost": {
-      "Type": "Task",
-      "InputPath": "$.Post",
-      "Resource": "${fetch_lambda_arn}",
-      "ResultPath": "$.Post",
-      "Next": "Push"
-    },
-    "Push": {
+    "PushToSlack": {
       "Type": "Task",
       "Resource": "${slack_push_lambda_arn}",
       "ResultPath": "$.Result",

@@ -5,6 +5,7 @@ ENV["DRYRUN"] = "1"
 
 require "brutalismbot/stub"
 require "lambda"
+require "pry"
 
 BRUTALISMBOT.stub!
 
@@ -18,25 +19,11 @@ task :test do
   runtest("TEST") { test event: {} }
 end
 
-desc 'lambda.pull'
-task :pull do
-  runtest("PULL") { pull }
-end
-
-desc 'lambda.push'
-task :push do
-  key   = URI.escape BRUTALISMBOT.posts.key_for BRUTALISMBOT.posts.last
-  event = {
-    "Records" => [
-      {
-        "s3" => {
-          "bucket" => {"name" => "brutalismbot"},
-          "object" => {"key"  => key},
-        },
-      },
-    ],
-  }
-  runtest("PUSH") { push event: event }
+namespace :reddit do
+  desc 'lambda.reddit_pull'
+  task :pull do
+    runtest("PULL") { reddit_pull }
+  end
 end
 
 namespace :slack do
@@ -52,6 +39,15 @@ namespace :slack do
       ],
     }
     runtest("SLACK INSTALL") { slack_install event: event }
+  end
+
+  desc 'lambda.slack_push'
+  task :push do
+    event = {
+      "Post"  => BRUTALISMBOT.posts.list.first.to_s3(prefix: BRUTALISMBOT.posts.prefix).slice(:bucket, :key),
+      "Slack" => BRUTALISMBOT.slack.list.first.to_s3(prefix: BRUTALISMBOT.slack.prefix).slice(:bucket, :key),
+    }
+    runtest("SLACK PUSH") { slack_push event: event }
   end
 
   desc 'lambda.slack_uninstall'
@@ -79,6 +75,17 @@ namespace :slack do
   end
 end
 
-task :slack => %i[slack:install slack:uninstall]
+namespace :twitter do
+  desc 'lambda.twitter_push'
+  task :push do
+    event = {
+      "Post" => BRUTALISMBOT.posts.list.first.to_s3(prefix: BRUTALISMBOT.posts.prefix).slice(:bucket, :key),
+    }
+    runtest("TWITTER PUSH") { twitter_push event: event }
+  end
+end
 
-task :default => %i[test pull push slack]
+task :reddit  => %i[reddit:pull]
+task :slack   => %i[slack:install slack:push slack:uninstall]
+task :twitter => %i[twitter:push]
+task :default => %i[test reddit slack twitter]

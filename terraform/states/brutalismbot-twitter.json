@@ -1,14 +1,7 @@
 {
   "StartAt": "FetchPost",
   "States": {
-    "FetchPost": {
-      "Type": "Task",
-      "InputPath": "$.Post",
-      "Resource": "${fetch_lambda_arn}",
-      "ResultPath": "$.Post",
-      "Next": "Push"
-    },
-    "Push": {
+    "PushToTwitter": {
       "Type": "Task",
       "Resource": "${twitter_push_lambda_arn}",
       "ResultPath": "$.Result",

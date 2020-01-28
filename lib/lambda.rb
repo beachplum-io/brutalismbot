@@ -53,9 +53,10 @@ end
 
 def slack_push(event:, context:nil)
   puts "EVENT #{event.to_json}"
-  post = Brutalismbot::Reddit::Post.new event["Post"]
-  auth = Brutalismbot::Slack::Auth.new event["Slack"]
+  auth = BRUTALISMBOT.slack.get(**event["Slack"].transform_keys(&:to_sym))
+  post = BRUTALISMBOT.posts.get(**event["Post"].transform_keys(&:to_sym))
   auth.push post, dryrun: DRYRUN
+  post.to_slack
 end
 
 def slack_uninstall(event:, context:nil)
@@ -80,6 +81,7 @@ end
 
 def twitter_push(event:, context:nil)
   puts "EVENT #{event.to_json}"
-  post = Brutalismbot::Reddit::Post.new event["Post"]
+  post = BRUTALISMBOT.posts.get(**event["Post"].transform_keys(&:to_sym))
   BRUTALISMBOT.twitter.push post, dryrun: DRYRUN
+  {status: post.to_twitter, media: post.url}
 end
