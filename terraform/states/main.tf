@@ -5,8 +5,8 @@ locals {
   lambda_s3_key    = var.lambda_s3_key
   tags             = var.tags
 
-  slack_list_lambda_arn = var.slack_list_lambda_arn
-  pull_lambda_arn       = var.pull_lambda_arn
+  reddit_pull_lambda_arn = var.reddit_pull_lambda_arn
+  slack_list_lambda_arn  = var.slack_list_lambda_arn
 }
 
 data aws_iam_policy_document assume_role {
@@ -56,7 +56,7 @@ data template_file main {
 
   vars = {
     slack_list_lambda_arn     = local.slack_list_lambda_arn
-    pull_lambda_arn           = local.pull_lambda_arn
+    reddit_pull_lambda_arn    = local.reddit_pull_lambda_arn
     twitter_state_machine_arn = aws_sfn_state_machine.twitter.id
     slack_state_machine_arn   = aws_sfn_state_machine.slack.id
   }

@@ -20,41 +20,15 @@ def each_message(event)
   end
 end
 
-def each_post(event)
-  each_record event do |record|
-    bucket = URI.unescape record.dig "s3", "bucket", "name"
-    prefix = URI.unescape record.dig "s3", "object", "key"
-    BRUTALISMBOT.posts.list(bucket: bucket, prefix: prefix).each do |post|
-      yield post
-    end
-  end
+def reddit_pull(event:nil, context:nil)
+  BRUTALISMBOT.pull limit: LIMIT, dryrun: DRYRUN
 end
 
-def test(event:nil, context:nil)
-  {
-    LAG_TIME: BRUTALISMBOT.lag_time,
-    MIN_TIME: BRUTALISMBOT.posts.max_time,
-    MAX_TIME: Time.now.utc.to_i - BRUTALISMBOT.lag_time,
-    DRYRUN:   DRYRUN,
-    EVENT:    event.to_json,
-  }
-end
-
-def fetch(event:, context:nil)
+def s3_fetch(event:, context:nil)
   puts "EVENT #{event.to_json}"
   options = event.transform_keys(&:to_sym)
   response = S3.get_object(**options)
   JSON.parse response.body.read
-end
-
-def pull(event:nil, context:nil)
-  BRUTALISMBOT.pull limit: LIMIT, dryrun: DRYRUN
-end
-
-def push(event:, context:nil)
-  each_post event do |post|
-    BRUTALISMBOT.push post, dryrun: DRYRUN
-  end
 end
 
 def slack_install(event:, context:nil)
@@ -92,6 +66,16 @@ def slack_uninstall(event:, context:nil)
     # Remove Auth
     BRUTALISMBOT.slack.uninstall auth, dryrun: DRYRUN
   end
+end
+
+def test(event:nil, context:nil)
+  {
+    LAG_TIME: BRUTALISMBOT.lag_time,
+    MIN_TIME: BRUTALISMBOT.posts.max_time,
+    MAX_TIME: Time.now.utc.to_i - BRUTALISMBOT.lag_time,
+    DRYRUN:   DRYRUN,
+    EVENT:    event.to_json,
+  }
 end
 
 def twitter_push(event:, context:nil)

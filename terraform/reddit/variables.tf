@@ -1,5 +1,6 @@
 variable lambda_layers {
   description = "Lambda layer ARNs."
+  type        = list
 }
 
 variable lag_time {
@@ -19,24 +20,16 @@ variable lambda_s3_key {
   description = "Lambda function S3 key."
 }
 
-variable reddit_pull_lambda_arn {
-  description = "Reddit pull lambda ARN."
+variable posts_s3_bucket {
+  description = "Cached posts S3 bucket."
 }
 
-variable slack_list_lambda_arn {
-  description = "Slack list Lambda ARN."
-}
-
-variable slack_push_lambda_arn {
-  description = "Slack push Lambda ARN."
+variable posts_s3_prefix {
+  description = "Cached posts S3 prefix."
 }
 
 variable tags {
   description = "Resource tags."
   type        = map
   default     = {}
-}
-
-variable twitter_push_lambda_arn {
-  description = "Twitter push Lambda ARN."
 }

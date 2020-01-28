@@ -5,7 +5,7 @@
     "PullPosts": {
       "Comment": "Pull new posts from /r/brutalism and cache on S3",
       "Type": "Task",
-      "Resource": "${pull_lambda_arn}",
+      "Resource": "${reddit_pull_lambda_arn}",
       "ResultPath": "$.Posts",
       "Next": "PullSlacks"
     },
