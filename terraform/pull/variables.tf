@@ -1,5 +1,6 @@
-variable lambda_layer_arn {
-  description = "Lambda layer ARN."
+variable lambda_layers {
+  description = "Lambda layer ARNs."
+  type        = list
 }
 
 variable lag_time {

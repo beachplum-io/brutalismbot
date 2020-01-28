@@ -1,6 +1,6 @@
 locals {
   lag_time         = var.lag_time
-  lambda_layer_arn = var.lambda_layer_arn
+  lambda_layers    = var.lambda_layers
   lambda_role_arn  = var.lambda_role_arn
   lambda_s3_bucket = var.lambda_s3_bucket
   lambda_s3_key    = var.lambda_s3_key
@@ -9,9 +9,32 @@ locals {
   tags             = var.tags
 }
 
+module pull {
+  source = "../lambda"
+
+  description   = "Pull posts from /r/brutalism"
+  function_name = "brutalismbot-pull"
+  handler       = "lambda.pull"
+  timeout       = 30
+
+  layers    = local.lambda_layers
+  role      = local.lambda_role_arn
+  s3_bucket = local.lambda_s3_bucket
+  s3_key    = local.lambda_s3_key
+  tags      = local.tags
+
+  environment_variables = {
+    BRUTALISMBOT_LAG_TIME = local.lag_time
+    DRYRUN                = 1
+    POSTS_S3_BUCKET       = local.posts_s3_bucket
+    POSTS_S3_PREFIX       = local.posts_s3_prefix
+  }
+}
+
 resource aws_cloudwatch_event_rule pull {
   description         = "Pull posts from /r/brutalism to S3"
-  name                = aws_lambda_function.pull.function_name
+  is_enabled          = false
+  name                = module.pull.lambda.function_name
   schedule_expression = "rate(1 hour)"
   tags                = local.tags
 }
@@ -50,7 +73,7 @@ resource aws_lambda_function pull {
 
 resource aws_lambda_permission pull {
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.pull.function_name
+  function_name = module.pull.lambda.function_name
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.pull.arn
 }

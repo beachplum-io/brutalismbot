@@ -1,5 +1,5 @@
 locals {
-  lambda_layer_arn    = var.lambda_layer_arn
+  lambda_layers       = var.lambda_layers
   lambda_role_arn     = var.lambda_role_arn
   lambda_s3_bucket    = var.lambda_s3_bucket
   lambda_s3_key       = var.lambda_s3_key
@@ -18,81 +18,67 @@ locals {
   }
 }
 
-resource aws_cloudwatch_log_group slack_install {
-  name              = "/aws/lambda/${aws_lambda_function.slack_install.function_name}"
-  retention_in_days = 30
-  tags              = local.tags
-}
+module slack_install {
+  source = "../lambda"
 
-resource aws_cloudwatch_log_group slack_uninstall {
-  name              = "/aws/lambda/${aws_lambda_function.slack_uninstall.function_name}"
-  retention_in_days = 30
-  tags              = local.tags
-}
-
-resource aws_lambda_function slack_install {
   description   = "Install app to Slack workspace"
   function_name = "brutalismbot-slack-install"
   handler       = "lambda.slack_install"
-  layers        = [local.lambda_layer_arn]
-  role          = local.lambda_role_arn
-  runtime       = "ruby2.5"
-  s3_bucket     = local.lambda_s3_bucket
-  s3_key        = local.lambda_s3_key
-  tags          = local.tags
-  timeout       = 3
 
-  environment {
-    variables = {
-      SLACK_S3_BUCKET = local.slack_s3_bucket
-      SLACK_S3_PREFIX = local.slack_s3_prefix
-    }
+  layers    = local.lambda_layers
+  role      = local.lambda_role_arn
+  s3_bucket = local.lambda_s3_bucket
+  s3_key    = local.lambda_s3_key
+  tags      = local.tags
+
+  environment_variables = {
+    SLACK_S3_BUCKET = local.slack_s3_bucket
+    SLACK_S3_PREFIX = local.slack_s3_prefix
   }
 }
 
-resource aws_lambda_function slack_uninstall {
+module slack_uninstall {
+  source = "../lambda"
+
   description   = "Uninstall brutalismbot from Slack workspace"
   function_name = "brutalismbot-slack-uninstall"
   handler       = "lambda.slack_uninstall"
-  layers        = [local.lambda_layer_arn]
-  role          = local.lambda_role_arn
-  runtime       = "ruby2.5"
-  s3_bucket     = local.lambda_s3_bucket
-  s3_key        = local.lambda_s3_key
-  tags          = local.tags
-  timeout       = 3
 
-  environment {
-    variables = {
-      SLACK_S3_BUCKET = local.slack_s3_bucket
-      SLACK_S3_PREFIX = local.slack_s3_prefix
-    }
+  layers    = local.lambda_layers
+  role      = local.lambda_role_arn
+  s3_bucket = local.lambda_s3_bucket
+  s3_key    = local.lambda_s3_key
+  tags      = local.tags
+
+  environment_variables = {
+    SLACK_S3_BUCKET = local.slack_s3_bucket
+    SLACK_S3_PREFIX = local.slack_s3_prefix
   }
 }
 
 resource aws_lambda_permission slack_install {
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.slack_install.function_name
+  function_name = module.slack_install.lambda.function_name
   principal     = "sns.amazonaws.com"
   source_arn    = local.slack_sns_topic_arn
 }
 
 resource aws_lambda_permission slack_uninstall {
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.slack_uninstall.arn
+  function_name = module.slack_uninstall.lambda.arn
   principal     = "sns.amazonaws.com"
   source_arn    = local.slack_sns_topic_arn
 }
 
 resource aws_sns_topic_subscription slack_install {
-  endpoint      = aws_lambda_function.slack_install.arn
+  endpoint      = module.slack_install.lambda.arn
   filter_policy = jsonencode(local.filter_policy_slack_install)
   protocol      = "lambda"
   topic_arn     = local.slack_sns_topic_arn
 }
 
 resource aws_sns_topic_subscription slack_uninstall {
-  endpoint      = aws_lambda_function.slack_uninstall.arn
+  endpoint      = module.slack_uninstall.lambda.arn
   filter_policy = jsonencode(local.filter_policy_slack_uninstall)
   protocol      = "lambda"
   topic_arn     = local.slack_sns_topic_arn
