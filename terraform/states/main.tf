@@ -98,7 +98,7 @@ module fetch {
 
 resource aws_cloudwatch_event_rule pull {
   description         = "Start Brutalismbot state machine"
-  is_enabled          = false
+  is_enabled          = true
   name                = aws_sfn_state_machine.main.name
   schedule_expression = "rate(1 hour)"
   tags                = local.tags

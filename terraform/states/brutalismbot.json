@@ -40,7 +40,6 @@
                     "Type": "Task",
                     "OutputPath": "$.ExecutionArn",
                     "Resource": "arn:aws:states:::states:startExecution",
-                    "ResultPath": "$.ExecutionArn",
                     "End": true,
                     "Parameters": {
                       "StateMachineArn": "${twitter_state_machine_arn}",
