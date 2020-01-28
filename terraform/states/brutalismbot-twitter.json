@@ -1,0 +1,16 @@
+{
+  "StartAt": "FetchPost",
+  "States": {
+    "FetchPost": {
+      "Type": "Task",
+      "InputPath": "$.Post",
+      "Resource": "${fetch_lambda_arn}",
+      "ResultPath": "$.Post",
+      "Next": "Push"
+    },
+    "Push": {
+      "Type": "Pass",
+      "End": true
+    }
+  }
+}

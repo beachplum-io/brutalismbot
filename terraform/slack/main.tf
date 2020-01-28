@@ -18,7 +18,7 @@ locals {
   }
 }
 
-module slack_install {
+module install {
   source = "../lambda"
 
   description   = "Install app to Slack workspace"
@@ -37,7 +37,7 @@ module slack_install {
   }
 }
 
-module slack_list {
+module list {
   source = "../lambda"
 
   description   = "Get slack authorizations"
@@ -51,7 +51,21 @@ module slack_list {
   tags      = local.tags
 }
 
-module slack_uninstall {
+module push {
+  source = "../lambda"
+
+  description   = "Push posts from /r/brutalism to Slack"
+  function_name = "brutalismbot-slack-push"
+  handler       = "lambda.slack_push"
+
+  layers    = local.lambda_layers
+  role      = local.lambda_role_arn
+  s3_bucket = local.lambda_s3_bucket
+  s3_key    = local.lambda_s3_key
+  tags      = local.tags
+}
+
+module uninstall {
   source = "../lambda"
 
   description   = "Uninstall brutalismbot from Slack workspace"
@@ -70,29 +84,29 @@ module slack_uninstall {
   }
 }
 
-resource aws_lambda_permission slack_install {
+resource aws_lambda_permission install {
   action        = "lambda:InvokeFunction"
-  function_name = module.slack_install.lambda.function_name
+  function_name = module.install.lambda.function_name
   principal     = "sns.amazonaws.com"
   source_arn    = local.slack_sns_topic_arn
 }
 
-resource aws_lambda_permission slack_uninstall {
+resource aws_lambda_permission uninstall {
   action        = "lambda:InvokeFunction"
-  function_name = module.slack_uninstall.lambda.arn
+  function_name = module.uninstall.lambda.arn
   principal     = "sns.amazonaws.com"
   source_arn    = local.slack_sns_topic_arn
 }
 
-resource aws_sns_topic_subscription slack_install {
-  endpoint      = module.slack_install.lambda.arn
+resource aws_sns_topic_subscription install {
+  endpoint      = module.install.lambda.arn
   filter_policy = jsonencode(local.filter_policy_slack_install)
   protocol      = "lambda"
   topic_arn     = local.slack_sns_topic_arn
 }
 
-resource aws_sns_topic_subscription slack_uninstall {
-  endpoint      = module.slack_uninstall.lambda.arn
+resource aws_sns_topic_subscription uninstall {
+  endpoint      = module.uninstall.lambda.arn
   filter_policy = jsonencode(local.filter_policy_slack_uninstall)
   protocol      = "lambda"
   topic_arn     = local.slack_sns_topic_arn

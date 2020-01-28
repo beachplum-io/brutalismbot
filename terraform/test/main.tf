@@ -19,9 +19,8 @@ module test {
   s3_bucket = local.lambda_s3_bucket
   s3_key    = local.lambda_s3_key
   tags      = local.tags
-  timeout   = 3
 
   environment_variables = {
-    DRYRUN = 1
+    DRYRUN = "1"
   }
 }

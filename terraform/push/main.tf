@@ -24,7 +24,7 @@ module push {
   description   = "Push posts from /r/brutalism"
   function_name = "brutalismbot-push"
   handler       = "lambda.push"
-  timeout       = 30
+  timeout       = "30"
 
   layers    = local.lambda_layers
   role      = local.lambda_role_arn

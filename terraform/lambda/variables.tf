@@ -23,12 +23,12 @@ variable layers {
 
 variable memory_size {
   description = "Lambda function memory size."
-  default     = 128
+  default     = "128"
 }
 
 variable retention_in_days {
   description = "CloudWatch log group retention in days."
-  default     = 30
+  default     = "30"
 }
 
 variable role {
@@ -56,5 +56,5 @@ variable tags {
 
 variable timeout {
   description = "Lambda function timeout."
-  default     = 3
+  default     = "3"
 }

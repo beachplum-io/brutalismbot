@@ -1,0 +1,95 @@
+{
+  "Comment": "Mirror posts from /r/brutalism to clients",
+  "StartAt": "PullPosts",
+  "States": {
+    "PullPosts": {
+      "Comment": "Pull new posts from /r/brutalism and cache on S3",
+      "Type": "Task",
+      "Resource": "${pull_lambda_arn}",
+      "ResultPath": "$.Posts",
+      "Next": "PullSlacks"
+    },
+    "PullSlacks": {
+      "Type": "Task",
+      "Resource": "${slack_list_lambda_arn}",
+      "ResultPath": "$.Slacks",
+      "Next": "PushMap"
+    },
+    "PushMap": {
+      "Comment": "Iterate over each new post",
+      "Type": "Map",
+      "ItemsPath": "$.Posts",
+      "End": true,
+      "Parameters": {
+        "Post.$": "$$.Map.Item.Value",
+        "Slacks.$": "$.Slacks"
+      },
+      "Iterator": {
+        "StartAt": "Push",
+        "States": {
+          "Push": {
+            "Comment": "Start state machines for each client",
+            "Type": "Parallel",
+            "End": true,
+            "Branches": [
+              {
+                "StartAt": "Twitter",
+                "States": {
+                  "Twitter": {
+                    "Comment": "Push post to Twitter",
+                    "Type": "Task",
+                    "OutputPath": "$.ExecutionArn",
+                    "Resource": "arn:aws:states:::states:startExecution",
+                    "ResultPath": "$.ExecutionArn",
+                    "End": true,
+                    "Parameters": {
+                      "StateMachineArn": "${twitter_state_machine_arn}",
+                      "Input": {
+                        "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
+                        "Post.$": "$.Post"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "StartAt": "SlackMap",
+                "States": {
+                  "SlackMap": {
+                    "Type": "Map",
+                    "ItemsPath": "$.Slacks",
+                    "End": true,
+                    "Parameters": {
+                      "Slack.$": "$$.Map.Item.Value",
+                      "Post.$": "$.Post"
+                    },
+                    "Iterator": {
+                      "StartAt": "Slack",
+                      "States": {
+                        "Slack": {
+                          "Type": "Task",
+                          "OutputPath": "$.ExecutionArn",
+                          "Resource": "arn:aws:states:::states:startExecution",
+                          "ResultPath": "$.ExecutionArn",
+                          "End": true,
+                          "Parameters": {
+                            "StateMachineArn": "${slack_state_machine_arn}",
+                            "Input": {
+                              "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
+                              "Post.$": "$.Post",
+                              "Slack.$": "$.Slack"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

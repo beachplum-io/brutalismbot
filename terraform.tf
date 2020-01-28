@@ -10,12 +10,16 @@ provider aws {
   version = "~> 2.7"
 }
 
+provider template {
+  version = "~> 2.1"
+}
+
 locals {
   release              = var.release
   repo                 = "https://github.com/brutalismbot/brutalismbot"
   lag_time             = "9000"
   lambda_layer_name    = "brutalismbot"
-  lambda_layer_version = "16"
+  lambda_layer_version = "23"
   lambda_s3_key        = "pkg/brutalismbot-${local.release}/function.zip"
   posts_s3_prefix      = "data/v1/posts/"
   role_name            = "brutalismbot"
@@ -63,7 +67,7 @@ data aws_sns_topic slack {
 module pull {
   source           = "./terraform/pull"
   lag_time         = local.lag_time
-  lambda_layer_arn = data.aws_lambda_layer_version.layer.arn
+  lambda_layers    = [data.aws_lambda_layer_version.layer.arn]
   lambda_role_arn  = data.aws_iam_role.role.arn
   lambda_s3_bucket = aws_s3_bucket.brutalismbot.bucket
   lambda_s3_key    = local.lambda_s3_key
@@ -72,9 +76,10 @@ module pull {
   tags             = local.tags
 }
 
+/*
 module push {
   source                      = "./terraform/push"
-  lambda_layer_arn            = data.aws_lambda_layer_version.layer.arn
+  lambda_layers               = [data.aws_lambda_layer_version.layer.arn]
   lambda_role_arn             = data.aws_iam_role.role.arn
   lambda_s3_bucket            = aws_s3_bucket.brutalismbot.bucket
   lambda_s3_key               = local.lambda_s3_key
@@ -88,10 +93,11 @@ module push {
   twitter_consumer_secret     = local.twitter_consumer_secret
   tags                        = local.tags
 }
+*/
 
 module slack {
   source              = "./terraform/slack"
-  lambda_layer_arn    = data.aws_lambda_layer_version.layer.arn
+  lambda_layers       = [data.aws_lambda_layer_version.layer.arn]
   lambda_role_arn     = data.aws_iam_role.role.arn
   lambda_s3_bucket    = aws_s3_bucket.brutalismbot.bucket
   lambda_s3_key       = local.lambda_s3_key
@@ -101,13 +107,40 @@ module slack {
   tags                = local.tags
 }
 
-module test {
-  source           = "./terraform/test"
-  lambda_layer_arn = data.aws_lambda_layer_version.layer.arn
+module states {
+  source           = "./terraform/states"
+  lambda_layers    = [data.aws_lambda_layer_version.layer.arn]
   lambda_role_arn  = data.aws_iam_role.role.arn
   lambda_s3_bucket = aws_s3_bucket.brutalismbot.bucket
-  lambda_s3_key    = "pkg/lambda/brutalismbot-2019.12.2.zip"
+  lambda_s3_key    = local.lambda_s3_key
   tags             = local.tags
+
+  pull_lambda_arn         = module.pull.pull.lambda.arn
+  slack_list_lambda_arn   = module.slack.list.lambda.arn
+  slack_push_lambda_arn   = module.slack.push.lambda.arn
+  twitter_push_lambda_arn = module.twitter.push.lambda.arn
+}
+
+module test {
+  source           = "./terraform/test"
+  lambda_layers    = [data.aws_lambda_layer_version.layer.arn]
+  lambda_role_arn  = data.aws_iam_role.role.arn
+  lambda_s3_bucket = aws_s3_bucket.brutalismbot.bucket
+  lambda_s3_key    = local.lambda_s3_key
+  tags             = local.tags
+}
+
+module twitter {
+  source                      = "./terraform/twitter"
+  lambda_layers               = [data.aws_lambda_layer_version.layer.arn]
+  lambda_role_arn             = data.aws_iam_role.role.arn
+  lambda_s3_bucket            = aws_s3_bucket.brutalismbot.bucket
+  lambda_s3_key               = local.lambda_s3_key
+  twitter_access_token        = local.twitter_access_token
+  twitter_access_token_secret = local.twitter_access_token_secret
+  twitter_consumer_key        = local.twitter_consumer_key
+  twitter_consumer_secret     = local.twitter_consumer_secret
+  tags                        = local.tags
 }
 
 resource aws_iam_role_policy s3_access {

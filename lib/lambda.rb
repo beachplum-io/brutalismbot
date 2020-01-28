@@ -5,7 +5,9 @@ require "brutalismbot"
 Aws.config = {logger: Logger.new(STDOUT)}
 
 DRYRUN       = !ENV["DRYRUN"].to_s.empty?
+LIMIT        = ENV["LIMIT"]&.to_i
 BRUTALISMBOT = Brutalismbot::Client.new
+S3           = Aws::S3::Client.new
 
 def each_record(event)
   puts "EVENT #{event.to_json}"
@@ -38,22 +40,21 @@ def test(event:nil, context:nil)
   }
 end
 
+def fetch(event:, context:nil)
+  puts "EVENT #{event.to_json}"
+  options = event.transform_keys(&:to_sym)
+  response = S3.get_object(**options)
+  JSON.parse response.body.read
+end
+
 def pull(event:nil, context:nil)
-  BRUTALISMBOT.pull(limit: 1, dryrun: DRYRUN).each do |post|
-    post[:metadata][:id] << "--#{context.aws_request_id}" unless context.nil?
-  end
+  BRUTALISMBOT.pull limit: LIMIT, dryrun: DRYRUN
 end
 
 def push(event:, context:nil)
   each_post event do |post|
     BRUTALISMBOT.push post, dryrun: DRYRUN
   end
-end
-
-def push_twitter(event:, context:nil)
-  options = event.transform_keys(&:to_sym).slice(:bucket, :key)
-  BRUTALISMBOT.posts.get(**options)
-  BRUTALISMBOT.twitter.push event, dryrun: DRYRUN
 end
 
 def slack_install(event:, context:nil)
@@ -72,6 +73,17 @@ def slack_install(event:, context:nil)
   end
 end
 
+def slack_list(event:nil, context:nil)
+  BRUTALISMBOT.slack.keys.map{|x| {bucket: x.bucket_name, key: x.key} }
+end
+
+def slack_push(event:, context:nil)
+  puts "EVENT #{event.to_json}"
+  post = Brutalismbot::Reddit::Post.new event["Post"]
+  auth = Brutalismbot::Slack::Auth.new event["Slack"]
+  auth.push post, dryrun: DRYRUN
+end
+
 def slack_uninstall(event:, context:nil)
   each_message event do |message|
     # Get Auth from SNS message
@@ -80,4 +92,10 @@ def slack_uninstall(event:, context:nil)
     # Remove Auth
     BRUTALISMBOT.slack.uninstall auth, dryrun: DRYRUN
   end
+end
+
+def twitter_push(event:, context:nil)
+  puts "EVENT #{event.to_json}"
+  post = Brutalismbot::Reddit::Post.new event["Post"]
+  BRUTALISMBOT.twitter.push post, dryrun: DRYRUN
 end

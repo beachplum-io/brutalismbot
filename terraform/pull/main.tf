@@ -15,7 +15,7 @@ module pull {
   description   = "Pull posts from /r/brutalism"
   function_name = "brutalismbot-pull"
   handler       = "lambda.pull"
-  timeout       = 30
+  timeout       = "30"
 
   layers    = local.lambda_layers
   role      = local.lambda_role_arn
@@ -25,7 +25,6 @@ module pull {
 
   environment_variables = {
     BRUTALISMBOT_LAG_TIME = local.lag_time
-    DRYRUN                = 1
     POSTS_S3_BUCKET       = local.posts_s3_bucket
     POSTS_S3_PREFIX       = local.posts_s3_prefix
   }
@@ -41,34 +40,7 @@ resource aws_cloudwatch_event_rule pull {
 
 resource aws_cloudwatch_event_target pull {
   rule = aws_cloudwatch_event_rule.pull.name
-  arn  = aws_lambda_function.pull.arn
-}
-
-resource aws_cloudwatch_log_group pull {
-  name              = "/aws/lambda/${aws_lambda_function.pull.function_name}"
-  retention_in_days = 30
-  tags              = local.tags
-}
-
-resource aws_lambda_function pull {
-  description   = "Pull posts from /r/brutalism"
-  function_name = "brutalismbot-pull"
-  handler       = "lambda.pull"
-  layers        = [local.lambda_layer_arn]
-  role          = local.lambda_role_arn
-  runtime       = "ruby2.5"
-  s3_bucket     = local.lambda_s3_bucket
-  s3_key        = local.lambda_s3_key
-  tags          = local.tags
-  timeout       = 30
-
-  environment {
-    variables = {
-      BRUTALISMBOT_LAG_TIME = local.lag_time
-      POSTS_S3_BUCKET       = local.posts_s3_bucket
-      POSTS_S3_PREFIX       = local.posts_s3_prefix
-    }
-  }
+  arn  = "${module.pull.lambda.arn}:2"
 }
 
 resource aws_lambda_permission pull {
