@@ -1,9 +1,10 @@
 #!/usr/bin/env ruby
 require "dotenv/load"
+require "brutalismbot/version"
 
 VERSION   = ENV["BRUTALISMBOT_VERSION"] || %x(git describe --tags --always).strip
 S3_BUCKET = "brutalismbot"
-S3_PREFIX = "pkg/brutalismbot-#{VERSION}/"
+S3_PREFIX = "pkg/brutalismbot-#{VERSION}-#{Brutalismbot::VERSION}/"
 
 rum :"brutalismbot/brutalismbot" do
   tag VERSION

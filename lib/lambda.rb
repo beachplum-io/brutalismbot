@@ -4,8 +4,10 @@ require "brutalismbot"
 
 Aws.config = {logger: Logger.new(STDOUT)}
 
-DRYRUN       = !ENV["DRYRUN"].to_s.empty?
-LIMIT        = ENV["LIMIT"]&.to_i
+DRYRUN = !ENV["DRYRUN"].to_s.empty?
+LAG    = ENV["LAG"]&.to_i
+LIMIT  = ENV["LIMIT"]&.to_i
+
 BRUTALISMBOT = Brutalismbot::Client.new
 S3           = Aws::S3::Client.new
 
@@ -22,8 +24,9 @@ end
 
 def reddit_pull(event:nil, context:nil)
   puts "EVENT #{event.to_json}"
+  lag   = event&.dig("Lag")&.to_i   || LAG
   limit = event&.dig("Limit")&.to_i || LIMIT
-  BRUTALISMBOT.pull limit: limit, dryrun: DRYRUN
+  BRUTALISMBOT.pull lag: lag, limit: limit, dryrun: DRYRUN
 end
 
 def s3_fetch(event:, context:nil)
