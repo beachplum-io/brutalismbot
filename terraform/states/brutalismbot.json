@@ -70,7 +70,6 @@
                           "Type": "Task",
                           "OutputPath": "$.ExecutionArn",
                           "Resource": "arn:aws:states:::states:startExecution",
-                          "ResultPath": "$.ExecutionArn",
                           "End": true,
                           "Parameters": {
                             "StateMachineArn": "${slack_state_machine_arn}",

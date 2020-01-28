@@ -9,7 +9,9 @@
       "Next": "Push"
     },
     "Push": {
-      "Type": "Pass",
+      "Type": "Task",
+      "Resource": "${twitter_push_lambda_arn}",
+      "ResultPath": "$.Result",
       "End": true
     }
   }

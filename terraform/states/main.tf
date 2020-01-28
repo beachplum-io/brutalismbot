@@ -5,8 +5,10 @@ locals {
   lambda_s3_key    = var.lambda_s3_key
   tags             = var.tags
 
-  reddit_pull_lambda_arn = var.reddit_pull_lambda_arn
-  slack_list_lambda_arn  = var.slack_list_lambda_arn
+  reddit_pull_lambda_arn  = var.reddit_pull_lambda_arn
+  slack_list_lambda_arn   = var.slack_list_lambda_arn
+  slack_push_lambda_arn   = var.slack_push_lambda_arn
+  twitter_push_lambda_arn = var.twitter_push_lambda_arn
 }
 
 data aws_iam_policy_document assume_role {
@@ -66,7 +68,8 @@ data template_file slack {
   template = file("${path.module}/brutalismbot-slack.json")
 
   vars = {
-    fetch_lambda_arn = module.fetch.lambda.arn
+    fetch_lambda_arn      = module.fetch.lambda.arn
+    slack_push_lambda_arn = local.slack_push_lambda_arn
   }
 }
 
@@ -74,7 +77,8 @@ data template_file twitter {
   template = file("${path.module}/brutalismbot-twitter.json")
 
   vars = {
-    fetch_lambda_arn = module.fetch.lambda.arn
+    fetch_lambda_arn        = module.fetch.lambda.arn
+    twitter_push_lambda_arn = local.twitter_push_lambda_arn
   }
 }
 
@@ -83,7 +87,7 @@ module fetch {
 
   description   = "Fetch S3 object"
   function_name = "brutalismbot-fetch"
-  handler       = "lambda.fetch"
+  handler       = "lambda.s3_fetch"
 
   layers    = local.lambda_layers
   role      = local.lambda_role_arn
@@ -94,6 +98,7 @@ module fetch {
 
 resource aws_cloudwatch_event_rule pull {
   description         = "Start Brutalismbot state machine"
+  is_enabled          = false
   name                = aws_sfn_state_machine.main.name
   schedule_expression = "rate(1 hour)"
   tags                = local.tags
