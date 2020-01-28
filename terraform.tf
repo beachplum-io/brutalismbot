@@ -19,7 +19,7 @@ locals {
   repo                 = "https://github.com/brutalismbot/brutalismbot"
   lag_time             = "9000"
   lambda_layer_name    = "brutalismbot"
-  lambda_layer_version = "24"
+  lambda_layer_version = "25"
   lambda_s3_key        = "pkg/brutalismbot-${local.release}/function.zip"
   posts_s3_prefix      = "data/v1/posts/"
   role_name            = "brutalismbot"
