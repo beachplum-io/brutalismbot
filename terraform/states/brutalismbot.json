@@ -7,60 +7,41 @@
       "Type": "Task",
       "Resource": "${reddit_pull_lambda_arn}",
       "ResultPath": "$.Posts",
-      "Next": "PullSlacks"
+      "Next": "Push"
     },
-    "PullSlacks": {
-      "Type": "Task",
-      "Resource": "${slack_list_lambda_arn}",
-      "ResultPath": "$.Slacks",
-      "Next": "PushMap"
-    },
-    "PushMap": {
-      "Comment": "Iterate over each new post",
-      "Type": "Map",
-      "ItemsPath": "$.Posts",
+    "Push": {
+      "Comment": "Start state machines for each client",
+      "Type": "Parallel",
       "End": true,
-      "Parameters": {
-        "Post.$": "$$.Map.Item.Value",
-        "Slacks.$": "$.Slacks"
-      },
-      "Iterator": {
-        "StartAt": "Push",
-        "States": {
-          "Push": {
-            "Comment": "Start state machines for each client",
-            "Type": "Parallel",
-            "End": true,
-            "Branches": [
-              {
-                "StartAt": "Twitter",
-                "States": {
-                  "Twitter": {
-                    "Comment": "Push post to Twitter",
-                    "Type": "Task",
-                    "OutputPath": "$.ExecutionArn",
-                    "Resource": "arn:aws:states:::states:startExecution",
-                    "End": true,
-                    "Parameters": {
-                      "StateMachineArn": "${twitter_state_machine_arn}",
-                      "Input": {
-                        "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
-                        "Post.$": "$.Post"
-                      }
-                    }
-                  }
-                }
+      "Branches": [
+        {
+          "StartAt": "PullSlacks",
+          "States": {
+            "PullSlacks": {
+              "Type": "Task",
+              "Resource": "${slack_list_lambda_arn}",
+              "ResultPath": "$.Slacks",
+              "Next": "EachPostForSlack"
+            },
+            "EachPostForSlack": {
+              "Comment": "Iterate over each new post",
+              "Type": "Map",
+              "ItemsPath": "$.Posts",
+              "End": true,
+              "Parameters": {
+                "Post.$": "$$.Map.Item.Value",
+                "Slacks.$": "$.Slacks"
               },
-              {
-                "StartAt": "SlackMap",
+              "Iterator": {
+                "StartAt": "EachSlack",
                 "States": {
-                  "SlackMap": {
+                  "EachSlack": {
                     "Type": "Map",
                     "ItemsPath": "$.Slacks",
                     "End": true,
                     "Parameters": {
-                      "Slack.$": "$$.Map.Item.Value",
-                      "Post.$": "$.Post"
+                      "Post.$": "$.Post",
+                      "Slack.$": "$$.Map.Item.Value"
                     },
                     "Iterator": {
                       "StartAt": "Slack",
@@ -84,10 +65,43 @@
                   }
                 }
               }
-            ]
+            }
+          }
+        },
+        {
+          "StartAt": "EachPostForTwitter",
+          "States": {
+            "EachPostForTwitter": {
+              "Comment": "Iterate over each new post",
+              "Type": "Map",
+              "ItemsPath": "$.Posts",
+              "End": true,
+              "Parameters": {
+                "Post.$": "$$.Map.Item.Value"
+              },
+              "Iterator": {
+                "StartAt": "Tweet",
+                "States": {
+                  "Tweet": {
+                    "Comment": "Push post to Twitter",
+                    "Type": "Task",
+                    "OutputPath": "$.ExecutionArn",
+                    "Resource": "arn:aws:states:::states:startExecution",
+                    "End": true,
+                    "Parameters": {
+                      "StateMachineArn": "${twitter_state_machine_arn}",
+                      "Input": {
+                        "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
+                        "Post.$": "$.Post"
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
-      }
+      ]
     }
   }
 }

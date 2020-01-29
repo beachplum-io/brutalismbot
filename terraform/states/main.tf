@@ -1,4 +1,6 @@
 locals {
+  enabled = true
+
   lambda_layers    = var.lambda_layers
   lambda_role_arn  = var.lambda_role_arn
   lambda_s3_bucket = var.lambda_s3_bucket
@@ -98,9 +100,9 @@ module fetch {
 
 resource aws_cloudwatch_event_rule pull {
   description         = "Start Brutalismbot state machine"
-  is_enabled          = true
+  is_enabled          = local.enabled
   name                = aws_sfn_state_machine.main.name
-  schedule_expression = "rate(1 hour)"
+  schedule_expression = "rate(15 minutes)"
   tags                = local.tags
 }
 
