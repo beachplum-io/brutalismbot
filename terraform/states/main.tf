@@ -59,10 +59,11 @@ data template_file main {
   template = file("${path.module}/brutalismbot.json")
 
   vars = {
-    slack_list_lambda_arn     = local.slack_list_lambda_arn
+    fetch_lambda_arn          = module.fetch.lambda.arn
     reddit_pull_lambda_arn    = local.reddit_pull_lambda_arn
-    twitter_state_machine_arn = aws_sfn_state_machine.twitter.id
+    slack_list_lambda_arn     = local.slack_list_lambda_arn
     slack_state_machine_arn   = aws_sfn_state_machine.slack.id
+    twitter_state_machine_arn = aws_sfn_state_machine.twitter.id
   }
 }
 
@@ -70,7 +71,6 @@ data template_file slack {
   template = file("${path.module}/brutalismbot-slack.json")
 
   vars = {
-    fetch_lambda_arn      = module.fetch.lambda.arn
     slack_push_lambda_arn = local.slack_push_lambda_arn
   }
 }
@@ -79,7 +79,6 @@ data template_file twitter {
   template = file("${path.module}/brutalismbot-twitter.json")
 
   vars = {
-    fetch_lambda_arn        = module.fetch.lambda.arn
     twitter_push_lambda_arn = local.twitter_push_lambda_arn
   }
 }
@@ -89,7 +88,7 @@ module fetch {
 
   description   = "Fetch S3 object"
   function_name = "brutalismbot-fetch"
-  handler       = "lambda.s3_fetch"
+  handler       = "lambda.fetch"
 
   layers    = local.lambda_layers
   role      = local.lambda_role_arn

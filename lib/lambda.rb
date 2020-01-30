@@ -22,19 +22,19 @@ def each_message(event)
   end
 end
 
+def fetch(event:, context:nil)
+  puts "EVENT #{event.to_json}"
+  options = event.transform_keys(&:to_sym)
+  response = S3.get_object(**options)
+  JSON.parse response.body.read
+end
+
 def reddit_pull(event:nil, context:nil)
   puts "EVENT #{event.to_json}"
   dryrun = event&.dig("Dryrun") || DRYRUN
   lag   = event&.dig("Lag")     || LAG
   limit = event&.dig("Limit")   || LIMIT
   BRUTALISMBOT.pull lag: lag, limit: limit, dryrun: dryrun
-end
-
-def s3_fetch(event:, context:nil)
-  puts "EVENT #{event.to_json}"
-  options = event.transform_keys(&:to_sym)
-  response = S3.get_object(**options)
-  JSON.parse response.body.read
 end
 
 def slack_install(event:, context:nil)
@@ -59,9 +59,9 @@ end
 
 def slack_push(event:, context:nil)
   puts "EVENT #{event.to_json}"
-  dryrun = event&.dig("Dryrun") || DRYRUN
+  dryrun = event.fetch("Dryrun", DRYRUN)
   auth   = BRUTALISMBOT.slack.get(**event["Slack"].transform_keys(&:to_sym))
-  post   = BRUTALISMBOT.posts.get(**event["Post"].transform_keys(&:to_sym))
+  post   = Brutalismbot::Reddit::Post.new(event["Post"])
   auth.push post, dryrun: dryrun
   post.to_slack
 end
@@ -88,8 +88,8 @@ end
 
 def twitter_push(event:, context:nil)
   puts "EVENT #{event.to_json}"
-  dryrun = event&.dig("Dryrun") || DRYRUN
-  post   = BRUTALISMBOT.posts.get(**event["Post"].transform_keys(&:to_sym))
+  dryrun = event.fetch("Dryrun", DRYRUN)
+  post   = Brutalismbot::Reddit::Post.new(event["Post"])
   BRUTALISMBOT.twitter.push post, dryrun: dryrun
   {status: post.to_twitter, media: post.url}
 end

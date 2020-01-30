@@ -43,7 +43,7 @@ namespace :slack do
   desc 'lambda.slack_push'
   task :push do
     event = {
-      "Post"  => BRUTALISMBOT.posts.list.first.to_s3(prefix: BRUTALISMBOT.posts.prefix).slice(:bucket, :key),
+      "Post"  => BRUTALISMBOT.posts.list.first.to_h,
       "Slack" => BRUTALISMBOT.slack.list.first.to_s3(prefix: BRUTALISMBOT.slack.prefix).slice(:bucket, :key),
     }
     runtest("SLACK PUSH") { slack_push event: event }
@@ -78,7 +78,7 @@ namespace :twitter do
   desc 'lambda.twitter_push'
   task :push do
     event = {
-      "Post" => BRUTALISMBOT.posts.list.first.to_s3(prefix: BRUTALISMBOT.posts.prefix).slice(:bucket, :key),
+      "Post" => BRUTALISMBOT.posts.list.first.to_h,
     }
     runtest("TWITTER PUSH") { twitter_push event: event }
   end

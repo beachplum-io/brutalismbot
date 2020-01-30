@@ -7,34 +7,40 @@
       "Type": "Task",
       "Resource": "${reddit_pull_lambda_arn}",
       "ResultPath": "$.Posts",
-      "Next": "Push"
+      "Next": "EachPost"
     },
-    "Push": {
-      "Comment": "Start state machines for each client",
-      "Type": "Parallel",
+    "EachPost": {
+      "Comment": "Iterate over each new post",
+      "Type": "Map",
+      "ItemsPath": "$.Posts",
       "End": true,
-      "Branches": [
-        {
-          "StartAt": "PullSlacks",
-          "States": {
-            "PullSlacks": {
-              "Type": "Task",
-              "Resource": "${slack_list_lambda_arn}",
-              "ResultPath": "$.Slacks",
-              "Next": "EachPostForSlack"
-            },
-            "EachPostForSlack": {
-              "Comment": "Iterate over each new post",
-              "Type": "Map",
-              "ItemsPath": "$.Posts",
-              "End": true,
-              "Parameters": {
-                "Post.$": "$$.Map.Item.Value",
-                "Slacks.$": "$.Slacks"
-              },
-              "Iterator": {
-                "StartAt": "EachSlack",
+      "Parameters": {
+        "Post.$": "$$.Map.Item.Value"
+      },
+      "Iterator": {
+        "StartAt": "FetchPost",
+        "States": {
+          "FetchPost": {
+            "Type": "Task",
+            "InputPath": "$.Post",
+            "Resource": "${fetch_lambda_arn}",
+            "ResultPath": "$.Post",
+            "Next": "PushAll"
+          },
+          "PushAll": {
+            "Comment": "Start state machines for each client",
+            "Type": "Parallel",
+            "End": true,
+            "Branches": [
+              {
+                "StartAt": "PullSlacks",
                 "States": {
+                  "PullSlacks": {
+                    "Type": "Task",
+                    "Resource": "${slack_list_lambda_arn}",
+                    "ResultPath": "$.Slacks",
+                    "Next": "EachSlack"
+                  },
                   "EachSlack": {
                     "Type": "Map",
                     "ItemsPath": "$.Slacks",
@@ -64,22 +70,8 @@
                     }
                   }
                 }
-              }
-            }
-          }
-        },
-        {
-          "StartAt": "EachPostForTwitter",
-          "States": {
-            "EachPostForTwitter": {
-              "Comment": "Iterate over each new post",
-              "Type": "Map",
-              "ItemsPath": "$.Posts",
-              "End": true,
-              "Parameters": {
-                "Post.$": "$$.Map.Item.Value"
               },
-              "Iterator": {
+              {
                 "StartAt": "Tweet",
                 "States": {
                   "Tweet": {
@@ -98,10 +90,10 @@
                   }
                 }
               }
-            }
+            ]
           }
         }
-      ]
+      }
     }
   }
 }

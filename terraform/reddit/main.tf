@@ -15,6 +15,7 @@ module pull {
   description   = "Pull posts from /r/brutalism"
   function_name = "brutalismbot-reddit-pull"
   handler       = "lambda.reddit_pull"
+  memory_size   = "1024"
   timeout       = "30"
 
   layers    = local.lambda_layers
