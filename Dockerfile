@@ -26,6 +26,7 @@ COPY --from=build /opt/ /opt/
 FROM lambci/lambda:build-${RUNTIME} AS test
 RUN gem install rake -v 13.0.1
 COPY --from=build /opt/ /opt/
+COPY --from=build /var/task/ /opt/ruby/lib/
 COPY Rakefile .
 ARG AWS_ACCESS_KEY_ID
 ARG AWS_DEFAULT_REGION=us-east-1
