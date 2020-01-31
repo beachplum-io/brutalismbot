@@ -7,7 +7,19 @@
       "Type": "Task",
       "Resource": "${reddit_pull_lambda_arn}",
       "ResultPath": "$.Posts",
-      "Next": "EachPost"
+      "Next": "EachPost",
+      "Retry": [
+        {
+          "IntervalSeconds": 15,
+          "MaxAttempts": 6,
+          "BackoffRate": 2,
+          "ErrorEquals": [
+            "CalledProcessError",
+            "Lambda.SdkClientException",
+            "Lambda.ServiceException"
+          ]
+        }
+      ]
     },
     "EachPost": {
       "Comment": "Iterate over each new post",
@@ -25,7 +37,19 @@
             "InputPath": "$.Post",
             "Resource": "${fetch_lambda_arn}",
             "ResultPath": "$.Post",
-            "Next": "PushAll"
+            "Next": "PushAll",
+            "Retry": [
+              {
+                "IntervalSeconds": 3,
+                "MaxAttempts": 6,
+                "BackoffRate": 2,
+                "ErrorEquals": [
+                  "CalledProcessError",
+                  "Lambda.SdkClientException",
+                  "Lambda.ServiceException"
+                ]
+              }
+            ]
           },
           "PushAll": {
             "Comment": "Start state machines for each client",
@@ -39,7 +63,19 @@
                     "Type": "Task",
                     "Resource": "${slack_list_lambda_arn}",
                     "ResultPath": "$.Slacks",
-                    "Next": "EachSlack"
+                    "Next": "EachSlack",
+                    "Retry": [
+                      {
+                        "IntervalSeconds": 3,
+                        "MaxAttempts": 6,
+                        "BackoffRate": 2,
+                        "ErrorEquals": [
+                          "CalledProcessError",
+                          "Lambda.SdkClientException",
+                          "Lambda.ServiceException"
+                        ]
+                      }
+                    ]
                   },
                   "EachSlack": {
                     "Type": "Map",

@@ -4,8 +4,19 @@
     "PushToTwitter": {
       "Type": "Task",
       "Resource": "${twitter_push_lambda_arn}",
-      "ResultPath": "$.Result",
-      "End": true
+      "End": true,
+      "Retry": [
+        {
+          "IntervalSeconds": 3,
+          "MaxAttempts": 6,
+          "BackoffRate": 2,
+          "ErrorEquals": [
+            "CalledProcessError",
+            "Lambda.SdkClientException",
+            "Lambda.ServiceException"
+          ]
+        }
+      ]
     }
   }
 }
