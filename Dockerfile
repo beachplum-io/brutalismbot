@@ -10,13 +10,13 @@ RUN bundle config --local silence_root_warning 1
 RUN bundle config --local without development
 RUN bundle
 RUN mv ruby gems
-RUN mkdir -p /var/task/pkg/
-COPY lib lib
+WORKDIR /var/task/
+COPY lib .
+WORKDIR /var/task/pkg/
 WORKDIR /opt/
 RUN zip -r /var/task/pkg/layer.zip ruby
-WORKDIR /opt/ruby/lib/
-RUN zip -r /var/task/pkg/function.zip lambda.rb
 WORKDIR /var/task/
+RUN zip -r /var/task/pkg/function.zip lambda.rb
 
 # Create runtime environment for running tests
 FROM lambci/lambda:${RUNTIME} AS dev

@@ -4,7 +4,7 @@ require "brutalismbot/version"
 
 VERSION   = ENV["BRUTALISMBOT_VERSION"] || %x(git describe --tags --always).strip
 S3_BUCKET = "brutalismbot"
-S3_PREFIX = "pkg/brutalismbot-#{VERSION}"
+S3_PREFIX = "pkg/brutalismbot-#{VERSION}/"
 
 rum :"brutalismbot/brutalismbot" do
   tag VERSION
@@ -35,21 +35,31 @@ end
 
 desc "List packages"
 task :ls do
-  sh "aws s3 ls --recursive s3://#{S3_BUCKET}/#{S3_PREFIX}"
+  sh "aws s3 ls --human-readable --recursive s3://#{S3_BUCKET}/pkg/"
 end
 
-desc "Push Lambda Layer package"
-task :push => %w[pkg/function.zip pkg/layer.zip] do
-  sh "aws s3 sync pkg s3://#{S3_BUCKET}/#{S3_PREFIX}"
+namespace :push do
+  desc "Push Lambda package"
+  task :lambda => "pkg/function.zip" do
+    sh "aws s3 cp pkg/function.zip s3://#{S3_BUCKET}/#{S3_PREFIX}"
+  end
+
+  desc "Push Lambda package"
+  task :layer => "pkg/layer.zip" do
+    sh "aws s3 cp pkg/layer.zip s3://#{S3_BUCKET}/#{S3_PREFIX}"
+  end
 end
+
+desc "Push Lambda + Layer packages"
+task :push => %i[push:lambda push:layer]
 
 desc "Publish Lambda Layer package"
 task :publish do
   sh <<~EOS
-    aws lambda publish-layer-version \
-    --layer-name brutalismbot \
-    --description 'Brutalismbot v#{VERSION}' \
-    --content S3Bucket=#{S3_BUCKET},S3Key=#{S3_PREFIX}layer.zip \
+    aws lambda publish-layer-version \\
+    --layer-name brutalismbot \\
+    --description 'Brutalismbot v#{VERSION}' \\
+    --content S3Bucket=#{S3_BUCKET},S3Key=#{S3_PREFIX}layer.zip \\
     --compatible-runtimes ruby2.5
   EOS
 end
