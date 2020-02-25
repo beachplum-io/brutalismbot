@@ -16,7 +16,8 @@
           "ErrorEquals": [
             "CalledProcessError",
             "Lambda.SdkClientException",
-            "Lambda.ServiceException"
+            "Lambda.ServiceException",
+            "Lambda.Unknown"
           ]
         }
       ]
@@ -46,7 +47,8 @@
                 "ErrorEquals": [
                   "CalledProcessError",
                   "Lambda.SdkClientException",
-                  "Lambda.ServiceException"
+                  "Lambda.ServiceException",
+                  "Lambda.Unknown"
                 ]
               }
             ]
@@ -72,7 +74,8 @@
                         "ErrorEquals": [
                           "CalledProcessError",
                           "Lambda.SdkClientException",
-                          "Lambda.ServiceException"
+                          "Lambda.ServiceException",
+                          "Lambda.Unknown"
                         ]
                       }
                     ]
