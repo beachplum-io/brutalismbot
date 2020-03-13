@@ -3,6 +3,7 @@ require "dotenv/load"
 require "brutalismbot/version"
 
 VERSION   = ENV["BRUTALISMBOT_VERSION"] || %x(git describe --tags --always).strip
+RUBY      = "2.7"
 S3_BUCKET = "brutalismbot"
 S3_PREFIX = "pkg/brutalismbot-#{VERSION}/"
 
@@ -12,8 +13,8 @@ rum :"brutalismbot/brutalismbot" do
   env :AWS_ACCESS_KEY_ID
   env :AWS_DEFAULT_REGION
   env :AWS_SECRET_ACCESS_KEY
-  env :RUNTIME                            => "ruby2.5"
-  env :TF_VAR_release                     => tag
+  env :RUBY                               => RUBY
+  env :TF_VAR_release                     => VERSION
   env :TF_VAR_twitter_access_token        => ENV["TWITTER_ACCESS_TOKEN"]
   env :TF_VAR_twitter_access_token_secret => ENV["TWITTER_ACCESS_TOKEN_SECRET"]
   env :TF_VAR_twitter_consumer_key        => ENV["TWITTER_CONSUMER_KEY"]
@@ -60,6 +61,6 @@ task :publish do
     --layer-name brutalismbot \\
     --description 'Brutalismbot v#{VERSION}' \\
     --content S3Bucket=#{S3_BUCKET},S3Key=#{S3_PREFIX}layer.zip \\
-    --compatible-runtimes ruby2.5
+    --compatible-runtimes ruby#{RUBY}
   EOS
 end

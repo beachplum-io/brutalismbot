@@ -12,7 +12,6 @@ module test {
   description   = "Test brutalismbot gem"
   function_name = "brutalismbot-test"
   handler       = "lambda.test"
-  runtime       = "ruby2.5"
 
   layers    = local.lambda_layers
   role      = local.lambda_role_arn

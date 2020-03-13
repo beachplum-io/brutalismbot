@@ -37,7 +37,7 @@ variable role {
 
 variable runtime {
   description = "Lambda function runtime."
-  default     = "ruby2.5"
+  default     = "ruby2.7"
 }
 
 variable s3_bucket {

@@ -1,6 +1,8 @@
+ruby "2.7.0"
+
 source "https://rubygems.org"
 
-gem "brutalismbot", "1.4.0"
+gem "brutalismbot", "1.4.1"
 
 group :development do
   gem "aws-sdk-s3", "~> 1.0"

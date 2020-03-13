@@ -1,8 +1,8 @@
-ARG RUNTIME=ruby2.5
+ARG RUBY=2.7
 ARG TERRAFORM_VERSION=latest
 
 # Build deployment package
-FROM lambci/lambda:build-${RUNTIME} AS build
+FROM lambci/lambda:build-ruby${RUBY} AS build
 WORKDIR /opt/ruby/
 COPY Gemfile* ./
 RUN bundle config --local path .
@@ -19,11 +19,11 @@ WORKDIR /var/task/
 RUN zip -r /var/task/pkg/function.zip lambda.rb
 
 # Create runtime environment for running tests
-FROM lambci/lambda:${RUNTIME} AS dev
+FROM lambci/lambda:ruby${RUBY} AS dev
 COPY --from=build /opt/ /opt/
 
 # Run rake tests
-FROM lambci/lambda:build-${RUNTIME} AS test
+FROM lambci/lambda:build-ruby${RUBY} AS test
 RUN gem install rake -v 13.0.1
 COPY --from=build /opt/ /opt/
 COPY --from=build /var/task/ /opt/ruby/lib/
