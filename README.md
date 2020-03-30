@@ -1,6 +1,6 @@
 <img alt="brutalismbot" src="https://brutalismbot.com/banner.png"/>
 
-[![Build Status](https://travis-ci.com/brutalismbot/gem.svg?branch=master)](https://travis-ci.com/brutalismbot/gem)
+[![plan](https://github.com/brutalismbot/brutalismbot/workflows/plan/badge.svg)](https://github.com/brutalismbot/brutalismbot/actions)
 
 A [Slack app](https://slack.com/apps/AH0KW28C9-brutalismbot) that mirrors posts from
 [/r/brutalism](https://www.reddit.com/r/brutalism/new)
