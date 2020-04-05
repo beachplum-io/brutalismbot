@@ -14,9 +14,9 @@ WORKDIR /var/task/
 COPY lib .
 WORKDIR /var/task/pkg/
 WORKDIR /opt/
-RUN zip -r /var/task/pkg/layer.zip ruby
+RUN zip -9r /var/task/pkg/layer.zip ruby
 WORKDIR /var/task/
-RUN zip -r /var/task/pkg/function.zip lambda.rb
+RUN zip -9r /var/task/pkg/function.zip lambda.rb
 
 # Create runtime environment for running tests
 FROM lambci/lambda:ruby${RUBY} AS dev
