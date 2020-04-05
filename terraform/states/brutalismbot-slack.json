@@ -5,6 +5,15 @@
       "Type": "Task",
       "Resource": "${slack_push_lambda_arn}",
       "End": true,
+      "Catch": [
+        {
+          "Next": "DeadLetterQueue",
+          "ResultPath": "$.Error",
+          "ErrorEquals": [
+            "States.ALL"
+          ]
+        }
+      ],
       "Retry": [
         {
           "IntervalSeconds": 3,
@@ -18,6 +27,15 @@
           ]
         }
       ]
+    },
+    "DeadLetterQueue": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sqs:sendMessage",
+      "End": true,
+      "Parameters": {
+        "QueueUrl": "${dead_letter_queue_url}",
+        "MessageBody.$": "$"
+      }
     }
   }
 }

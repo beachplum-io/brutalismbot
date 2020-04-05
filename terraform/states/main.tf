@@ -38,6 +38,16 @@ data aws_iam_policy_document states {
   }
 
   statement {
+    sid     = "QueueMessage"
+    actions = ["sqs:SendMessage"]
+
+    resources = [
+      aws_sqs_queue.slack_dlq.arn,
+      aws_sqs_queue.twitter_dlq.arn,
+    ]
+  }
+
+  statement {
     sid     = "StartStateMachine"
     actions = ["states:StartExecution"]
 
@@ -71,6 +81,7 @@ data template_file slack {
   template = file("${path.module}/brutalismbot-slack.json")
 
   vars = {
+    dead_letter_queue_url = aws_sqs_queue.slack_dlq.id
     slack_push_lambda_arn = local.slack_push_lambda_arn
   }
 }
@@ -79,6 +90,7 @@ data template_file twitter {
   template = file("${path.module}/brutalismbot-twitter.json")
 
   vars = {
+    dead_letter_queue_url   = aws_sqs_queue.twitter_dlq.id
     twitter_push_lambda_arn = local.twitter_push_lambda_arn
   }
 }
@@ -143,4 +155,12 @@ resource aws_sfn_state_machine twitter {
   name       = "brutalismbot-twitter"
   role_arn   = aws_iam_role.role.arn
   tags       = local.tags
+}
+
+resource aws_sqs_queue slack_dlq {
+  name = "brutaliambot-slack-failures"
+}
+
+resource aws_sqs_queue twitter_dlq {
+  name = "brutaliambot-twitter-failures"
 }
