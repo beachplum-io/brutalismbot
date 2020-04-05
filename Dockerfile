@@ -43,10 +43,10 @@ ARG AWS_ACCESS_KEY_ID
 ARG AWS_DEFAULT_REGION=us-east-1
 ARG AWS_SECRET_ACCESS_KEY
 RUN terraform init
-ARG TF_VAR_release
-ARG TF_VAR_twitter_access_token
-ARG TF_VAR_twitter_access_token_secret
-ARG TF_VAR_twitter_consumer_key
-ARG TF_VAR_twitter_consumer_secret
+ARG TF_VAR_RELEASE
+ARG TF_VAR_TWITTER_ACCESS_TOKEN
+ARG TF_VAR_TWITTER_ACCESS_TOKEN_SECRET
+ARG TF_VAR_TWITTER_CONSUMER_KEY
+ARG TF_VAR_TWITTER_CONSUMER_SECRET
 RUN terraform plan -out terraform.zip
 CMD ["apply", "terraform.zip"]

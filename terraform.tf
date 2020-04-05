@@ -15,7 +15,7 @@ provider template {
 }
 
 locals {
-  release              = var.release
+  release              = var.RELEASE
   repo                 = "https://github.com/brutalismbot/brutalismbot"
   lag_time             = "9000"
   lambda_layer_name    = "brutalismbot"
@@ -27,10 +27,10 @@ locals {
   slack_s3_prefix      = "data/v1/auths/"
   slack_sns_topic_name = "brutalismbot-slack"
 
-  twitter_access_token        = var.twitter_access_token
-  twitter_access_token_secret = var.twitter_access_token_secret
-  twitter_consumer_key        = var.twitter_consumer_key
-  twitter_consumer_secret     = var.twitter_consumer_secret
+  twitter_access_token        = var.TWITTER_ACCESS_TOKEN
+  twitter_access_token_secret = var.TWITTER_ACCESS_TOKEN_SECRET
+  twitter_consumer_key        = var.TWITTER_CONSUMER_KEY
+  twitter_consumer_secret     = var.TWITTER_CONSUMER_SECRET
 
   tags = {
     App     = "core"
@@ -144,22 +144,22 @@ resource aws_s3_bucket_public_access_block brutalismbot {
   restrict_public_buckets = true
 }
 
-variable release {
+variable RELEASE {
   description = "Release tag."
 }
 
-variable twitter_access_token {
+variable TWITTER_ACCESS_TOKEN {
   description = "Twitter API access token."
 }
 
-variable twitter_access_token_secret {
+variable TWITTER_ACCESS_TOKEN_SECRET {
   description = "Twitter API access token secret."
 }
 
-variable twitter_consumer_key {
+variable TWITTER_CONSUMER_KEY {
   description = "Twitter API Consumer Key."
 }
 
-variable twitter_consumer_secret {
+variable TWITTER_CONSUMER_SECRET {
   description = "Twitter API Consumer Secret."
 }

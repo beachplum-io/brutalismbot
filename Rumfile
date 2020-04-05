@@ -14,11 +14,11 @@ rum :"brutalismbot/brutalismbot" do
   env :AWS_DEFAULT_REGION
   env :AWS_SECRET_ACCESS_KEY
   env :RUBY                               => RUBY
-  env :TF_VAR_release                     => VERSION
-  env :TF_VAR_twitter_access_token        => ENV["TWITTER_ACCESS_TOKEN"]
-  env :TF_VAR_twitter_access_token_secret => ENV["TWITTER_ACCESS_TOKEN_SECRET"]
-  env :TF_VAR_twitter_consumer_key        => ENV["TWITTER_CONSUMER_KEY"]
-  env :TF_VAR_twitter_consumer_secret     => ENV["TWITTER_CONSUMER_SECRET"]
+  env :TF_VAR_RELEASE                     => VERSION
+  env :TF_VAR_TWITTER_ACCESS_TOKEN        => ENV["TWITTER_ACCESS_TOKEN"]
+  env :TF_VAR_TWITTER_ACCESS_TOKEN_SECRET => ENV["TWITTER_ACCESS_TOKEN_SECRET"]
+  env :TF_VAR_TWITTER_CONSUMER_KEY        => ENV["TWITTER_CONSUMER_KEY"]
+  env :TF_VAR_TWITTER_CONSUMER_SECRET     => ENV["TWITTER_CONSUMER_SECRET"]
 
   stage :build
   stage :dev  => :build
