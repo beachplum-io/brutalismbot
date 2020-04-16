@@ -14,7 +14,7 @@ jobs:
     - uses: actions/setup-ruby@v1
     - name: Set up plan
       run: |
-        gem install bundler -v 2.1.2
+        gem install bundler -v 2.1.4
         bundle install --jobs 4 --retry 3
         docker pull hashicorp/terraform:latest
         docker pull lambci/lambda:build-ruby2.5

@@ -1,5 +1,3 @@
-ruby "2.7.0"
-
 source "https://rubygems.org"
 
 gem "brutalismbot", "1.4.2"
