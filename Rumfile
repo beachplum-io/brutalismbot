@@ -2,8 +2,8 @@
 require "dotenv/load"
 require "brutalismbot/version"
 
+RUBY      = RUBY_VERSION[/\d+\.\d+/]
 VERSION   = ENV["BRUTALISMBOT_VERSION"] || %x(git describe --tags --always).strip
-RUBY      = "2.7"
 S3_BUCKET = "brutalismbot"
 S3_PREFIX = "pkg/brutalismbot-#{VERSION}/"
 
