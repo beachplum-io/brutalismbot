@@ -21,7 +21,7 @@ end
 namespace :reddit do
   desc 'lambda.reddit_pull'
   task :pull do
-    runtest("PULL") { reddit_pull }
+    runtest("PULL") { reddit_pull event: {} }
   end
 end
 
@@ -43,7 +43,8 @@ namespace :slack do
   desc 'lambda.slack_push'
   task :push do
     event = {
-      "Post"  => BRUTALISMBOT.posts.list.first.to_h,
+      "Content-Type" => "image/jpeg",
+      "Post" => BRUTALISMBOT.posts.list.first.to_h,
       "Slack" => BRUTALISMBOT.slack.list.first.to_s3(prefix: BRUTALISMBOT.slack.prefix).slice(:bucket, :key),
     }
     runtest("SLACK PUSH") { slack_push event: event }
@@ -56,14 +57,14 @@ namespace :slack do
         {
           "Sns" => {
             "Message" => {
-              token:      "<token>",
-              team_id:    "T1234568",
-              api_app_id: "A12345678",
-              type:       "event_callback",
-              event_id:   "Ev12345678",
-              event_time: 1553557314,
-              event: {
-                type: "app_uninstalled",
+              "token" => "<token>",
+              "team_id" => "T1234568",
+              "api_app_id" => "A12345678",
+              "type" => "event_callback",
+              "event_id" => "Ev12345678",
+              "event_time" => 1553557314,
+              "event" => {
+                "type" => "app_uninstalled",
               },
             }.to_json,
           },
@@ -78,6 +79,7 @@ namespace :twitter do
   desc 'lambda.twitter_push'
   task :push do
     event = {
+      "Content-Type" => "image/jpeg",
       "Post" => BRUTALISMBOT.posts.list.first.to_h,
     }
     runtest("TWITTER PUSH") { twitter_push event: event }
