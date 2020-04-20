@@ -1,4 +1,4 @@
 output pull {
-  description = "Pull module."
+  description = "Pull module"
   value       = module.pull
 }

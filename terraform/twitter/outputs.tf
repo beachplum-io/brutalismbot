@@ -1,4 +1,4 @@
 output push {
-  description = "Twitter push module."
+  description = "Twitter push module"
   value       = module.push
 }
