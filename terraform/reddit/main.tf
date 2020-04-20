@@ -1,5 +1,5 @@
 locals {
-  lag_time         = var.lag_time
+  min_age          = var.min_age
   lambda_layers    = var.lambda_layers
   lambda_role_arn  = var.lambda_role_arn
   lambda_s3_bucket = var.lambda_s3_bucket
@@ -25,8 +25,8 @@ module pull {
   tags      = local.tags
 
   environment_variables = {
-    BRUTALISMBOT_LAG_TIME = local.lag_time
-    POSTS_S3_BUCKET       = local.posts_s3_bucket
-    POSTS_S3_PREFIX       = local.posts_s3_prefix
+    MIN_AGE         = local.min_age
+    POSTS_S3_BUCKET = local.posts_s3_bucket
+    POSTS_S3_PREFIX = local.posts_s3_prefix
   }
 }

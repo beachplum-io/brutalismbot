@@ -1,11 +1,11 @@
+variable min_age {
+  description = "Post age lag time."
+  default     = "9000"
+}
+
 variable lambda_layers {
   description = "Lambda layer ARNs"
   type        = list(string)
-}
-
-variable lag_time {
-  description = "Post age lag time"
-  default     = "9000"
 }
 
 variable lambda_role_arn {

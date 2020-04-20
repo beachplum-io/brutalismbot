@@ -4,20 +4,15 @@ require "brutalismbot"
 
 Aws.config = {logger: Logger.new(STDOUT)}
 
-DRYRUN = !ENV["DRYRUN"].to_s.empty?
-LAG    = ENV["LAG"]&.to_i
-LIMIT  = ENV["LIMIT"]&.to_i
+DRYRUN  = !ENV["DRYRUN"].to_s.empty?
+MIN_AGE = ENV["MIN_AGE"]&.to_i || 9000
+LIMIT   = ENV["LIMIT"]&.to_i
 
 BRUTALISMBOT = Brutalismbot::Client.new
 S3           = Aws::S3::Client.new
 
-def each_record(event)
-  puts "EVENT #{event.to_json}"
-  event.fetch("Records", []).each{|record| yield record }
-end
-
 def each_message(event)
-  each_record event do |record|
+  event.fetch("Records", []).each do |record|
     yield record.dig "Sns", "Message"
   end
 end
@@ -83,9 +78,9 @@ end
 def test(event:, context:nil)
   puts "EVENT #{event.to_json}"
   {
-    LAG_TIME: BRUTALISMBOT.lag_time,
+    MIN_AGE:  MIN_AGE,
     MIN_TIME: BRUTALISMBOT.posts.max_time,
-    MAX_TIME: Time.now.utc.to_i - BRUTALISMBOT.lag_time,
+    MAX_TIME: Time.now.utc.to_i - MIN_AGE,
     DRYRUN:   DRYRUN,
     EVENT:    event.to_json,
   }

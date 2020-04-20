@@ -18,9 +18,9 @@ provider template {
 locals {
   release              = var.RELEASE
   repo                 = "https://github.com/brutalismbot/brutalismbot"
-  lag_time             = "9000"
+  min_age              = "9000"
   lambda_layer_name    = "brutalismbot"
-  lambda_layer_version = "32"
+  lambda_layer_version = null
   lambda_s3_key        = "pkg/brutalismbot-${local.release}/function.zip"
   posts_s3_prefix      = "data/v1/posts/"
   role_name            = "brutalismbot"
@@ -67,7 +67,7 @@ data aws_sns_topic slack {
 
 module reddit {
   source           = "./terraform/reddit"
-  lag_time         = local.lag_time
+  min_age          = local.min_age
   lambda_layers    = [data.aws_lambda_layer_version.layer.arn]
   lambda_role_arn  = data.aws_iam_role.role.arn
   lambda_s3_bucket = aws_s3_bucket.brutalismbot.bucket
