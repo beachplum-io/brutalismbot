@@ -26,10 +26,10 @@ end
 
 def reddit_pull(event:, context:nil)
   puts "EVENT #{event.to_json}"
-  dryrun = event.fetch("Dryrun", DRYRUN)
-  lag    = event.fetch("Lag",    LAG)
-  limit  = event.fetch("Limit",  LIMIT)
-  BRUTALISMBOT.pull lag: lag, limit: limit, dryrun: dryrun
+  dryrun  = event.fetch("Dryrun", DRYRUN)
+  min_age = event.fetch("Lag",    MIN_AGE)
+  limit   = event.fetch("Limit",  LIMIT)
+  BRUTALISMBOT.pull min_age: min_age, limit: limit, dryrun: dryrun
 end
 
 def slack_install(event:, context:nil)
