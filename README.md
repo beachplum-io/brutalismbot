@@ -1,6 +1,6 @@
 <img alt="brutalismbot" src="https://brutalismbot.com/banner.png"/>
 
-[![plan](https://github.com/brutalismbot/brutalismbot/workflows/plan/badge.svg)](https://github.com/brutalismbot/brutalismbot/actions)
+[![rspec](https://img.shields.io/github/workflow/status/brutalismbot/brutalismbot/plan?logo=github&style=flat-square)](https://github.com/brutalismbot/brutalismbot/actions)
 
 A [Slack app](https://slack.com/apps/AH0KW28C9-brutalismbot) that mirrors posts from
 [/r/brutalism](https://www.reddit.com/r/brutalism/new)
