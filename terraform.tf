@@ -11,10 +11,6 @@ provider aws {
   version = "~> 2.7"
 }
 
-provider template {
-  version = "~> 2.1"
-}
-
 locals {
   release              = var.RELEASE
   repo                 = "https://github.com/brutalismbot/brutalismbot"

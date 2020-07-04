@@ -11,6 +11,33 @@ locals {
   slack_list_lambda_arn   = var.slack_list_lambda_arn
   slack_push_lambda_arn   = var.slack_push_lambda_arn
   twitter_push_lambda_arn = var.twitter_push_lambda_arn
+
+  main_definition = templatefile(
+    "${path.module}/brutalismbot.json",
+    {
+      fetch_lambda_arn          = aws_lambda_function.fetch.arn
+      reddit_pull_lambda_arn    = local.reddit_pull_lambda_arn
+      slack_list_lambda_arn     = local.slack_list_lambda_arn
+      slack_state_machine_arn   = aws_sfn_state_machine.slack.id
+      twitter_state_machine_arn = aws_sfn_state_machine.twitter.id
+    }
+  )
+
+  slack_definition = templatefile(
+    "${path.module}/brutalismbot-slack.json",
+    {
+      dead_letter_queue_url = aws_sqs_queue.slack_dlq.id
+      slack_push_lambda_arn = local.slack_push_lambda_arn
+    }
+  )
+
+  twitter_definition = templatefile(
+    "${path.module}/brutalismbot-twitter.json",
+    {
+      dead_letter_queue_url   = aws_sqs_queue.twitter_dlq.id
+      twitter_push_lambda_arn = local.twitter_push_lambda_arn
+    }
+  )
 }
 
 data aws_iam_policy_document assume_role {
@@ -65,50 +92,6 @@ data aws_iam_policy_document states {
   }
 }
 
-data template_file main {
-  template = file("${path.module}/brutalismbot.json")
-
-  vars = {
-    fetch_lambda_arn          = module.fetch.lambda.arn
-    reddit_pull_lambda_arn    = local.reddit_pull_lambda_arn
-    slack_list_lambda_arn     = local.slack_list_lambda_arn
-    slack_state_machine_arn   = aws_sfn_state_machine.slack.id
-    twitter_state_machine_arn = aws_sfn_state_machine.twitter.id
-  }
-}
-
-data template_file slack {
-  template = file("${path.module}/brutalismbot-slack.json")
-
-  vars = {
-    dead_letter_queue_url = aws_sqs_queue.slack_dlq.id
-    slack_push_lambda_arn = local.slack_push_lambda_arn
-  }
-}
-
-data template_file twitter {
-  template = file("${path.module}/brutalismbot-twitter.json")
-
-  vars = {
-    dead_letter_queue_url   = aws_sqs_queue.twitter_dlq.id
-    twitter_push_lambda_arn = local.twitter_push_lambda_arn
-  }
-}
-
-module fetch {
-  source = "../lambda"
-
-  description   = "Fetch S3 object"
-  function_name = "brutalismbot-fetch"
-  handler       = "lambda.fetch"
-
-  layers    = local.lambda_layers
-  role      = local.lambda_role_arn
-  s3_bucket = local.lambda_s3_bucket
-  s3_key    = local.lambda_s3_key
-  tags      = local.tags
-}
-
 resource aws_cloudwatch_event_rule pull {
   description         = "Start Brutalismbot state machine"
   is_enabled          = local.enabled
@@ -124,6 +107,12 @@ resource aws_cloudwatch_event_target pull {
   rule     = aws_cloudwatch_event_rule.pull.name
 }
 
+resource aws_cloudwatch_log_group fetch {
+  name              = "/aws/lambda/${aws_lambda_function.fetch.function_name}"
+  retention_in_days = 30
+  tags              = local.tags
+}
+
 resource aws_iam_role role {
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
   name               = "brutalismbot-states"
@@ -136,22 +125,34 @@ resource aws_iam_role_policy states {
   role   = aws_iam_role.role.name
 }
 
+resource aws_lambda_function fetch {
+  description   = "Fetch S3 object"
+  function_name = "brutalismbot-fetch"
+  handler       = "lambda.fetch"
+  layers        = local.lambda_layers
+  role          = local.lambda_role_arn
+  runtime       = "ruby2.7"
+  s3_bucket     = local.lambda_s3_bucket
+  s3_key        = local.lambda_s3_key
+  tags          = local.tags
+}
+
 resource aws_sfn_state_machine main {
-  definition = data.template_file.main.rendered
+  definition = local.main_definition
   name       = "brutalismbot"
   role_arn   = aws_iam_role.role.arn
   tags       = local.tags
 }
 
 resource aws_sfn_state_machine slack {
-  definition = data.template_file.slack.rendered
+  definition = local.slack_definition
   name       = "brutalismbot-slack"
   role_arn   = aws_iam_role.role.arn
   tags       = local.tags
 }
 
 resource aws_sfn_state_machine twitter {
-  definition = data.template_file.twitter.rendered
+  definition = local.twitter_definition
   name       = "brutalismbot-twitter"
   role_arn   = aws_iam_role.role.arn
   tags       = local.tags
