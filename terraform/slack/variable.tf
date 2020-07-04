@@ -7,6 +7,11 @@ variable lambda_role_arn {
   description = "Lambda IAM Role ARN"
 }
 
+variable lambda_runtime {
+  description = "Lambda IAM Role ARN"
+  default     = "ruby2.7"
+}
+
 variable lambda_s3_bucket {
   description = "Lambda function S3 bucket"
 }

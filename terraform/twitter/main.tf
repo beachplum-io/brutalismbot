@@ -10,24 +10,30 @@ locals {
   twitter_consumer_secret     = var.twitter_consumer_secret
 }
 
-module push {
-  source = "../lambda"
+resource aws_cloudwatch_log_group push {
+  name              = "/aws/lambda/${aws_lambda_function.push.function_name}"
+  retention_in_days = 30
+  tags              = local.tags
+}
 
+resource aws_lambda_function push {
   description   = "Push posts from /r/brutalism"
   function_name = "brutalismbot-twitter-push"
   handler       = "lambda.twitter_push"
+  layers        = local.lambda_layers
+  role          = local.lambda_role_arn
+  runtime       = "ruby2.7"
+  s3_bucket     = local.lambda_s3_bucket
+  s3_key        = local.lambda_s3_key
+  tags          = local.tags
   timeout       = 30
 
-  layers    = local.lambda_layers
-  role      = local.lambda_role_arn
-  s3_bucket = local.lambda_s3_bucket
-  s3_key    = local.lambda_s3_key
-  tags      = local.tags
-
-  environment_variables = {
-    TWITTER_ACCESS_TOKEN        = local.twitter_access_token
-    TWITTER_ACCESS_TOKEN_SECRET = local.twitter_access_token_secret
-    TWITTER_CONSUMER_KEY        = local.twitter_consumer_key
-    TWITTER_CONSUMER_SECRET     = local.twitter_consumer_secret
+  environment {
+    variables = {
+      TWITTER_ACCESS_TOKEN        = local.twitter_access_token
+      TWITTER_ACCESS_TOKEN_SECRET = local.twitter_access_token_secret
+      TWITTER_CONSUMER_KEY        = local.twitter_consumer_key
+      TWITTER_CONSUMER_SECRET     = local.twitter_consumer_secret
+    }
   }
 }

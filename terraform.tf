@@ -93,10 +93,10 @@ module states {
   lambda_s3_key    = local.lambda_s3_key
   tags             = local.tags
 
-  reddit_pull_lambda_arn  = module.reddit.pull.lambda.arn
-  slack_list_lambda_arn   = module.slack.list.lambda.arn
-  slack_push_lambda_arn   = module.slack.push.lambda.arn
-  twitter_push_lambda_arn = module.twitter.push.lambda.arn
+  reddit_pull_lambda_arn  = module.reddit.pull.arn
+  slack_list_lambda_arn   = module.slack.list.arn
+  slack_push_lambda_arn   = module.slack.push.arn
+  twitter_push_lambda_arn = module.twitter.push.arn
 }
 
 module test {
