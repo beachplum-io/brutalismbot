@@ -17,6 +17,6 @@ jobs:
           aws-region:            ${{ secrets.AWS_DEFAULT_REGION }}
           role-to-assume:        ${{ secrets.AWS_ROLE_ARN }}
           role-duration-seconds: 900
-      - run: gem install bundler -v 2.1.4
-      - run: bundle install --jobs 4 --retry 3
-      - run: bundle exec rum plan
+      # - run: gem install bundler -v 2.1.4
+      # - run: bundle install --jobs 4 --retry 3
+      # - run: bundle exec rum plan
