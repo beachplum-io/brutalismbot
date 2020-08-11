@@ -17,6 +17,9 @@ GEM
       aws-sdk-core (~> 3, >= 3.83.0)
       aws-sdk-kms (~> 1)
       aws-sigv4 (~> 1.1)
+    aws-sdk-secretsmanager (1.36.0)
+      aws-sdk-core (~> 3, >= 3.71.0)
+      aws-sigv4 (~> 1.1)
     aws-sigv4 (1.1.0)
       aws-eventstream (~> 1.0, >= 1.0.2)
     brutalismbot (1.7.0)
@@ -76,7 +79,8 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  aws-sdk-s3 (~> 1.0)
+  aws-sdk-s3 (~> 1.60)
+  aws-sdk-secretsmanager (~> 1.36)
   brutalismbot (~> 1.7)
   dotenv (~> 2.7)
   pry (~> 0.13)

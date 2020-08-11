@@ -1,15 +1,29 @@
 require "logger"
 
+require "aws-sdk-s3"
+require "aws-sdk-secretsmanager"
+
 require "brutalismbot"
 
 Aws.config = {logger: Logger.new(STDOUT)}
 
-DRYRUN  = !ENV["DRYRUN"].to_s.empty?
-MIN_AGE = ENV["MIN_AGE"]&.to_i || 9000
-LIMIT   = ENV["LIMIT"]&.to_i
+DRYRUN         = !ENV["DRYRUN"].to_s.empty?
+MIN_AGE        = ENV["MIN_AGE"]&.to_i || 9000
+LIMIT          = ENV["LIMIT"]&.to_i
+TWITTER_SECRET = ENV["TWITTER_SECRET"] || "brutalismbot/twitter"
 
-BRUTALISMBOT = Brutalismbot::Client.new
-S3           = Aws::S3::Client.new
+STS = Aws::STS::Client.new
+S3  = Aws::S3::Client.new credentials: STS.config.credentials
+SM  = Aws::SecretsManager::Client.new credentials: STS.config.credentials
+
+ENV.update JSON.parse SM.get_secret_value(secret_id: TWITTER_SECRET).secret_string
+
+BRUTALISMBOT = Brutalismbot::Client.new(
+  posts:   Brutalismbot::Posts::Client.new(client: S3),
+  reddit:  Brutalismbot::Reddit::Client.new,
+  slack:   Brutalismbot::Slack::Client.new(client: S3),
+  twitter: Brutalismbot::Twitter::Client.new,
+)
 
 def each_message(event)
   event.fetch("Records", []).each do |record|
