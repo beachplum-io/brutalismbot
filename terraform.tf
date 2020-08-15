@@ -12,86 +12,92 @@ provider aws {
 }
 
 locals {
-  release              = var.RELEASE
-  repo                 = "https://github.com/brutalismbot/brutalismbot"
-  min_age              = "9000"
-  lambda_layer_name    = "brutalismbot"
-  lambda_layer_version = null
-  lambda_s3_key        = "pkg/brutalismbot-${local.release}/function.zip"
-  posts_s3_prefix      = "data/v1/posts/"
-  role_name            = "brutalismbot"
-  s3_bucket            = "brutalismbot"
-  slack_s3_prefix      = "data/v1/auths/"
-  slack_sns_topic_name = "brutalismbot-slack"
-
-  twitter_access_token        = var.TWITTER_ACCESS_TOKEN
-  twitter_access_token_secret = var.TWITTER_ACCESS_TOKEN_SECRET
-  twitter_consumer_key        = var.TWITTER_CONSUMER_KEY
-  twitter_consumer_secret     = var.TWITTER_CONSUMER_SECRET
+  lambda_filename         = "${path.module}/pkg/function.zip"
+  lambda_layers           = [data.aws_lambda_layer_version.brutalismbot.arn]
+  lambda_source_code_hash = filebase64sha256(local.lambda_filename)
 
   tags = {
-    App     = "core"
-    Name    = "brutalismbot"
-    Release = local.release
-    Repo    = local.repo
+    App  = "core"
+    Name = "brutalismbot"
+    Repo = "https://github.com/brutalismbot/brutalismbot"
   }
 }
 
 data aws_iam_role role {
-  name = local.role_name
+  name = "brutalismbot"
 }
 
-data aws_iam_policy_document s3 {
+data aws_iam_policy_document inline {
   statement {
+    sid     = "AccessS3"
     actions = ["s3:*"]
 
     resources = [
-      aws_s3_bucket.brutalismbot.arn,
+      "${aws_s3_bucket.brutalismbot.arn}",
       "${aws_s3_bucket.brutalismbot.arn}/*",
     ]
   }
+
+  statement {
+    sid       = "AccessSecrets"
+    actions   = ["secretsmanager:*"]
+    resources = [data.aws_secretsmanager_secret.twitter.arn]
+  }
 }
 
-data aws_lambda_layer_version layer {
-  layer_name = local.lambda_layer_name
-  version    = local.lambda_layer_version
+data aws_lambda_layer_version brutalismbot {
+  layer_name = "brutalismbot"
+  version    = null
 }
 
-data aws_sns_topic slack {
-  name = local.slack_sns_topic_name
+data aws_secretsmanager_secret twitter {
+  name = "brutalismbot/twitter"
+}
+
+data aws_sns_topic brutalismbot_slack {
+  name = "brutalismbot-slack"
 }
 
 module reddit {
-  source           = "./terraform/reddit"
-  min_age          = local.min_age
-  lambda_layers    = [data.aws_lambda_layer_version.layer.arn]
-  lambda_role_arn  = data.aws_iam_role.role.arn
-  lambda_s3_bucket = aws_s3_bucket.brutalismbot.bucket
-  lambda_s3_key    = local.lambda_s3_key
-  posts_s3_bucket  = aws_s3_bucket.brutalismbot.bucket
-  posts_s3_prefix  = local.posts_s3_prefix
-  tags             = local.tags
+  source = "./terraform/reddit"
+
+  lambda_filename         = local.lambda_filename
+  lambda_layers           = [data.aws_lambda_layer_version.brutalismbot.arn]
+  lambda_role_arn         = data.aws_iam_role.role.arn
+  lambda_source_code_hash = local.lambda_source_code_hash
+  tags                    = local.tags
+
+  lambda_environment = {
+    MIN_AGE         = "9000"
+    POSTS_S3_BUCKET = aws_s3_bucket.brutalismbot.bucket
+    POSTS_S3_PREFIX = "data/v1/posts/"
+  }
 }
 
 module slack {
-  source              = "./terraform/slack"
-  lambda_layers       = [data.aws_lambda_layer_version.layer.arn]
-  lambda_role_arn     = data.aws_iam_role.role.arn
-  lambda_s3_bucket    = aws_s3_bucket.brutalismbot.bucket
-  lambda_s3_key       = local.lambda_s3_key
-  slack_s3_bucket     = aws_s3_bucket.brutalismbot.bucket
-  slack_s3_prefix     = local.slack_s3_prefix
-  slack_sns_topic_arn = data.aws_sns_topic.slack.arn
-  tags                = local.tags
+  source = "./terraform/slack"
+
+  lambda_filename         = local.lambda_filename
+  lambda_layers           = [data.aws_lambda_layer_version.brutalismbot.arn]
+  lambda_role_arn         = data.aws_iam_role.role.arn
+  lambda_source_code_hash = local.lambda_source_code_hash
+  slack_sns_topic_arn     = data.aws_sns_topic.brutalismbot_slack.arn
+  tags                    = local.tags
+
+  lambda_environment = {
+    SLACK_S3_BUCKET = aws_s3_bucket.brutalismbot.bucket
+    SLACK_S3_PREFIX = "data/v1/auths/"
+  }
 }
 
 module states {
-  source           = "./terraform/states"
-  lambda_layers    = [data.aws_lambda_layer_version.layer.arn]
-  lambda_role_arn  = data.aws_iam_role.role.arn
-  lambda_s3_bucket = aws_s3_bucket.brutalismbot.bucket
-  lambda_s3_key    = local.lambda_s3_key
-  tags             = local.tags
+  source = "./terraform/states"
+
+  lambda_filename         = local.lambda_filename
+  lambda_layers           = [data.aws_lambda_layer_version.brutalismbot.arn]
+  lambda_role_arn         = data.aws_iam_role.role.arn
+  lambda_source_code_hash = local.lambda_source_code_hash
+  tags                    = local.tags
 
   reddit_pull_lambda_arn  = module.reddit.pull.arn
   slack_list_lambda_arn   = module.slack.list.arn
@@ -100,36 +106,42 @@ module states {
 }
 
 module test {
-  source           = "./terraform/test"
-  lambda_layers    = [data.aws_lambda_layer_version.layer.arn]
-  lambda_role_arn  = data.aws_iam_role.role.arn
-  lambda_s3_bucket = aws_s3_bucket.brutalismbot.bucket
-  lambda_s3_key    = local.lambda_s3_key
-  tags             = local.tags
+  source = "./terraform/test"
+
+  lambda_filename         = local.lambda_filename
+  lambda_layers           = [data.aws_lambda_layer_version.brutalismbot.arn]
+  lambda_role_arn         = data.aws_iam_role.role.arn
+  lambda_source_code_hash = local.lambda_source_code_hash
+  tags                    = local.tags
+
+  lambda_environment = {
+    DRYRUN = "1"
+  }
 }
 
 module twitter {
-  source                      = "./terraform/twitter"
-  lambda_layers               = [data.aws_lambda_layer_version.layer.arn]
-  lambda_role_arn             = data.aws_iam_role.role.arn
-  lambda_s3_bucket            = aws_s3_bucket.brutalismbot.bucket
-  lambda_s3_key               = local.lambda_s3_key
-  twitter_access_token        = local.twitter_access_token
-  twitter_access_token_secret = local.twitter_access_token_secret
-  twitter_consumer_key        = local.twitter_consumer_key
-  twitter_consumer_secret     = local.twitter_consumer_secret
-  tags                        = local.tags
+  source = "./terraform/twitter"
+
+  lambda_filename         = local.lambda_filename
+  lambda_layers           = [data.aws_lambda_layer_version.brutalismbot.arn]
+  lambda_role_arn         = data.aws_iam_role.role.arn
+  lambda_source_code_hash = local.lambda_source_code_hash
+  tags                    = local.tags
+
+  lambda_environment = {
+    TWITTER_SECRET = "brutalismbot/twitter"
+  }
 }
 
-resource aws_iam_role_policy s3_access {
+resource aws_iam_role_policy inline {
   name   = "s3"
-  policy = data.aws_iam_policy_document.s3.json
+  policy = data.aws_iam_policy_document.inline.json
   role   = data.aws_iam_role.role.id
 }
 
 resource aws_s3_bucket brutalismbot {
   acl           = "private"
-  bucket        = local.s3_bucket
+  bucket        = "brutalismbot"
   force_destroy = false
 }
 
@@ -139,24 +151,4 @@ resource aws_s3_bucket_public_access_block brutalismbot {
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
-}
-
-variable RELEASE {
-  description = "Release tag."
-}
-
-variable TWITTER_ACCESS_TOKEN {
-  description = "Twitter API access token."
-}
-
-variable TWITTER_ACCESS_TOKEN_SECRET {
-  description = "Twitter API access token secret."
-}
-
-variable TWITTER_CONSUMER_KEY {
-  description = "Twitter API Consumer Key."
-}
-
-variable TWITTER_CONSUMER_SECRET {
-  description = "Twitter API Consumer Secret."
 }

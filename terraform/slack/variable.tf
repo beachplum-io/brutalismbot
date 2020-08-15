@@ -1,6 +1,17 @@
+variable lambda_environment {
+  description = "Lambda function ENV variables"
+  type        = map(string)
+  default     = {}
+}
+
+variable lambda_filename {
+  description = "Lambda function filename"
+}
+
 variable lambda_layers {
   description = "Lambda layer ARNs"
   type        = list(string)
+  default     = []
 }
 
 variable lambda_role_arn {
@@ -8,24 +19,12 @@ variable lambda_role_arn {
 }
 
 variable lambda_runtime {
-  description = "Lambda IAM Role ARN"
+  description = "Lambda runtime"
   default     = "ruby2.7"
 }
 
-variable lambda_s3_bucket {
-  description = "Lambda function S3 bucket"
-}
-
-variable lambda_s3_key {
-  description = "Lambda function S3 key"
-}
-
-variable slack_s3_bucket {
-  description = "Slack S3 bucket"
-}
-
-variable slack_s3_prefix {
-  description = "Slack S3 prefix"
+variable lambda_source_code_hash {
+  description = "Lambda function source code hash"
 }
 
 variable slack_sns_topic_arn {

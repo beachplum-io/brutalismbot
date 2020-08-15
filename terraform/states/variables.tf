@@ -1,22 +1,28 @@
-variable lambda_layers {
-  description = "Lambda layer ARNs"
+variable lambda_environment {
+  description = "Lambda function ENV variables"
+  type        = map(string)
+  default     = {}
 }
 
-variable lag_time {
-  description = "Post age lag time"
-  default     = "9000"
+variable lambda_filename {
+  description = "Lambda function filename"
+}
+
+variable lambda_layers {
+  description = "Lambda layer ARNs"
 }
 
 variable lambda_role_arn {
   description = "Lambda IAM Role ARN"
 }
 
-variable lambda_s3_bucket {
-  description = "Lambda function S3 bucket"
+variable lambda_runtime {
+  description = "Lambda runtime"
+  default     = "ruby2.7"
 }
 
-variable lambda_s3_key {
-  description = "Lambda function S3 key"
+variable lambda_source_code_hash {
+  description = "Lambda function source code hash"
 }
 
 variable reddit_pull_lambda_arn {

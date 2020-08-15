@@ -1,13 +1,11 @@
 locals {
-  lambda_layers               = var.lambda_layers
-  lambda_role_arn             = var.lambda_role_arn
-  lambda_s3_bucket            = var.lambda_s3_bucket
-  lambda_s3_key               = var.lambda_s3_key
-  tags                        = var.tags
-  twitter_access_token        = var.twitter_access_token
-  twitter_access_token_secret = var.twitter_access_token_secret
-  twitter_consumer_key        = var.twitter_consumer_key
-  twitter_consumer_secret     = var.twitter_consumer_secret
+  lambda_environment      = var.lambda_environment
+  lambda_filename         = var.lambda_filename
+  lambda_layers           = var.lambda_layers
+  lambda_role_arn         = var.lambda_role_arn
+  lambda_runtime          = var.lambda_runtime
+  lambda_source_code_hash = var.lambda_source_code_hash
+  tags                    = var.tags
 }
 
 resource aws_cloudwatch_log_group push {
@@ -17,23 +15,18 @@ resource aws_cloudwatch_log_group push {
 }
 
 resource aws_lambda_function push {
-  description   = "Push posts from /r/brutalism"
-  function_name = "brutalismbot-twitter-push"
-  handler       = "lambda.twitter_push"
-  layers        = local.lambda_layers
-  role          = local.lambda_role_arn
-  runtime       = "ruby2.7"
-  s3_bucket     = local.lambda_s3_bucket
-  s3_key        = local.lambda_s3_key
-  tags          = local.tags
-  timeout       = 30
+  description      = "Push posts from /r/brutalism"
+  filename         = local.lambda_filename
+  function_name    = "brutalismbot-twitter-push"
+  handler          = "lambda.twitter_push"
+  layers           = local.lambda_layers
+  role             = local.lambda_role_arn
+  runtime          = local.lambda_runtime
+  source_code_hash = local.lambda_source_code_hash
+  tags             = local.tags
+  timeout          = 30
 
   environment {
-    variables = {
-      TWITTER_ACCESS_TOKEN        = local.twitter_access_token
-      TWITTER_ACCESS_TOKEN_SECRET = local.twitter_access_token_secret
-      TWITTER_CONSUMER_KEY        = local.twitter_consumer_key
-      TWITTER_CONSUMER_SECRET     = local.twitter_consumer_secret
-    }
+    variables = local.lambda_environment
   }
 }

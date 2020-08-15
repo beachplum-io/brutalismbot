@@ -1,11 +1,12 @@
 locals {
   enabled = true
 
-  lambda_layers    = var.lambda_layers
-  lambda_role_arn  = var.lambda_role_arn
-  lambda_s3_bucket = var.lambda_s3_bucket
-  lambda_s3_key    = var.lambda_s3_key
-  tags             = var.tags
+  lambda_filename         = var.lambda_filename
+  lambda_layers           = var.lambda_layers
+  lambda_role_arn         = var.lambda_role_arn
+  lambda_runtime          = var.lambda_runtime
+  lambda_source_code_hash = var.lambda_source_code_hash
+  tags                    = var.tags
 
   reddit_pull_lambda_arn  = var.reddit_pull_lambda_arn
   slack_list_lambda_arn   = var.slack_list_lambda_arn
@@ -42,9 +43,7 @@ locals {
 
 data aws_iam_policy_document assume_role {
   statement {
-    actions = [
-      "sts:AssumeRole",
-    ]
+    actions = ["sts:AssumeRole"]
 
     principals {
       type = "Service"
@@ -126,15 +125,15 @@ resource aws_iam_role_policy states {
 }
 
 resource aws_lambda_function fetch {
-  description   = "Fetch S3 object"
-  function_name = "brutalismbot-fetch"
-  handler       = "lambda.fetch"
-  layers        = local.lambda_layers
-  role          = local.lambda_role_arn
-  runtime       = "ruby2.7"
-  s3_bucket     = local.lambda_s3_bucket
-  s3_key        = local.lambda_s3_key
-  tags          = local.tags
+  description      = "Fetch S3 object"
+  filename         = local.lambda_filename
+  function_name    = "brutalismbot-fetch"
+  handler          = "lambda.fetch"
+  layers           = local.lambda_layers
+  role             = local.lambda_role_arn
+  runtime          = local.lambda_runtime
+  source_code_hash = local.lambda_source_code_hash
+  tags             = local.tags
 }
 
 resource aws_sfn_state_machine main {

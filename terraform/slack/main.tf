@@ -1,23 +1,15 @@
 locals {
-  lambda_layers       = var.lambda_layers
-  lambda_role_arn     = var.lambda_role_arn
-  lambda_runtime      = var.lambda_runtime
-  lambda_s3_bucket    = var.lambda_s3_bucket
-  lambda_s3_key       = var.lambda_s3_key
-  slack_s3_bucket     = var.slack_s3_bucket
-  slack_s3_prefix     = var.slack_s3_prefix
-  slack_sns_topic_arn = var.slack_sns_topic_arn
-  tags                = var.tags
-
-  filter_policy_slack_install = {
-    type = ["oauth"]
-  }
-
-  filter_policy_slack_uninstall = {
-    id   = ["app_uninstalled"]
-    type = ["event"]
-  }
+  lambda_environment      = var.lambda_environment
+  lambda_filename         = var.lambda_filename
+  lambda_layers           = var.lambda_layers
+  lambda_role_arn         = var.lambda_role_arn
+  lambda_runtime          = var.lambda_runtime
+  lambda_source_code_hash = var.lambda_source_code_hash
+  slack_sns_topic_arn     = var.slack_sns_topic_arn
+  tags                    = var.tags
 }
+
+# LOGS
 
 resource aws_cloudwatch_log_group install {
   name              = "/aws/lambda/${aws_lambda_function.install.function_name}"
@@ -44,64 +36,58 @@ resource aws_cloudwatch_log_group uninstall {
 }
 
 resource aws_lambda_function install {
-  description   = "Install app to Slack workspace"
-  function_name = "brutalismbot-slack-install"
-  handler       = "lambda.slack_install"
-  layers        = local.lambda_layers
-  role          = local.lambda_role_arn
-  runtime       = local.lambda_runtime
-  s3_bucket     = local.lambda_s3_bucket
-  s3_key        = local.lambda_s3_key
-  tags          = local.tags
+  description      = "Install app to Slack workspace"
+  filename         = local.lambda_filename
+  function_name    = "brutalismbot-slack-install"
+  handler          = "lambda.slack_install"
+  layers           = local.lambda_layers
+  role             = local.lambda_role_arn
+  runtime          = local.lambda_runtime
+  source_code_hash = local.lambda_source_code_hash
+  tags             = local.tags
 
   environment {
-    variables = {
-      SLACK_S3_BUCKET = local.slack_s3_bucket
-      SLACK_S3_PREFIX = local.slack_s3_prefix
-    }
+    variables = local.lambda_environment
   }
 }
 
 resource aws_lambda_function list {
-  description   = "Get slack authorizations"
-  function_name = "brutalismbot-slack-list"
-  handler       = "lambda.slack_list"
-  layers        = local.lambda_layers
-  role          = local.lambda_role_arn
-  runtime       = local.lambda_runtime
-  s3_bucket     = local.lambda_s3_bucket
-  s3_key        = local.lambda_s3_key
-  tags          = local.tags
+  description      = "Get slack authorizations"
+  function_name    = "brutalismbot-slack-list"
+  handler          = "lambda.slack_list"
+  filename         = local.lambda_filename
+  source_code_hash = local.lambda_source_code_hash
+  layers           = local.lambda_layers
+  role             = local.lambda_role_arn
+  runtime          = local.lambda_runtime
+  tags             = local.tags
 }
 
 resource aws_lambda_function push {
-  description   = "Push posts from /r/brutalism to Slack"
-  function_name = "brutalismbot-slack-push"
-  handler       = "lambda.slack_push"
-  layers        = local.lambda_layers
-  role          = local.lambda_role_arn
-  runtime       = local.lambda_runtime
-  s3_bucket     = local.lambda_s3_bucket
-  s3_key        = local.lambda_s3_key
-  tags          = local.tags
+  description      = "Push posts from /r/brutalism to Slack"
+  function_name    = "brutalismbot-slack-push"
+  handler          = "lambda.slack_push"
+  filename         = local.lambda_filename
+  source_code_hash = local.lambda_source_code_hash
+  layers           = local.lambda_layers
+  role             = local.lambda_role_arn
+  runtime          = local.lambda_runtime
+  tags             = local.tags
 }
 
 resource aws_lambda_function uninstall {
-  description   = "Uninstall brutalismbot from Slack workspace"
-  function_name = "brutalismbot-slack-uninstall"
-  handler       = "lambda.slack_uninstall"
-  layers        = local.lambda_layers
-  role          = local.lambda_role_arn
-  runtime       = local.lambda_runtime
-  s3_bucket     = local.lambda_s3_bucket
-  s3_key        = local.lambda_s3_key
-  tags          = local.tags
+  description      = "Uninstall brutalismbot from Slack workspace"
+  function_name    = "brutalismbot-slack-uninstall"
+  handler          = "lambda.slack_uninstall"
+  filename         = local.lambda_filename
+  source_code_hash = local.lambda_source_code_hash
+  layers           = local.lambda_layers
+  role             = local.lambda_role_arn
+  runtime          = local.lambda_runtime
+  tags             = local.tags
 
   environment {
-    variables = {
-      SLACK_S3_BUCKET = local.slack_s3_bucket
-      SLACK_S3_PREFIX = local.slack_s3_prefix
-    }
+    variables = local.lambda_environment
   }
 }
 
@@ -121,14 +107,14 @@ resource aws_lambda_permission uninstall {
 
 resource aws_sns_topic_subscription install {
   endpoint      = aws_lambda_function.install.arn
-  filter_policy = jsonencode(local.filter_policy_slack_install)
+  filter_policy = jsonencode({ type = ["oauth"] })
   protocol      = "lambda"
   topic_arn     = local.slack_sns_topic_arn
 }
 
 resource aws_sns_topic_subscription uninstall {
   endpoint      = aws_lambda_function.uninstall.arn
-  filter_policy = jsonencode(local.filter_policy_slack_uninstall)
+  filter_policy = jsonencode({ type = ["event"], id = ["app_uninstalled"] })
   protocol      = "lambda"
   topic_arn     = local.slack_sns_topic_arn
 }
