@@ -1,92 +1,49 @@
-pwd = File.expand_path("../lib", __FILE__)
-$LOAD_PATH.unshift(pwd) unless $LOAD_PATH.include?(pwd)
+require "dotenv/load"
+require "rake/clean"
 
-ENV["DRYRUN"] = "1"
+namespace :docker do
+  %i[zip dev].each do |name|
+    iidfile = "pkg/#{name}.iid"
 
-require "brutalismbot/stub"
-require "lambda"
+    desc "Build #{iidfile}"
+    task name => iidfile
 
-BRUTALISMBOT.stub!
+    file iidfile do |f|
+      sh <<~EOS
+        docker build \
+        --iidfile #{f.name} \
+        --tag brutalismbot/brutalismbot:#{name} \
+        --target #{name} \
+        .
+      EOS
+    end
 
-def runtest(name, &block)
-  puts "\n=> #{name}"
-  puts block.call if block_given?
-end
-
-desc 'lambda.test'
-task :test do
-  runtest("TEST") { test event: {} }
-end
-
-namespace :reddit do
-  desc 'lambda.reddit_pull'
-  task :pull do
-    runtest("PULL") { reddit_pull event: {} }
+    file "pkg/zip.iid" => ["pkg"] + Dir["Dockerfile", "Gemfile*", "lib/*"]
+    file "pkg/dev.iid" => "pkg/zip.iid"
+    CLEAN.include iidfile
   end
 end
 
-namespace :slack do
-  desc 'lambda.slack_install'
-  task :install do
-    event = {
-      "Records" => [
-        {
-          "Sns" => {
-            "Message" => Brutalismbot::Slack::Auth.stub.to_json,
-          },
-        },
-      ],
-    }
-    runtest("SLACK INSTALL") { slack_install event: event }
-  end
+namespace :zip do
+  %i[function layer].each do |name|
+    iidfile = "pkg/zip.iid"
+    zipfile = "pkg/#{name}.zip"
 
-  desc 'lambda.slack_push'
-  task :push do
-    event = {
-      "Content-Type" => "image/jpeg",
-      "Post" => BRUTALISMBOT.posts.list.first.to_h,
-      "Slack" => BRUTALISMBOT.slack.list.first.to_s3(prefix: BRUTALISMBOT.slack.prefix).slice(:bucket, :key),
-    }
-    runtest("SLACK PUSH") { slack_push event: event }
-  end
+    desc "Build #{zipfile}"
+    task name => zipfile
 
-  desc 'lambda.slack_uninstall'
-  task :uninstall do
-    event = {
-      "Records" => [
-        {
-          "Sns" => {
-            "Message" => {
-              "token" => "<token>",
-              "team_id" => "T1234568",
-              "api_app_id" => "A12345678",
-              "type" => "event_callback",
-              "event_id" => "Ev12345678",
-              "event_time" => 1553557314,
-              "event" => {
-                "type" => "app_uninstalled",
-              },
-            }.to_json,
-          },
-        },
-      ],
-    }
-    runtest("SLACK UNINSTALL") { slack_uninstall event: event }
+    file zipfile => iidfile do |f|
+      sh "docker run --rm --entrypoint cat $(cat #{iidfile}) #{name}.zip > #{f.name}"
+    end
   end
 end
 
-namespace :twitter do
-  desc 'lambda.twitter_push'
-  task :push do
-    event = {
-      "Content-Type" => "image/jpeg",
-      "Post" => BRUTALISMBOT.posts.list.first.to_h,
-    }
-    runtest("TWITTER PUSH") { twitter_push event: event }
-  end
-end
+task :docker  => %i[docker:zip docker:dev]
+task :zip     => %i[zip:function zip:layer]
+task :default => :zip
+directory "pkg"
+CLOBBER.include "pkg"
 
-task :reddit  => %i[reddit:pull]
-task :slack   => %i[slack:install slack:push slack:uninstall]
-task :twitter => %i[twitter:push]
-task :default => %i[test reddit slack twitter]
+require "rspec/core/rake_task"
+RSpec::Core::RakeTask.new
+# task :spec => "pkg/dev.iid"

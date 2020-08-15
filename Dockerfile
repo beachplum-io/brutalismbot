@@ -1,52 +1,18 @@
 ARG RUBY=2.7
-ARG TERRAFORM_VERSION=latest
 
 # Build deployment package
-FROM lambci/lambda:build-ruby${RUBY} AS build
-WORKDIR /opt/ruby/
+FROM lambci/lambda:build-ruby${RUBY} AS zip
 COPY Gemfile* ./
-RUN bundle config --local path .
+RUN bundle config --local path ruby
 RUN bundle config --local silence_root_warning 1
 RUN bundle config --local without development
 RUN bundle
-RUN mv ruby gems
-WORKDIR /var/task/
+RUN mv ruby/ruby ruby/gems
+RUN zip -9r layer.zip ruby Gemfile*
 COPY lib .
-WORKDIR /var/task/pkg/
-WORKDIR /opt/
-RUN zip -9r /var/task/pkg/layer.zip ruby
-WORKDIR /var/task/
-RUN zip -9r /var/task/pkg/function.zip lambda.rb
+RUN zip -9r function.zip lambda.rb
 
 # Create runtime environment for running tests
 FROM lambci/lambda:ruby${RUBY} AS dev
-COPY --from=build /opt/ /opt/
-
-# Run rake tests
-FROM lambci/lambda:build-ruby${RUBY} AS test
-RUN gem install rake -v 13.0.1
-COPY --from=build /opt/ /opt/
-COPY --from=build /var/task/ /opt/ruby/lib/
-COPY Rakefile .
-ARG AWS_ACCESS_KEY_ID
-ARG AWS_DEFAULT_REGION=us-east-1
-ARG AWS_SECRET_ACCESS_KEY
-RUN rake
-
-# Plan deployment
-FROM hashicorp/terraform:${TERRAFORM_VERSION} AS plan
-WORKDIR /var/task/
-COPY terraform terraform
-COPY terraform.tf .
-RUN terraform fmt -check
-ARG AWS_ACCESS_KEY_ID
-ARG AWS_DEFAULT_REGION=us-east-1
-ARG AWS_SECRET_ACCESS_KEY
-RUN terraform init
-ARG TF_VAR_RELEASE
-ARG TF_VAR_TWITTER_ACCESS_TOKEN
-ARG TF_VAR_TWITTER_ACCESS_TOKEN_SECRET
-ARG TF_VAR_TWITTER_CONSUMER_KEY
-ARG TF_VAR_TWITTER_CONSUMER_SECRET
-RUN terraform plan -out terraform.zip
-CMD ["apply", "terraform.zip"]
+COPY --from=zip /var/task/ruby /opt/ruby
+COPY --from=zip /var/task/lambda.rb /var/task/lambda.rb
