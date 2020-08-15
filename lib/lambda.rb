@@ -5,12 +5,15 @@ require "aws-sdk-secretsmanager"
 
 require "brutalismbot"
 
-Aws.config = {logger: Logger.new(STDOUT)}
-
 DRYRUN         = !ENV["DRYRUN"].to_s.empty?
 MIN_AGE        = ENV["MIN_AGE"]&.to_i || 9000
 LIMIT          = ENV["LIMIT"]&.to_i
+LOG_LEVEL      = ENV["LOG_LEVEL"] || "INFO"
 TWITTER_SECRET = ENV["TWITTER_SECRET"] || "brutalismbot/twitter"
+
+LOGGER = Logger.new(STDERR)
+LOGGER.level = LOG_LEVEL
+Aws.config = {logger: LOGGER}
 
 STS = Aws::STS::Client.new
 S3  = Aws::S3::Client.new credentials: STS.config.credentials
