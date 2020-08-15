@@ -23,7 +23,7 @@ locals {
   }
 }
 
-data aws_iam_role role {
+data aws_iam_role brutalismbot {
   name = "brutalismbot"
 }
 
@@ -63,7 +63,7 @@ module reddit {
 
   lambda_filename         = local.lambda_filename
   lambda_layers           = [data.aws_lambda_layer_version.brutalismbot.arn]
-  lambda_role_arn         = data.aws_iam_role.role.arn
+  lambda_role_arn         = data.aws_iam_role.brutalismbot.arn
   lambda_source_code_hash = local.lambda_source_code_hash
   tags                    = local.tags
 
@@ -79,7 +79,7 @@ module slack {
 
   lambda_filename         = local.lambda_filename
   lambda_layers           = [data.aws_lambda_layer_version.brutalismbot.arn]
-  lambda_role_arn         = data.aws_iam_role.role.arn
+  lambda_role_arn         = data.aws_iam_role.brutalismbot.arn
   lambda_source_code_hash = local.lambda_source_code_hash
   slack_sns_topic_arn     = data.aws_sns_topic.brutalismbot_slack.arn
   tags                    = local.tags
@@ -95,7 +95,7 @@ module states {
 
   lambda_filename         = local.lambda_filename
   lambda_layers           = [data.aws_lambda_layer_version.brutalismbot.arn]
-  lambda_role_arn         = data.aws_iam_role.role.arn
+  lambda_role_arn         = data.aws_iam_role.brutalismbot.arn
   lambda_source_code_hash = local.lambda_source_code_hash
   tags                    = local.tags
 
@@ -110,7 +110,7 @@ module test {
 
   lambda_filename         = local.lambda_filename
   lambda_layers           = [data.aws_lambda_layer_version.brutalismbot.arn]
-  lambda_role_arn         = data.aws_iam_role.role.arn
+  lambda_role_arn         = data.aws_iam_role.brutalismbot.arn
   lambda_source_code_hash = local.lambda_source_code_hash
   tags                    = local.tags
 
@@ -124,7 +124,7 @@ module twitter {
 
   lambda_filename         = local.lambda_filename
   lambda_layers           = [data.aws_lambda_layer_version.brutalismbot.arn]
-  lambda_role_arn         = data.aws_iam_role.role.arn
+  lambda_role_arn         = data.aws_iam_role.brutalismbot.arn
   lambda_source_code_hash = local.lambda_source_code_hash
   tags                    = local.tags
 
@@ -136,7 +136,7 @@ module twitter {
 resource aws_iam_role_policy inline {
   name   = "s3"
   policy = data.aws_iam_policy_document.inline.json
-  role   = data.aws_iam_role.role.id
+  role   = data.aws_iam_role.brutalismbot.id
 }
 
 resource aws_s3_bucket brutalismbot {
