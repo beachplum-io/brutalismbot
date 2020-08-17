@@ -17,6 +17,7 @@ Aws.config = {logger: LOGGER}
 
 STS = Aws::STS::Client.new
 S3  = Aws::S3::Client.new credentials: STS.config.credentials
+S3P = Aws::S3::Presigner.new client: S3
 SM  = Aws::SecretsManager::Client.new credentials: STS.config.credentials
 
 ENV.update JSON.parse SM.get_secret_value(secret_id: TWITTER_SECRET).secret_string
@@ -28,27 +29,82 @@ BRUTALISMBOT = Brutalismbot::Client.new(
   twitter: Brutalismbot::Twitter::Client.new,
 )
 
+# --- State Machine handlers
+
+##
+# Pull new posts from /r/brutalism
+# Returns [{ bucket: "...", key: "..." }]
+def reddit_pull(event:, context:nil)
+  puts "EVENT #{event.to_json}"
+  event.transform_keys!(&:to_sym)
+  event[:dryrun]  ||= DRYRUN
+  event[:min_age] ||= MIN_AGE
+  event[:limit]   ||= LIMIT
+  BRUTALISMBOT.pull(**event)
+end
+
+##
+# Fetch post body from S3
+# Returns { slack: { ... }, twitter: { ... } }
+def fetch(event:, context:nil)
+  puts "EVENT #{event.to_json}"
+  event.transform_keys!(&:to_sym)
+  body = JSON.parse S3.get_object(**event).body.read
+  post = Brutalismbot::Reddit::Post.new(**body)
+  {slack: post.to_slack, twitter: post.to_twitter}
+end
+
+##
+# Get Slack webhooks
+# Returns [ "https://hooks.slack.com/services/...", "..." ]
+def slack_list(event:, context:nil)
+  puts "EVENT #{event.to_json}"
+  BRUTALISMBOT.slack.list.map(&:webhook_url)
+end
+
+##
+# Push post to Slack
+def slack_push(event:, context:nil)
+  puts "EVENT #{event.to_json}"
+  event.transform_keys!(&:to_sym)
+  event[:dryrun] ||= DRYRUN
+  BRUTALISMBOT.slack.push(**event)
+end
+
+##
+# Push post to Twitter
+def twitter_push(event:, context:nil)
+  puts "EVENT #{event.to_json}"
+  event.transform_keys!(&:to_sym)
+  event[:dryrun] ||= DRYRUN
+  BRUTALISMBOT.twitter.push(**event)
+end
+
+##
+# Test function loads
+def test(event:, context:nil)
+  puts "EVENT #{event.to_json}"
+  {
+    MIN_AGE:  MIN_AGE,
+    MIN_TIME: BRUTALISMBOT.posts.max_time,
+    MAX_TIME: Time.now.utc.to_i - MIN_AGE,
+    DRYRUN:   DRYRUN,
+    EVENT:    event.to_json,
+  }
+end
+
+# --- Slack event handlers
+
+##
+# Yield SNS event messages
 def each_message(event)
   event.fetch("Records", []).each do |record|
     yield record.dig "Sns", "Message"
   end
 end
 
-def fetch(event:, context:nil)
-  puts "EVENT #{event.to_json}"
-  options  = event.transform_keys(&:to_sym)
-  response = S3.get_object(**options)
-  JSON.parse response.body.read
-end
-
-def reddit_pull(event:, context:nil)
-  puts "EVENT #{event.to_json}"
-  dryrun  = event.fetch("Dryrun", DRYRUN)
-  min_age = event.fetch("Lag",    MIN_AGE)
-  limit   = event.fetch("Limit",  LIMIT)
-  BRUTALISMBOT.pull min_age: min_age, limit: limit, dryrun: dryrun
-end
-
+##
+# Handle Slack install event
 def slack_install(event:, context:nil)
   puts "EVENT #{event.to_json}"
   each_message event do |message|
@@ -62,25 +118,13 @@ def slack_install(event:, context:nil)
     post = BRUTALISMBOT.reddit.list(:hot, limit: 1).first
 
     # Post to newly installed workspace
-    auth.push post, dryrun: DRYRUN unless post.nil?
+    event = {body: post.to_slack, webhook_url: auth.webhook_url, dryrun: DRYRUN}
+    BRUTALISMBOT.slack.push(**event) unless post.nil?
   end
 end
 
-def slack_list(event:, context:nil)
-  puts "EVENT #{event.to_json}"
-  BRUTALISMBOT.slack.keys.map{|x| {bucket: x.bucket_name, key: x.key} }
-end
-
-def slack_push(event:, context:nil)
-  puts "EVENT #{event.to_json}"
-  dryrun = event.fetch("Dryrun", DRYRUN)
-  auth   = BRUTALISMBOT.slack.get(**event["Slack"].transform_keys(&:to_sym))
-  post   = Brutalismbot::Reddit::Post.new(**event["Post"])
-  post.mime_type = event["Content-Type"]
-  auth.push post, dryrun: dryrun
-  post.to_slack
-end
-
+##
+# Handle Slack uninstall event
 def slack_uninstall(event:, context:nil)
   puts "EVENT #{event.to_json}"
   each_message event do |message|
@@ -90,24 +134,4 @@ def slack_uninstall(event:, context:nil)
     # Remove Auth
     BRUTALISMBOT.slack.uninstall auth, dryrun: DRYRUN
   end
-end
-
-def test(event:, context:nil)
-  puts "EVENT #{event.to_json}"
-  {
-    MIN_AGE:  MIN_AGE,
-    MIN_TIME: BRUTALISMBOT.posts.max_time,
-    MAX_TIME: Time.now.utc.to_i - MIN_AGE,
-    DRYRUN:   DRYRUN,
-    EVENT:    event.to_json,
-  }
-end
-
-def twitter_push(event:, context:nil)
-  puts "EVENT #{event.to_json}"
-  dryrun = event.fetch("Dryrun", DRYRUN)
-  post   = Brutalismbot::Reddit::Post.new(**event["Post"])
-  post.mime_type = event["Content-Type"]
-  BRUTALISMBOT.twitter.push post, dryrun: dryrun
-  {status: post.to_twitter, media: post.url}
 end
