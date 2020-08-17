@@ -1,3 +1,8 @@
+variable is_enabled {
+  description = "Enable CloudWatch trigger"
+  default     = true
+}
+
 variable lambda_arns {
   description = "Lambda ARNs"
 

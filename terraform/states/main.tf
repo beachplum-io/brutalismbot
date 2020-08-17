@@ -1,4 +1,5 @@
 locals {
+  is_enabled              = var.is_enabled
   lambda_arns             = var.lambda_arns
   lambda_filename         = var.lambda_filename
   lambda_layers           = var.lambda_layers
@@ -12,7 +13,7 @@ locals {
 
 resource aws_cloudwatch_event_rule pull {
   description         = "Start Brutalismbot state machine"
-  is_enabled          = true
+  is_enabled          = local.is_enabled
   name                = aws_sfn_state_machine.main.name
   schedule_expression = "rate(1 hour)"
   tags                = local.tags

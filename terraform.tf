@@ -12,6 +12,7 @@ provider aws {
 }
 
 locals {
+  is_enabled              = true
   lambda_filename         = "${path.module}/pkg/function.zip"
   lambda_layers           = [data.aws_lambda_layer_version.brutalismbot.arn]
   lambda_source_code_hash = filebase64sha256(local.lambda_filename)
@@ -25,7 +26,7 @@ locals {
 
 data aws_lambda_layer_version brutalismbot {
   layer_name = "brutalismbot"
-  version    = null
+  version    = 33
 }
 
 data aws_sns_topic brutalismbot_slack {
@@ -66,6 +67,8 @@ module slack {
 
 module states {
   source = "./terraform/states"
+
+  is_enabled = local.is_enabled
 
   lambda_filename         = local.lambda_filename
   lambda_layers           = local.lambda_layers
@@ -262,6 +265,12 @@ data aws_iam_policy_document lambda_policy {
     sid       = "DecryptKMS"
     actions   = ["kms:Decrypt"]
     resources = [data.aws_kms_alias.brutalismbot.target_key_arn]
+  }
+
+  statement {
+    sid       = "WriteLogs"
+    actions   = ["logs:*"]
+    resources = ["*"]
   }
 }
 
