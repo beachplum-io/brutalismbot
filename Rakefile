@@ -23,9 +23,8 @@ end
 task :docker => %i[docker:zip docker:dev]
 namespace :docker do
   %i[zip dev].each {|target| iidfile target }
-  file ".docker/zip" => ".docker"
-  file ".docker/zip" => Dir["Dockerfile", "Gemfile*", "lib/*"]
-  file ".docker/dev" => ".docker/zip"
+  file ".docker/zip" => %w[Dockerfile Gemfile Gemfile.lock], order_only: ".docker"
+  file ".docker/dev" => %w[.docker/zip lib/lambda.rb]
 
   task :clean do
     sh "docker image ls --quiet #{REPO} | uniq | xargs docker image rm --force"
@@ -37,8 +36,8 @@ namespace :function do
   desc "Build function zipfile"
   task :build => "pkg/function.zip"
 
-  file "pkg/function.zip" => ".docker/zip" do |f|
-    sh "docker run --rm --entrypoint cat $(cat .docker/zip) #{File.basename f.name} > #{f.name}"
+  file "pkg/function.zip" => %w[lib/lambda.rb], order_only: "pkg" do |f|
+    Dir.chdir("lib") { sh "zip ../#{f.name} lambda.rb" }
   end
 end
 

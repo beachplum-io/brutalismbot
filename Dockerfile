@@ -9,10 +9,8 @@ RUN bundle config --local without development
 RUN bundle
 RUN mv ruby/ruby ruby/gems
 RUN zip -9r layer.zip ruby Gemfile*
-COPY lib .
-RUN zip -9r function.zip lambda.rb
 
 # Create runtime environment for running tests
 FROM lambci/lambda:ruby${RUBY} AS dev
 COPY --from=zip /var/task/ruby /opt/ruby
-COPY --from=zip /var/task/lambda.rb /var/task/lambda.rb
+COPY lib .
