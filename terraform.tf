@@ -12,8 +12,8 @@ provider aws {
 }
 
 locals {
-  dryrun                  = "1"
-  is_enabled              = false
+  dryrun                  = null
+  is_enabled              = true
   lambda_filename         = "${path.module}/pkg/function.zip"
   lambda_layers           = [data.aws_lambda_layer_version.brutalismbot.arn]
   lambda_source_code_hash = filebase64sha256(local.lambda_filename)
