@@ -1,3 +1,14 @@
+variable lambda_arns {
+  description = "Lambda ARNs"
+
+  type = object({
+    reddit_pull  = string
+    slack_list   = string
+    slack_push   = string
+    twitter_push = string
+  })
+}
+
 variable lambda_environment {
   description = "Lambda function ENV variables"
   type        = map(string)
@@ -25,24 +36,8 @@ variable lambda_source_code_hash {
   description = "Lambda function source code hash"
 }
 
-variable reddit_pull_lambda_arn {
-  description = "Reddit pull lambda ARN"
-}
-
-variable slack_list_lambda_arn {
-  description = "Slack list Lambda ARN"
-}
-
-variable slack_push_lambda_arn {
-  description = "Slack push Lambda ARN"
-}
-
 variable tags {
   description = "Resource tags"
   type        = map(string)
   default     = {}
-}
-
-variable twitter_push_lambda_arn {
-  description = "Twitter push Lambda ARN"
 }

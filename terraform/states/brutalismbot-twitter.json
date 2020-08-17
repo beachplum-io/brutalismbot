@@ -1,13 +1,13 @@
 {
-  "StartAt": "PushToTwitter",
+  "StartAt": "Push to Twitter",
   "States": {
-    "PushToTwitter": {
+    "Push to Twitter": {
       "Type": "Task",
       "Resource": "${twitter_push_lambda_arn}",
       "End": true,
       "Catch": [
         {
-          "Next": "DeadLetterQueue",
+          "Next": "Push to Dead Letter Queue",
           "ResultPath": "$.Error",
           "ErrorEquals": [
             "States.ALL"
@@ -28,7 +28,7 @@
         }
       ]
     },
-    "DeadLetterQueue": {
+    "Push to Dead Letter Queue": {
       "Type": "Task",
       "Resource": "arn:aws:states:::sqs:sendMessage",
       "End": true,

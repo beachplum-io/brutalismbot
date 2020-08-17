@@ -1,13 +1,13 @@
 {
   "Comment": "Mirror posts from /r/brutalism to clients",
-  "StartAt": "PullPosts",
+  "StartAt": "Pull Reddit Posts",
   "States": {
-    "PullPosts": {
+    "Pull Reddit Posts": {
       "Comment": "Pull new posts from /r/brutalism and cache on S3",
       "Type": "Task",
       "Resource": "${reddit_pull_lambda_arn}",
       "ResultPath": "$.Posts",
-      "Next": "EachPost",
+      "Next": "For Each Post",
       "Retry": [
         {
           "IntervalSeconds": 15,
@@ -22,7 +22,7 @@
         }
       ]
     },
-    "EachPost": {
+    "For Each Post": {
       "Comment": "Iterate over each new post",
       "Type": "Map",
       "ItemsPath": "$.Posts",
@@ -31,14 +31,14 @@
         "Post.$": "$$.Map.Item.Value"
       },
       "Iterator": {
-        "StartAt": "FetchPost",
+        "StartAt": "Fetch Post from S3",
         "States": {
-          "FetchPost": {
+          "Fetch Post from S3": {
             "Type": "Task",
             "InputPath": "$.Post",
             "Resource": "${fetch_lambda_arn}",
             "ResultPath": "$.Post",
-            "Next": "PushAll",
+            "Next": "Push Post to Clients",
             "Retry": [
               {
                 "IntervalSeconds": 3,
@@ -53,19 +53,19 @@
               }
             ]
           },
-          "PushAll": {
+          "Push Post to Clients": {
             "Comment": "Start state machines for each client",
             "Type": "Parallel",
             "End": true,
             "Branches": [
               {
-                "StartAt": "PullSlacks",
+                "StartAt": "Pull Slack Webhooks",
                 "States": {
-                  "PullSlacks": {
+                  "Pull Slack Webhooks": {
                     "Type": "Task",
                     "Resource": "${slack_list_lambda_arn}",
                     "ResultPath": "$.Slacks",
-                    "Next": "EachSlack",
+                    "Next": "For Each Webhook",
                     "Retry": [
                       {
                         "IntervalSeconds": 3,
@@ -80,7 +80,7 @@
                       }
                     ]
                   },
-                  "EachSlack": {
+                  "For Each Webhook": {
                     "Type": "Map",
                     "ItemsPath": "$.Slacks",
                     "End": true,
