@@ -51,7 +51,7 @@ def fetch(event:, context:nil)
   event.transform_keys!(&:to_sym)
   body = JSON.parse S3.get_object(**event).body.read
   post = Brutalismbot::Reddit::Post.new(**body)
-  {slack: post.to_slack, twitter: post.to_twitter}
+  {Slack: {body: post.to_slack}, Tweet: post.to_twitter}
 end
 
 ##
@@ -68,7 +68,7 @@ def slack_push(event:, context:nil)
   puts "EVENT #{event.to_json}"
   event.transform_keys!(&:to_sym)
   event[:dryrun] ||= DRYRUN
-  BRUTALISMBOT.slack.push(**event)
+  event.tap {|params| BRUTALISMBOT.slack.push(**params) }
 end
 
 ##
@@ -77,7 +77,7 @@ def twitter_push(event:, context:nil)
   puts "EVENT #{event.to_json}"
   event.transform_keys!(&:to_sym)
   event[:dryrun] ||= DRYRUN
-  BRUTALISMBOT.twitter.push(**event)
+  event.tap {|params| BRUTALISMBOT.twitter.push(**params) }
 end
 
 ##

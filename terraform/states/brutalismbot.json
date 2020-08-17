@@ -1,7 +1,19 @@
 {
   "Comment": "Mirror posts from /r/brutalism to clients",
-  "StartAt": "Pull Reddit Posts",
+  "StartAt": "Route Input",
   "States": {
+    "Route Input": {
+      "Comment": "Route input for faster results",
+      "Type": "Choice",
+      "Default": "Pull Reddit Posts",
+      "Choices": [
+        {
+          "Variable": "$.Posts",
+          "IsPresent": true,
+          "Next": "For Each Post"
+        }
+      ]
+    },
     "Pull Reddit Posts": {
       "Comment": "Pull new posts from /r/brutalism and cache on S3",
       "Type": "Task",
@@ -31,13 +43,12 @@
         "Post.$": "$$.Map.Item.Value"
       },
       "Iterator": {
-        "StartAt": "Fetch Post from S3",
+        "StartAt": "Fetch Post",
         "States": {
-          "Fetch Post from S3": {
+          "Fetch Post": {
             "Type": "Task",
-            "InputPath": "$.Post",
             "Resource": "${fetch_lambda_arn}",
-            "ResultPath": "$.Post",
+            "InputPath": "$.Post",
             "Next": "Push Post to Clients",
             "Retry": [
               {
@@ -64,7 +75,7 @@
                   "Pull Slack Webhooks": {
                     "Type": "Task",
                     "Resource": "${slack_list_lambda_arn}",
-                    "ResultPath": "$.Slacks",
+                    "ResultPath": "$.WebhookUrls",
                     "Next": "For Each Webhook",
                     "Retry": [
                       {
@@ -82,25 +93,26 @@
                   },
                   "For Each Webhook": {
                     "Type": "Map",
-                    "ItemsPath": "$.Slacks",
+                    "ItemsPath": "$.WebhookUrls",
                     "End": true,
                     "Parameters": {
-                      "Post.$": "$.Post",
-                      "Slack.$": "$$.Map.Item.Value"
+                      "Slack": {
+                        "body.$": "$.Slack",
+                        "webhook_url.$": "$$.Map.Item.Value"
+                      }
                     },
                     "Iterator": {
                       "StartAt": "Slack",
                       "States": {
                         "Slack": {
                           "Type": "Task",
-                          "OutputPath": "$.ExecutionArn",
                           "Resource": "arn:aws:states:::states:startExecution",
+                          "OutputPath": "$.ExecutionArn",
                           "End": true,
                           "Parameters": {
                             "StateMachineArn": "${slack_state_machine_arn}",
                             "Input": {
                               "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
-                              "Post.$": "$.Post",
                               "Slack.$": "$.Slack"
                             }
                           }
@@ -116,14 +128,14 @@
                   "Tweet": {
                     "Comment": "Push post to Twitter",
                     "Type": "Task",
-                    "OutputPath": "$.ExecutionArn",
                     "Resource": "arn:aws:states:::states:startExecution",
+                    "OutputPath": "$.ExecutionArn",
                     "End": true,
                     "Parameters": {
                       "StateMachineArn": "${twitter_state_machine_arn}",
                       "Input": {
                         "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
-                        "Post.$": "$.Post"
+                        "Tweet.$": "$.Tweet"
                       }
                     }
                   }

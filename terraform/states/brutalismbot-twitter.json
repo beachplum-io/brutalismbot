@@ -4,6 +4,7 @@
     "Push to Twitter": {
       "Type": "Task",
       "Resource": "${twitter_push_lambda_arn}",
+      "InputPath": "$.Tweet",
       "End": true,
       "Catch": [
         {

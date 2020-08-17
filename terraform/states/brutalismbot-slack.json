@@ -4,6 +4,7 @@
     "Push to Slack": {
       "Type": "Task",
       "Resource": "${slack_push_lambda_arn}",
+      "InputPath": "$.Slack",
       "End": true,
       "Catch": [
         {

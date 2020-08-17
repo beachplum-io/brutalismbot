@@ -12,7 +12,8 @@ provider aws {
 }
 
 locals {
-  is_enabled              = true
+  dryrun                  = "1"
+  is_enabled              = false
   lambda_filename         = "${path.module}/pkg/function.zip"
   lambda_layers           = [data.aws_lambda_layer_version.brutalismbot.arn]
   lambda_source_code_hash = filebase64sha256(local.lambda_filename)
@@ -26,7 +27,7 @@ locals {
 
 data aws_lambda_layer_version brutalismbot {
   layer_name = "brutalismbot"
-  version    = 33
+  version    = 34
 }
 
 data aws_sns_topic brutalismbot_slack {
@@ -60,6 +61,7 @@ module slack {
   tags                    = local.tags
 
   lambda_environment = {
+    DRYRUN          = local.dryrun
     SLACK_S3_BUCKET = aws_s3_bucket.brutalismbot.bucket
     SLACK_S3_PREFIX = "data/v1/auths/"
   }
@@ -98,12 +100,16 @@ module test {
 module twitter {
   source = "./terraform/twitter"
 
-  lambda_environment      = { TWITTER_SECRET = "brutalismbot/twitter" }
   lambda_filename         = local.lambda_filename
   lambda_layers           = local.lambda_layers
   lambda_role_arn         = aws_iam_role.lambda.arn
   lambda_source_code_hash = local.lambda_source_code_hash
   tags                    = local.tags
+
+  lambda_environment = {
+    DRYRUN         = local.dryrun
+    TWITTER_SECRET = "brutalismbot/twitter"
+  }
 }
 
 # S3

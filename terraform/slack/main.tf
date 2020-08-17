@@ -61,6 +61,10 @@ resource aws_lambda_function list {
   role             = local.lambda_role_arn
   runtime          = local.lambda_runtime
   tags             = local.tags
+
+  environment {
+    variables = local.lambda_environment
+  }
 }
 
 resource aws_lambda_function push {
@@ -73,6 +77,10 @@ resource aws_lambda_function push {
   role             = local.lambda_role_arn
   runtime          = local.lambda_runtime
   tags             = local.tags
+
+  environment {
+    variables = local.lambda_environment
+  }
 }
 
 resource aws_lambda_function uninstall {
