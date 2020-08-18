@@ -31,20 +31,20 @@ namespace :docker do
   end
 end
 
-task :function => %i[function:build]
+task :function => %i[function:zip]
 namespace :function do
   desc "Build function zipfile"
-  task :build => "pkg/function.zip"
+  task :zip => "pkg/function.zip"
 
   file "pkg/function.zip" => %w[lib/lambda.rb], order_only: "pkg" do |f|
     Dir.chdir("lib") { sh "zip ../#{f.name} lambda.rb" }
   end
 end
 
-task :layer => %i[layer:build]
+task :layer => %i[layer:zip]
 namespace :layer do
   desc "Build layer zipfile"
-  task :build => "pkg/layer.zip"
+  task :zip => "pkg/layer.zip"
 
   desc "Publish Lambda Layer package"
   task :publish => :build do
