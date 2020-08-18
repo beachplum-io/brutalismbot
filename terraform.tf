@@ -118,6 +118,10 @@ resource aws_s3_bucket brutalismbot {
   acl           = "private"
   bucket        = "brutalismbot"
   force_destroy = false
+
+  versioning {
+    enabled = true
+  }
 }
 
 resource aws_s3_bucket_public_access_block brutalismbot {
