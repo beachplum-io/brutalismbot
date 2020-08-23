@@ -115,7 +115,7 @@ def slack_install(event:, context:nil)
     BRUTALISMBOT.slack.install auth, dryrun: DRYRUN
 
     # Get current top post
-    post = BRUTALISMBOT.reddit.list(:hot, limit: 1).first
+    post = BRUTALISMBOT.reddit.list(:top, limit: 1).first
 
     # Post to newly installed workspace
     event = {body: post.to_slack, webhook_url: auth.webhook_url, dryrun: DRYRUN}

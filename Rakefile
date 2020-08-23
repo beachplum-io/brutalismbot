@@ -7,9 +7,12 @@ REPO = "brutalismbot/brutalismbot"
 
 directory ".docker"
 directory "pkg"
-CLEAN.include ".docker", "pkg"
+CLOBBER.include ".docker", "pkg"
 
+task :default => %i[zip]
 task :zip => %i[function layer]
+task :clean => %i[docker:clean]
+task :clobber => %i[clean]
 
 def iidfile(target)
   desc "Build #{REPO}:#{target} image"
