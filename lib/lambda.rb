@@ -6,9 +6,9 @@ require "aws-sdk-secretsmanager"
 require "brutalismbot"
 
 DRYRUN         = !ENV["DRYRUN"].to_s.empty?
-MIN_AGE        = ENV["MIN_AGE"]&.to_i || 9000
 LIMIT          = ENV["LIMIT"]&.to_i
-LOG_LEVEL      = ENV["LOG_LEVEL"] || "INFO"
+LOG_LEVEL      = ENV["LOG_LEVEL"]      || "INFO"
+MIN_AGE        = ENV["MIN_AGE"]&.to_i  || 9000
 TWITTER_SECRET = ENV["TWITTER_SECRET"] || "brutalismbot/twitter"
 
 LOGGER = Logger.new(STDERR)
