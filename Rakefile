@@ -50,11 +50,11 @@ namespace :layer do
   task :zip => "pkg/layer.zip"
 
   desc "Publish Lambda Layer package"
-  task :publish => :build do
+  task :publish => :zip do
     sh <<~EOS
       aws lambda publish-layer-version \
       --compatible-runtimes ruby2.7 \
-      --description 'Brutalismbot v1.8' \
+      --description 'Brutalismbot v2' \
       --layer-name brutalismbot \
       --zip-file fileb://pkg/layer.zip
     EOS

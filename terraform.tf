@@ -27,7 +27,6 @@ locals {
 
 data aws_lambda_layer_version brutalismbot {
   layer_name = "brutalismbot"
-  version    = 34
 }
 
 data aws_sns_topic brutalismbot_slack {
@@ -260,7 +259,7 @@ data aws_iam_policy_document lambda_policy {
     actions = ["s3:*"]
 
     resources = [
-      "${aws_s3_bucket.brutalismbot.arn}",
+      aws_s3_bucket.brutalismbot.arn,
       "${aws_s3_bucket.brutalismbot.arn}/*",
     ]
   }

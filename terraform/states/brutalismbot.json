@@ -43,28 +43,9 @@
         "Post.$": "$$.Map.Item.Value"
       },
       "Iterator": {
-        "StartAt": "Fetch Post",
+        "StartAt": "Push to Clients",
         "States": {
-          "Fetch Post": {
-            "Type": "Task",
-            "Resource": "${fetch_lambda_arn}",
-            "InputPath": "$.Post",
-            "Next": "Push Post to Clients",
-            "Retry": [
-              {
-                "IntervalSeconds": 3,
-                "MaxAttempts": 6,
-                "BackoffRate": 2,
-                "ErrorEquals": [
-                  "CalledProcessError",
-                  "Lambda.SdkClientException",
-                  "Lambda.ServiceException",
-                  "Lambda.Unknown"
-                ]
-              }
-            ]
-          },
-          "Push Post to Clients": {
+          "Push to Clients": {
             "Comment": "Start state machines for each client",
             "Type": "Parallel",
             "End": true,
@@ -96,10 +77,8 @@
                     "ItemsPath": "$.WebhookUrls",
                     "End": true,
                     "Parameters": {
-                      "Slack": {
-                        "body.$": "$.Slack",
-                        "webhook_url.$": "$$.Map.Item.Value"
-                      }
+                      "Post.$": "$.Post",
+                      "WebhookUrl.$": "$$.Map.Item.Value"
                     },
                     "Iterator": {
                       "StartAt": "Slack",
@@ -113,7 +92,10 @@
                             "StateMachineArn": "${slack_state_machine_arn}",
                             "Input": {
                               "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
-                              "Slack.$": "$.Slack"
+                              "bucket.$": "$.Post.bucket",
+                              "key.$": "$.Post.key",
+                              "url.$": "$.Post.url",
+                              "webhook_url.$": "$.WebhookUrl"
                             }
                           }
                         }
@@ -135,7 +117,9 @@
                       "StateMachineArn": "${twitter_state_machine_arn}",
                       "Input": {
                         "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
-                        "Tweet.$": "$.Tweet"
+                        "bucket.$": "$.Post.bucket",
+                        "key.$": "$.Post.key",
+                        "url.$": "$.Post.url"
                       }
                     }
                   }

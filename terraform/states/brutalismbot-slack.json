@@ -4,17 +4,7 @@
     "Push to Slack": {
       "Type": "Task",
       "Resource": "${slack_push_lambda_arn}",
-      "InputPath": "$.Slack",
       "End": true,
-      "Catch": [
-        {
-          "Next": "Push to Dead Letter Queue",
-          "ResultPath": "$.Error",
-          "ErrorEquals": [
-            "States.ALL"
-          ]
-        }
-      ],
       "Retry": [
         {
           "IntervalSeconds": 3,
@@ -25,6 +15,15 @@
             "Lambda.SdkClientException",
             "Lambda.ServiceException",
             "Lambda.Unknown"
+          ]
+        }
+      ],
+      "Catch": [
+        {
+          "Next": "Push to Dead Letter Queue",
+          "ResultPath": "$.Error",
+          "ErrorEquals": [
+            "States.ALL"
           ]
         }
       ]
