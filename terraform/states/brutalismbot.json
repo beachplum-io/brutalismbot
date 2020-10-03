@@ -27,6 +27,7 @@
           "BackoffRate": 2,
           "ErrorEquals": [
             "CalledProcessError",
+            "JSON::ParserError",
             "Lambda.SdkClientException",
             "Lambda.ServiceException",
             "Lambda.Unknown"

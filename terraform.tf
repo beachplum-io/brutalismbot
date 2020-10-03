@@ -1,14 +1,22 @@
 terraform {
+  required_version = "~> 0.13"
+
   backend s3 {
     bucket = "brutalismbot"
     key    = "terraform/brutalismbot.tfstate"
     region = "us-east-1"
   }
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 3.0"
+    }
+  }
 }
 
 provider aws {
-  region  = "us-east-1"
-  version = "~> 3.2"
+  region = "us-east-1"
 }
 
 locals {
