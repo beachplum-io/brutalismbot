@@ -1,7 +1,7 @@
 terraform {
-  required_version = "~> 0.13"
+  required_version = "~> 0.14"
 
-  backend s3 {
+  backend "s3" {
     bucket = "brutalismbot"
     key    = "terraform/brutalismbot.tfstate"
     region = "us-east-1"
@@ -15,7 +15,7 @@ terraform {
   }
 }
 
-provider aws {
+provider "aws" {
   region = "us-east-1"
 }
 
@@ -33,15 +33,15 @@ locals {
   }
 }
 
-data aws_lambda_layer_version brutalismbot {
+data "aws_lambda_layer_version" "brutalismbot" {
   layer_name = "brutalismbot"
 }
 
-data aws_sns_topic brutalismbot_slack {
+data "aws_sns_topic" "brutalismbot_slack" {
   name = "brutalismbot-slack"
 }
 
-module reddit {
+module "reddit" {
   source = "./terraform/reddit"
 
   lambda_filename         = local.lambda_filename
@@ -57,7 +57,7 @@ module reddit {
   }
 }
 
-module slack {
+module "slack" {
   source = "./terraform/slack"
 
   lambda_filename         = local.lambda_filename
@@ -74,7 +74,7 @@ module slack {
   }
 }
 
-module states {
+module "states" {
   source = "./terraform/states"
 
   is_enabled = local.is_enabled
@@ -93,7 +93,7 @@ module states {
   }
 }
 
-module test {
+module "test" {
   source = "./terraform/test"
 
   lambda_environment      = { DRYRUN = "1" }
@@ -104,7 +104,7 @@ module test {
   tags                    = local.tags
 }
 
-module twitter {
+module "twitter" {
   source = "./terraform/twitter"
 
   lambda_filename         = local.lambda_filename
@@ -121,7 +121,7 @@ module twitter {
 
 # S3
 
-resource aws_s3_bucket brutalismbot {
+resource "aws_s3_bucket" "brutalismbot" {
   acl           = "private"
   bucket        = "brutalismbot"
   force_destroy = false
@@ -131,7 +131,7 @@ resource aws_s3_bucket brutalismbot {
   }
 }
 
-resource aws_s3_bucket_public_access_block brutalismbot {
+resource "aws_s3_bucket_public_access_block" "brutalismbot" {
   bucket                  = aws_s3_bucket.brutalismbot.id
   block_public_acls       = true
   block_public_policy     = true
@@ -141,7 +141,7 @@ resource aws_s3_bucket_public_access_block brutalismbot {
 
 # IAM :: EVENTS
 
-data aws_iam_policy_document events_trust_policy {
+data "aws_iam_policy_document" "events_trust_policy" {
   statement {
     sid     = "AssumeEvents"
     actions = ["sts:AssumeRole"]
@@ -153,13 +153,13 @@ data aws_iam_policy_document events_trust_policy {
   }
 }
 
-resource aws_iam_role events {
+resource "aws_iam_role" "events" {
   assume_role_policy = data.aws_iam_policy_document.events_trust_policy.json
   name               = "brutalismbot-events"
   tags               = local.tags
 }
 
-data aws_iam_policy_document events_policy {
+data "aws_iam_policy_document" "events_policy" {
   statement {
     sid       = "StartStateMachine"
     actions   = ["states:StartExecution"]
@@ -167,7 +167,7 @@ data aws_iam_policy_document events_policy {
   }
 }
 
-resource aws_iam_role_policy events {
+resource "aws_iam_role_policy" "events" {
   name   = "events"
   policy = data.aws_iam_policy_document.events_policy.json
   role   = aws_iam_role.events.name
@@ -175,7 +175,7 @@ resource aws_iam_role_policy events {
 
 # IAM :: STATES
 
-data aws_iam_policy_document states_trust_policy {
+data "aws_iam_policy_document" "states_trust_policy" {
   statement {
     sid     = "AssumeStateMachine"
     actions = ["sts:AssumeRole"]
@@ -187,13 +187,13 @@ data aws_iam_policy_document states_trust_policy {
   }
 }
 
-resource aws_iam_role states {
+resource "aws_iam_role" "states" {
   assume_role_policy = data.aws_iam_policy_document.states_trust_policy.json
   name               = "brutalismbot-states"
   tags               = local.tags
 }
 
-data aws_iam_policy_document states_policy {
+data "aws_iam_policy_document" "states_policy" {
   statement {
     sid       = "InvokeFunction"
     actions   = ["lambda:InvokeFunction"]
@@ -227,7 +227,7 @@ data aws_iam_policy_document states_policy {
   }
 }
 
-resource aws_iam_role_policy states {
+resource "aws_iam_role_policy" "states" {
   name   = "executions"
   policy = data.aws_iam_policy_document.events_policy.json
   role   = aws_iam_role.events.name
@@ -235,7 +235,7 @@ resource aws_iam_role_policy states {
 
 # IAM :: LAMBDA
 
-data aws_iam_policy_document lambda_trust_policy {
+data "aws_iam_policy_document" "lambda_trust_policy" {
   statement {
     sid     = "AssumeLambda"
     actions = ["sts:AssumeRole"]
@@ -247,21 +247,21 @@ data aws_iam_policy_document lambda_trust_policy {
   }
 }
 
-resource aws_iam_role lambda {
+resource "aws_iam_role" "lambda" {
   assume_role_policy = data.aws_iam_policy_document.lambda_trust_policy.json
   name               = "brutalismbot-lambda"
   tags               = local.tags
 }
 
-data aws_kms_alias brutalismbot {
+data "aws_kms_alias" "brutalismbot" {
   name = "alias/brutalismbot"
 }
 
-data aws_secretsmanager_secret twitter {
+data "aws_secretsmanager_secret" "twitter" {
   name = "brutalismbot/twitter"
 }
 
-data aws_iam_policy_document lambda_policy {
+data "aws_iam_policy_document" "lambda_policy" {
   statement {
     sid     = "AccessS3"
     actions = ["s3:*"]
@@ -291,7 +291,7 @@ data aws_iam_policy_document lambda_policy {
   }
 }
 
-resource aws_iam_role_policy lambda {
+resource "aws_iam_role_policy" "lambda" {
   name   = "lambda"
   policy = data.aws_iam_policy_document.lambda_policy.json
   role   = aws_iam_role.lambda.name
