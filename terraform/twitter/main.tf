@@ -8,13 +8,13 @@ locals {
   tags                    = var.tags
 }
 
-resource aws_cloudwatch_log_group push {
+resource "aws_cloudwatch_log_group" "push" {
   name              = "/aws/lambda/${aws_lambda_function.push.function_name}"
   retention_in_days = 30
   tags              = local.tags
 }
 
-resource aws_lambda_function push {
+resource "aws_lambda_function" "push" {
   description      = "Push posts from /r/brutalism"
   filename         = local.lambda_filename
   function_name    = "brutalismbot-twitter-push"
