@@ -10,7 +10,7 @@ directory "pkg"
 CLOBBER.include ".docker", "pkg"
 
 task :default => %i[zip]
-task :zip     => %i[function layer]
+task :zip     => %i[function:zip layer:zip]
 task :clean   => %i[docker:clean]
 task :clobber => %i[clean]
 
@@ -23,7 +23,6 @@ def iidfile(target)
   end
 end
 
-task :docker => %i[docker:zip docker:dev]
 namespace :docker do
   %i[zip dev].each {|target| iidfile target }
   file ".docker/zip" => %w[Dockerfile Gemfile Gemfile.lock], order_only: ".docker"
@@ -34,7 +33,6 @@ namespace :docker do
   end
 end
 
-task :function => %i[function:zip]
 namespace :function do
   desc "Build function zipfile"
   task :zip => "pkg/function.zip"
@@ -44,7 +42,6 @@ namespace :function do
   end
 end
 
-task :layer => %i[layer:zip]
 namespace :layer do
   desc "Build layer zipfile"
   task :zip => "pkg/layer.zip"
@@ -62,5 +59,30 @@ namespace :layer do
 
   file "pkg/layer.zip" => ".docker/zip" do |f|
     sh "docker run --rm --entrypoint cat $(cat .docker/zip) #{File.basename f.name} > #{f.name}"
+  end
+end
+
+namespace :terraform do
+  desc "Run terraform plan"
+  task :plan => :init do
+    sh %{terraform plan -detailed-exitcode}
+  end
+
+  desc "Run terraform apply"
+  task :apply => :init do
+    sh %{terraform apply}
+  end
+
+  namespace :apply do
+    desc "Run terraform auto -auto-approve"
+    task :auto => :init do
+      sh %{terraform apply -auto-approve}
+    end
+  end
+
+  task :init => ".terraform"
+
+  directory ".terraform" do
+    sh %{terraform init}
   end
 end
