@@ -257,6 +257,10 @@ resource "aws_iam_role" "lambda" {
   tags               = local.tags
 }
 
+data "aws_dynamodb_table" "brutalismbot" {
+  name = "Brutalismbot"
+}
+
 data "aws_kms_alias" "brutalismbot" {
   name = "alias/brutalismbot"
 }
@@ -266,6 +270,12 @@ data "aws_secretsmanager_secret" "twitter" {
 }
 
 data "aws_iam_policy_document" "lambda_policy" {
+  statement {
+    sid       = "AccessDynamoDB"
+    actions   = ["dynamodb:*"]
+    resources = ["${data.aws_dynamodb_table.brutalismbot.arn}*"]
+  }
+
   statement {
     sid     = "AccessS3"
     actions = ["s3:*"]
@@ -286,6 +296,12 @@ data "aws_iam_policy_document" "lambda_policy" {
     sid       = "DecryptKMS"
     actions   = ["kms:Decrypt"]
     resources = [data.aws_kms_alias.brutalismbot.target_key_arn]
+  }
+
+  statement {
+    sid       = "PublishEvents"
+    actions   = ["events:PutEvents"]
+    resources = [aws_cloudwatch_event_bus.brutalismbot.arn]
   }
 
   statement {
