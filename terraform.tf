@@ -163,7 +163,7 @@ data "aws_iam_policy_document" "events_policy" {
   statement {
     sid       = "StartStateMachine"
     actions   = ["states:StartExecution"]
-    resources = [module.states.state_machines.main.id]
+    resources = ["${module.states.state_machines.main.id}*"]
   }
 }
 
