@@ -11,7 +11,7 @@ locals {
 
 # EVENTS
 
-resource aws_cloudwatch_event_rule pull {
+resource "aws_cloudwatch_event_rule" "pull" {
   description         = "Start Brutalismbot state machine"
   is_enabled          = local.is_enabled
   name                = aws_sfn_state_machine.main.name
@@ -19,11 +19,11 @@ resource aws_cloudwatch_event_rule pull {
   tags                = local.tags
 }
 
-data aws_iam_role events {
+data "aws_iam_role" "events" {
   name = "brutalismbot-events"
 }
 
-resource aws_cloudwatch_event_target pull {
+resource "aws_cloudwatch_event_target" "pull" {
   arn      = aws_sfn_state_machine.main.id
   input    = jsonencode({})
   role_arn = data.aws_iam_role.events.arn
@@ -32,7 +32,7 @@ resource aws_cloudwatch_event_target pull {
 
 # LOGS
 
-resource aws_cloudwatch_log_group fetch {
+resource "aws_cloudwatch_log_group" "fetch" {
   name              = "/aws/lambda/${aws_lambda_function.fetch.function_name}"
   retention_in_days = 30
   tags              = local.tags
@@ -40,7 +40,7 @@ resource aws_cloudwatch_log_group fetch {
 
 # LAMBDAS
 
-resource aws_lambda_function fetch {
+resource "aws_lambda_function" "fetch" {
   description      = "Fetch S3 object"
   filename         = local.lambda_filename
   function_name    = "brutalismbot-fetch"
@@ -54,11 +54,11 @@ resource aws_lambda_function fetch {
 
 # STATE MACHINES
 
-data aws_iam_role states {
+data "aws_iam_role" "states" {
   name = "brutalismbot-states"
 }
 
-resource aws_sfn_state_machine main {
+resource "aws_sfn_state_machine" "main" {
   name     = "brutalismbot"
   role_arn = data.aws_iam_role.states.arn
   tags     = local.tags
@@ -74,7 +74,7 @@ resource aws_sfn_state_machine main {
   )
 }
 
-resource aws_sfn_state_machine slack {
+resource "aws_sfn_state_machine" "slack" {
   name     = "brutalismbot-slack"
   role_arn = data.aws_iam_role.states.arn
   tags     = local.tags
@@ -87,7 +87,7 @@ resource aws_sfn_state_machine slack {
   )
 }
 
-resource aws_sfn_state_machine twitter {
+resource "aws_sfn_state_machine" "twitter" {
   name     = "brutalismbot-twitter"
   role_arn = data.aws_iam_role.states.arn
   tags     = local.tags
@@ -102,10 +102,10 @@ resource aws_sfn_state_machine twitter {
 
 # SQS DLQs
 
-resource aws_sqs_queue slack_dlq {
+resource "aws_sqs_queue" "slack_dlq" {
   name = "brutaliambot-slack-failures"
 }
 
-resource aws_sqs_queue twitter_dlq {
+resource "aws_sqs_queue" "twitter_dlq" {
   name = "brutaliambot-twitter-failures"
 }

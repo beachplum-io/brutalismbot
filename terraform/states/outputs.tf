@@ -1,4 +1,4 @@
-output dlqs {
+output "dlqs" {
   description = "SQS dead letter queues"
   value = {
     slack   = aws_sqs_queue.slack_dlq
@@ -6,7 +6,7 @@ output dlqs {
   }
 }
 
-output state_machines {
+output "state_machines" {
   description = "State machines"
   value = {
     main    = aws_sfn_state_machine.main

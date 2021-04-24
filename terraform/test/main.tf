@@ -10,7 +10,7 @@ locals {
 
 # LAMBDA
 
-resource aws_lambda_function test {
+resource "aws_lambda_function" "test" {
   description      = "Test brutalismbot gem"
   filename         = local.lambda_filename
   function_name    = "brutalismbot-test"
@@ -30,7 +30,7 @@ resource aws_lambda_function test {
 
 # LOGS
 
-resource aws_cloudwatch_log_group test {
+resource "aws_cloudwatch_log_group" "test" {
   name              = "/aws/lambda/${aws_lambda_function.test.function_name}"
   retention_in_days = 30
   tags              = local.tags

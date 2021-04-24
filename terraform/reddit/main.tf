@@ -10,7 +10,7 @@ locals {
 
 # LAMBDA
 
-resource aws_lambda_function pull {
+resource "aws_lambda_function" "pull" {
   description      = "Pull posts from /r/brutalism"
   filename         = local.lambda_filename
   function_name    = "brutalismbot-reddit-pull"
@@ -30,7 +30,7 @@ resource aws_lambda_function pull {
 
 # LOGS
 
-resource aws_cloudwatch_log_group pull {
+resource "aws_cloudwatch_log_group" "pull" {
   name              = "/aws/lambda/${aws_lambda_function.pull.function_name}"
   retention_in_days = 30
   tags              = local.tags
