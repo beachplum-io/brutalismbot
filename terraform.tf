@@ -41,6 +41,10 @@ data "aws_sns_topic" "brutalismbot_slack" {
   name = "brutalismbot-slack"
 }
 
+resource "aws_cloudwatch_event_bus" "brutalismbot" {
+  name = "brutalismbot"
+}
+
 module "reddit" {
   source = "./terraform/reddit"
 
