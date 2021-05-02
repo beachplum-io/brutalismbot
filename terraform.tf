@@ -179,6 +179,10 @@ resource "aws_iam_role_policy" "events" {
 
 # IAM :: STATES
 
+data "aws_dynamodb_table" "table" {
+  name = "Brutalismbot"
+}
+
 data "aws_iam_policy_document" "states_trust_policy" {
   statement {
     sid     = "AssumeStateMachine"
@@ -199,29 +203,27 @@ resource "aws_iam_role" "states" {
 
 data "aws_iam_policy_document" "states_policy" {
   statement {
+    sid       = "DynamoDBAccess"
+    actions   = ["dynamodb:*"]
+    resources = [data.aws_dynamodb_table.table.arn]
+  }
+
+  statement {
     sid       = "InvokeFunction"
     actions   = ["lambda:InvokeFunction"]
     resources = ["*"]
   }
 
   statement {
-    sid     = "QueueMessage"
-    actions = ["sqs:SendMessage"]
-
-    resources = [
-      module.states.dlqs.slack.arn,
-      module.states.dlqs.twitter.arn,
-    ]
+    sid       = "QueueMessage"
+    actions   = ["sqs:SendMessage"]
+    resources = ["*"]
   }
 
   statement {
-    sid     = "StartStateMachine"
-    actions = ["states:StartExecution"]
-
-    resources = [
-      module.states.state_machines.slack.id,
-      module.states.state_machines.twitter.id,
-    ]
+    sid       = "StartStateMachine"
+    actions   = ["states:StartExecution"]
+    resources = ["*"]
   }
 
   statement {
@@ -232,9 +234,9 @@ data "aws_iam_policy_document" "states_policy" {
 }
 
 resource "aws_iam_role_policy" "states" {
-  name   = "executions"
-  policy = data.aws_iam_policy_document.events_policy.json
-  role   = aws_iam_role.events.name
+  name   = "states"
+  policy = data.aws_iam_policy_document.states_policy.json
+  role   = aws_iam_role.states.name
 }
 
 # IAM :: LAMBDA
