@@ -3,7 +3,7 @@ on:
   pull_request:
   push:
   schedule:
-    - cron: '11 21 * * *'
+    - cron: "11 21 * * *"
 jobs:
   plan:
     runs-on: ubuntu-latest
@@ -13,9 +13,9 @@ jobs:
       - uses: hashicorp/setup-terraform@v1
       - uses: amancevice/aws-sts-assume-role@v0
         with:
-          access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          role-arn:          ${{ secrets.AWS_ROLE_ARN }}
+          role-arn: ${{ secrets.AWS_ROLE_ARN }}
       - run: gem install bundler -v 2.1.4
       - run: bundle install --jobs 4 --retry 3
       - run: bundle exec rake spec
