@@ -209,6 +209,12 @@ data "aws_iam_policy_document" "states_policy" {
   }
 
   statement {
+    sid       = "PublishEvents"
+    actions   = ["events:PutEvents"]
+    resources = [aws_cloudwatch_event_bus.brutalismbot.arn]
+  }
+
+  statement {
     sid       = "InvokeFunction"
     actions   = ["lambda:InvokeFunction"]
     resources = ["*"]
@@ -309,6 +315,12 @@ data "aws_iam_policy_document" "lambda_policy" {
   statement {
     sid       = "WriteLogs"
     actions   = ["logs:*"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid       = "StateMachine"
+    actions   = ["states:SendTask*"]
     resources = ["*"]
   }
 }
