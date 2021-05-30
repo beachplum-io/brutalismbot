@@ -100,6 +100,15 @@ resource "aws_sfn_state_machine" "twitter" {
   )
 }
 
+resource "aws_sfn_state_machine" "test" {
+  name     = "brutalismbot-test"
+  role_arn = data.aws_iam_role.states.arn
+  tags     = local.tags
+
+  definition = templatefile("${path.module}/brutalismbot-test.json", {
+  })
+}
+
 # SQS DLQs
 
 resource "aws_sqs_queue" "slack_dlq" {
