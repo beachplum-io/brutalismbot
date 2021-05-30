@@ -1,0 +1,14 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    yake (0.2.1)
+
+PLATFORMS
+  arm64-darwin-20
+  x86_64-darwin-20
+
+DEPENDENCIES
+  yake (~> 0.2)
+
+BUNDLED WITH
+   2.2.18

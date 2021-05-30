@@ -9,10 +9,29 @@ terraform {
 
   required_providers {
     aws = {
-      source  = "hashicorp/aws"
-      version = "~> 3.0"
+      source                = "hashicorp/aws"
+      version               = "~> 3.38"
+      configuration_aliases = [aws.v2]
     }
   }
+}
+
+provider "aws" {
+  alias  = "v2"
+  region = "us-east-1"
+
+  default_tags {
+    tags = {
+      App  = "Brutalismbot"
+      Name = "Brutalismbot"
+      Repo = "https://github.com/brutalismbot/brutalismbot"
+    }
+  }
+}
+
+module "v2" {
+  source    = "./v2"
+  providers = { aws = aws.v2 }
 }
 
 provider "aws" {
@@ -39,10 +58,6 @@ data "aws_lambda_layer_version" "brutalismbot" {
 
 data "aws_sns_topic" "brutalismbot_slack" {
   name = "brutalismbot-slack"
-}
-
-resource "aws_cloudwatch_event_bus" "brutalismbot" {
-  name = "brutalismbot"
 }
 
 module "reddit" {
@@ -95,17 +110,6 @@ module "states" {
     slack_push   = module.slack.push.arn
     twitter_push = module.twitter.push.arn
   }
-}
-
-module "test" {
-  source = "./terraform/test"
-
-  lambda_environment      = { DRYRUN = "1" }
-  lambda_filename         = local.lambda_filename
-  lambda_layers           = local.lambda_layers
-  lambda_role_arn         = aws_iam_role.lambda.arn
-  lambda_source_code_hash = local.lambda_source_code_hash
-  tags                    = local.tags
 }
 
 module "twitter" {
@@ -211,7 +215,7 @@ data "aws_iam_policy_document" "states_policy" {
   statement {
     sid       = "PublishEvents"
     actions   = ["events:PutEvents"]
-    resources = [aws_cloudwatch_event_bus.brutalismbot.arn]
+    resources = [module.v2.event_bus.arn]
   }
 
   statement {
@@ -309,7 +313,7 @@ data "aws_iam_policy_document" "lambda_policy" {
   statement {
     sid       = "PublishEvents"
     actions   = ["events:PutEvents"]
-    resources = [aws_cloudwatch_event_bus.brutalismbot.arn]
+    resources = [module.v2.event_bus.arn]
   }
 
   statement {
