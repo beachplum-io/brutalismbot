@@ -1,0 +1,103 @@
+{
+  "StartAt": "Get Last Seen Time",
+  "States": {
+    "Get Last Seen Time": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::dynamodb:getItem",
+      "Next": "Dequeue Next",
+      "Parameters": {
+        "TableName": "Brutalismbot",
+        "Key": {
+          "GUID": {
+            "S": "STATS/REDDIT/POST"
+          },
+          "SORT": {
+            "S": "MAX"
+          }
+        }
+      },
+      "ResultSelector": {
+        "MaxCreatedUTC.$": "$.Item.CREATED_UTC.S"
+      }
+    },
+    "Dequeue Next": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:556954866954:function:brutalismbot-v2-reddit-dequeue",
+      "Next": "Update Queue Size"
+    },
+    "Update Queue Size": {
+      "Type": "Pass",
+      "Next": "Continue?",
+      "ResultPath": "$.QueueSize",
+      "Result": {}
+    },
+    "Continue?": {
+      "Type": "Choice",
+      "Default": "Finish",
+      "Choices": [
+        {
+          "Next": "Parallelize",
+          "And": [
+            {
+              "Variable": "$.NextPost",
+              "IsPresent": true
+            },
+            {
+              "Variable": "$.NextPost",
+              "IsNull": false
+            }
+          ]
+        }
+      ]
+    },
+    "Finish": {
+      "Type": "Succeed"
+    },
+    "Parallelize": {
+      "Type": "Parallel",
+      "End": true,
+      "ResultSelector": {
+        "Reddit.$": "$.[0]",
+        "Slack.$": "$.[1]",
+        "Twitter.$": "$.[2]"
+      },
+      "Branches": [
+        {
+          "StartAt": "Reddit Transform",
+          "States": {
+            "Reddit Transform": {
+              "Type": "Pass",
+              "InputPath": "$.NextPost",
+              "ResultPath": "$.NextPost",
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "Slack Transform",
+          "States": {
+            "Slack Transform": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:us-east-1:556954866954:function:brutalismbot-v2-slack-transform",
+              "InputPath": "$.NextPost",
+              "ResultPath": "$.NextPost",
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "Twitter Transform",
+          "States": {
+            "Twitter Transform": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:us-east-1:556954866954:function:brutalismbot-v2-twitter-transform",
+              "InputPath": "$.NextPost",
+              "ResultPath": "$.NextPost",
+              "End": true
+            }
+          }
+        }
+      ]
+    }
+  }
+}
