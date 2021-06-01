@@ -11,5 +11,6 @@
 **/.terraform/
 **/pkg/
 *.env
+*.swp
 *.tfplan
 *.zip

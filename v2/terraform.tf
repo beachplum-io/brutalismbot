@@ -12,130 +12,6 @@ terraform {
   }
 }
 
-# OUTPUTS
-
-output "event_bus" { value = aws_cloudwatch_event_bus.brutalismbot }
-
-# IAM
-
-data "aws_iam_policy_document" "trust" {
-  statement {
-    sid     = "AssumeEvents"
-    actions = ["sts:AssumeRole"]
-
-    principals {
-      type = "Service"
-
-      identifiers = [
-        "events.amazonaws.com",
-        "lambda.amazonaws.com",
-        "states.amazonaws.com",
-      ]
-    }
-  }
-}
-
-data "aws_iam_policy_document" "access" {
-  statement {
-    sid       = "DynamoDB"
-    actions   = ["dynamodb:*"]
-    resources = ["${aws_dynamodb_table.brutalismbot.arn}*"]
-  }
-
-  statement {
-    sid       = "EventBridge"
-    actions   = ["events:PutEvents"]
-    resources = [aws_cloudwatch_event_bus.brutalismbot.arn]
-  }
-
-  statement {
-    sid     = "Lambda"
-    actions = ["lambda:InvokeFunction"]
-
-    resources = [
-      aws_lambda_function.reddit_dequeue.arn,
-    ]
-  }
-
-  statement {
-    sid       = "Logs"
-    actions   = ["logs:*"]
-    resources = ["*"]
-  }
-
-  statement {
-    sid     = "StatesStartExecution"
-    actions = ["states:StartExecution"]
-
-    resources = [
-      aws_sfn_state_machine.reddit_dequeue.arn,
-      aws_sfn_state_machine.reddit_post.arn,
-    ]
-  }
-
-  statement {
-    sid       = "StatesSendTask"
-    actions   = ["states:SendTask*"]
-    resources = ["*"]
-  }
-}
-
-resource "aws_iam_role" "role" {
-  assume_role_policy = data.aws_iam_policy_document.trust.json
-  name               = "brutalismbot-v2"
-}
-
-resource "aws_iam_role_policy" "policy" {
-  name   = "access"
-  policy = data.aws_iam_policy_document.access.json
-  role   = aws_iam_role.role.name
-}
-
-# EVENTBRIDGE
-
-resource "aws_cloudwatch_event_bus" "brutalismbot" {
-  name = "brutalismbot"
-}
-
-# EVENTBRIDGE :: REDDIT DEQUEUE
-
-resource "aws_cloudwatch_event_rule" "reddit_dequeue" {
-  description         = "Dequeue next post from /r/brutalism"
-  event_bus_name      = "default"
-  is_enabled          = true
-  name                = "brutalismbot-v2-every-15m"
-  schedule_expression = "rate(15 minutes)"
-}
-
-resource "aws_cloudwatch_event_target" "reddit_dequeue" {
-  arn      = aws_sfn_state_machine.reddit_dequeue.id
-  input    = jsonencode({})
-  role_arn = aws_iam_role.role.arn
-  rule     = aws_cloudwatch_event_rule.reddit_dequeue.name
-}
-
-# EVENTBRIDGE :: REDDIT POST
-
-resource "aws_cloudwatch_event_rule" "reddit_post" {
-  description    = "Handle new posts for Reddit"
-  event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
-  is_enabled     = true
-  name           = "reddit-post"
-
-  event_pattern = jsonencode({
-    source      = ["reddit"]
-    detail-type = ["post"]
-  })
-}
-
-resource "aws_cloudwatch_event_target" "reddit_post" {
-  arn            = aws_sfn_state_machine.reddit_post.id
-  event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
-  input_path     = "$.detail"
-  role_arn       = aws_iam_role.role.arn
-  rule           = aws_cloudwatch_event_rule.reddit_post.name
-}
-
 # DYNAMODB
 
 resource "aws_dynamodb_table" "brutalismbot" {
@@ -203,7 +79,225 @@ resource "aws_dynamodb_table" "brutalismbot" {
   }
 }
 
-# LAMBDA FUNCTIONS :: REDDIT DEQUEUE
+# EVENTBRIDGE
+
+resource "aws_cloudwatch_event_bus" "brutalismbot" {
+  name = "brutalismbot"
+}
+
+# EVENTBRIDGE :: REDDIT DEQUEUE
+
+resource "aws_cloudwatch_event_rule" "reddit_dequeue" {
+  description         = "Dequeue next post from /r/brutalism"
+  event_bus_name      = "default"
+  is_enabled          = true
+  name                = "brutalismbot-v2-every-15m"
+  schedule_expression = "rate(15 minutes)"
+}
+
+resource "aws_cloudwatch_event_target" "reddit_dequeue" {
+  arn      = aws_sfn_state_machine.reddit_dequeue.id
+  input    = jsonencode({})
+  role_arn = aws_iam_role.events.arn
+  rule     = aws_cloudwatch_event_rule.reddit_dequeue.name
+}
+
+# EVENTBRIDGE :: REDDIT METRICS
+
+resource "aws_cloudwatch_event_rule" "reddit_metrics" {
+  description    = "Publish Reddit metrics"
+  event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
+  is_enabled     = true
+  name           = "reddit-metrics"
+
+  event_pattern = jsonencode({
+    source      = ["reddit"]
+    detail-type = ["metrics"]
+  })
+}
+
+resource "aws_cloudwatch_event_target" "reddit_metrics" {
+  arn            = aws_lambda_function.reddit_metrics.arn
+  event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
+  input_path     = "$.detail"
+  rule           = aws_cloudwatch_event_rule.reddit_metrics.name
+}
+
+# EVENTBRIDGE :: REDDIT POST
+
+resource "aws_cloudwatch_event_rule" "reddit_post" {
+  description    = "Handle new posts for Reddit"
+  event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
+  is_enabled     = true
+  name           = "reddit-post"
+
+  event_pattern = jsonencode({
+    source      = ["reddit"]
+    detail-type = ["post"]
+  })
+}
+
+resource "aws_cloudwatch_event_target" "reddit_post" {
+  arn            = aws_sfn_state_machine.reddit_post.id
+  event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
+  input_path     = "$.detail"
+  role_arn       = aws_iam_role.events.arn
+  rule           = aws_cloudwatch_event_rule.reddit_post.name
+}
+
+resource "aws_cloudwatch_event_target" "slack_post" {
+  arn            = aws_sfn_state_machine.slack_post.id
+  event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
+  input_path     = "$.detail"
+  role_arn       = aws_iam_role.events.arn
+  rule           = aws_cloudwatch_event_rule.reddit_post.name
+}
+
+resource "aws_cloudwatch_event_target" "twitter_post" {
+  arn            = aws_sfn_state_machine.twitter_post.id
+  event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
+  input_path     = "$.detail"
+  role_arn       = aws_iam_role.events.arn
+  rule           = aws_cloudwatch_event_rule.reddit_post.name
+}
+
+# IAM :: EVENTS
+
+data "aws_iam_policy_document" "trust_events" {
+  statement {
+    sid     = "AssumeEvents"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["events.amazonaws.com"]
+    }
+  }
+}
+
+data "aws_iam_policy_document" "access_events" {
+  statement {
+    sid     = "StatesStartExecution"
+    actions = ["states:StartExecution"]
+
+    resources = [
+      aws_sfn_state_machine.reddit_dequeue.arn,
+      aws_sfn_state_machine.reddit_post.arn,
+    ]
+  }
+}
+
+resource "aws_iam_role" "events" {
+  assume_role_policy = data.aws_iam_policy_document.trust_events.json
+  name               = "brutalismbot-v2-events"
+}
+
+resource "aws_iam_role_policy" "events" {
+  name   = "access"
+  policy = data.aws_iam_policy_document.access_events.json
+  role   = aws_iam_role.events.name
+}
+
+# IAM :: LAMBDA
+
+data "aws_iam_policy_document" "trust_lambda" {
+  statement {
+    sid     = "AssumeEvents"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+  }
+}
+
+data "aws_iam_policy_document" "access_lambda" {
+  statement {
+    sid       = "CloudWatchPutMetricData"
+    actions   = ["cloudwatch:PutMetricData"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid       = "DynamoDB"
+    actions   = ["dynamodb:*"]
+    resources = ["${aws_dynamodb_table.brutalismbot.arn}*"]
+  }
+
+  statement {
+    sid       = "Logs"
+    actions   = ["logs:*"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid       = "StatesSendTask"
+    actions   = ["states:SendTask*"]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role" "lambda" {
+  assume_role_policy = data.aws_iam_policy_document.trust_lambda.json
+  name               = "brutalismbot-v2-lambda"
+}
+
+resource "aws_iam_role_policy" "lambda" {
+  name   = "access"
+  policy = data.aws_iam_policy_document.access_lambda.json
+  role   = aws_iam_role.lambda.name
+}
+
+# IAM :: STATES
+
+data "aws_iam_policy_document" "trust_states" {
+  statement {
+    sid     = "AssumeEvents"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["states.amazonaws.com"]
+    }
+  }
+}
+
+data "aws_iam_policy_document" "access_states" {
+  statement {
+    sid       = "DynamoDB"
+    actions   = ["dynamodb:*"]
+    resources = ["${aws_dynamodb_table.brutalismbot.arn}*"]
+  }
+
+  statement {
+    sid       = "EventBridge"
+    actions   = ["events:PutEvents"]
+    resources = [aws_cloudwatch_event_bus.brutalismbot.arn]
+  }
+
+  statement {
+    sid     = "Lambda"
+    actions = ["lambda:InvokeFunction"]
+
+    resources = [
+      aws_lambda_function.reddit_dequeue.arn,
+    ]
+  }
+}
+
+resource "aws_iam_role" "states" {
+  assume_role_policy = data.aws_iam_policy_document.trust_states.json
+  name               = "brutalismbot-v2-states"
+}
+
+resource "aws_iam_role_policy" "states" {
+  name   = "access"
+  policy = data.aws_iam_policy_document.access_states.json
+  role   = aws_iam_role.states.name
+}
+
+# LAMBDA FUNCTIONS
 
 data "archive_file" "package" {
   output_path = "${path.module}/package.zip"
@@ -211,13 +305,15 @@ data "archive_file" "package" {
   type        = "zip"
 }
 
+# LAMBDA FUNCTIONS :: REDDIT DEQUEUE
+
 resource "aws_lambda_function" "reddit_dequeue" {
   description      = "Dequeue next post from /r/brutalism"
   filename         = data.archive_file.package.output_path
   function_name    = "brutalismbot-v2-reddit-dequeue"
   handler          = "reddit.dequeue"
   memory_size      = 512
-  role             = aws_iam_role.role.arn
+  role             = aws_iam_role.lambda.arn
   runtime          = "ruby2.7"
   source_code_hash = data.archive_file.package.output_base64sha256
   timeout          = 10
@@ -228,11 +324,35 @@ resource "aws_cloudwatch_log_group" "reddit_dequeue" {
   retention_in_days = 14
 }
 
+# LAMBDA FUNCTIONS :: REDDIT METRICS
+
+resource "aws_lambda_function" "reddit_metrics" {
+  description      = "Publish Reddit metrics"
+  filename         = data.archive_file.package.output_path
+  function_name    = "brutalismbot-v2-reddit-metrics"
+  handler          = "reddit.metrics"
+  role             = aws_iam_role.lambda.arn
+  runtime          = "ruby2.7"
+  source_code_hash = data.archive_file.package.output_base64sha256
+}
+
+resource "aws_lambda_permission" "reddit_metrics" {
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.reddit_metrics.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.reddit_metrics.arn
+}
+
+resource "aws_cloudwatch_log_group" "reddit_metrics" {
+  name              = "/aws/lambda/${aws_lambda_function.reddit_metrics.function_name}"
+  retention_in_days = 14
+}
+
 # STATE MACHINES
 
 resource "aws_sfn_state_machine" "reddit_dequeue" {
   name     = "brutalismbot-v2-reddit-dequeue"
-  role_arn = aws_iam_role.role.arn
+  role_arn = aws_iam_role.states.arn
 
   definition = jsonencode({
     StartAt = "GetStartTime"
@@ -280,7 +400,22 @@ resource "aws_sfn_state_machine" "reddit_dequeue" {
                   EventBusName = aws_cloudwatch_event_bus.brutalismbot.name
                   Source       = "reddit"
                   DetailType   = "metrics"
-                  Detail       = { "QueueSize.$" = "$.QueueSize" }
+                  Detail = {
+                    namespace = "Brutalismbot"
+                    metric_data = [
+                      {
+                        metric_name = "QueueSize"
+                        unit        = "Count"
+                        "value.$"   = "$.QueueSize"
+                        dimensions = [
+                          {
+                            name  = "QueueName"
+                            value = "/r/brutalism"
+                          }
+                        ]
+                      }
+                    ]
+                  }
                 }
               }
             }
@@ -295,7 +430,10 @@ resource "aws_sfn_state_machine" "reddit_dequeue" {
                   EventBusName = aws_cloudwatch_event_bus.brutalismbot.name
                   Source       = "reddit"
                   DetailType   = "post"
-                  "Detail.$"   = "$.NextPost"
+                  Detail = {
+                    "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$" = "$$.Execution.Id"
+                    "RedditPost.$"                                 = "$.NextPost"
+                  }
                 }
               }
             }
@@ -314,7 +452,7 @@ resource "aws_sfn_state_machine" "reddit_dequeue" {
 
 resource "aws_sfn_state_machine" "reddit_post" {
   name     = "brutalismbot-v2-reddit-post"
-  role_arn = aws_iam_role.role.arn
+  role_arn = aws_iam_role.states.arn
 
   definition = jsonencode({
     StartAt = "GetItems"
@@ -331,8 +469,9 @@ resource "aws_sfn_state_machine" "reddit_post" {
             StartAt = "GetItem"
             States = {
               GetItem = {
-                Type = "Pass"
-                End  = true
+                Type      = "Pass"
+                End       = true
+                InputPath = "$.RedditPost"
                 Parameters = {
                   SORT        = { "S" = "REDDIT/POST" }
                   GUID        = { "S.$" = "$.Name" }
@@ -430,3 +569,37 @@ resource "aws_sfn_state_machine" "reddit_post" {
     }
   })
 }
+
+resource "aws_sfn_state_machine" "slack_post" {
+  name     = "brutalismbot-v2-slack-post"
+  role_arn = aws_iam_role.states.arn
+
+  definition = jsonencode({
+    StartAt = "Placeholder"
+    States = {
+      Placeholder = {
+        Type = "Pass"
+        End  = true
+      }
+    }
+  })
+}
+
+resource "aws_sfn_state_machine" "twitter_post" {
+  name     = "brutalismbot-v2-twitter-post"
+  role_arn = aws_iam_role.states.arn
+
+  definition = jsonencode({
+    StartAt = "Placeholder"
+    States = {
+      Placeholder = {
+        Type = "Pass"
+        End  = true
+      }
+    }
+  })
+}
+
+# OUTPUTS
+
+output "event_bus" { value = aws_cloudwatch_event_bus.brutalismbot }

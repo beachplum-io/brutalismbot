@@ -1,5 +1,7 @@
 require "open-uri"
 
+require "yake/logger"
+
 require_relative "post"
 
 module Reddit

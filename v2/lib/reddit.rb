@@ -1,10 +1,14 @@
+require "json"
 require "time"
 
+require "aws-sdk-cloudwatch"
 require "yake"
 
 require_relative "reddit/brutalism"
+require_relative "reddit/metrics"
 require_relative "reddit/utc"
 
+MTX = Reddit::Metrics.new
 NEW = Reddit::Brutalism.new
 TTL = 90 * 24 * 60 * 60
 
@@ -27,4 +31,8 @@ handler :dequeue do |event|
       Title:      post.title,
     }
   }
+end
+
+handler :metrics do |event|
+  MTX.publish(**JSON.parse(event.to_json, symbolize_names: true))
 end
