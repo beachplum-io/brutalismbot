@@ -1,4 +1,6 @@
 terraform {
+  required_version = "~> 1.0"
+
   required_providers {
     archive = {
       source  = "hashicorp/archive"
@@ -183,6 +185,8 @@ data "aws_iam_policy_document" "access_events" {
     resources = [
       aws_sfn_state_machine.reddit_dequeue.arn,
       aws_sfn_state_machine.reddit_post.arn,
+      aws_sfn_state_machine.slack_post.arn,
+      aws_sfn_state_machine.twitter_post.arn,
     ]
   }
 }
