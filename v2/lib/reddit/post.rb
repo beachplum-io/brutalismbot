@@ -2,11 +2,7 @@ require "json"
 require "time"
 
 module Reddit
-  class Post
-    def initialize(data)
-      @data = data
-    end
-
+  class Post < OpenStruct
     def inspect
       "#<#{ self.class } #{ permalink }>"
     end
@@ -46,67 +42,21 @@ module Reddit
     end
 
     def to_json
-      @data.to_json
-    end
-
-    def to_slack
-      {
-        text: title,
-        blocks: media_urls.map do |media_url|
-          [
-            {
-              type: "image",
-              title: { type: "plain_text", text: "/r/brutalism", emoji: true },
-              image_url: media_url,
-              alt_text: title,
-            },
-            {
-              type: "context",
-              elements: [ { type: "mrkdwn", text: "<#{ permalink }|#{ title }>" } ],
-            }
-          ]
-        end.flatten
-      }
-    end
-
-    def to_twitter
-      # Get status
-      max    = 279 - permalink.length
-      status = title.length <= max ? title : "#{ title[0..max] }…"
-      status << "\n#{ permalink }"
-
-      # Get media attachments
-      media = media_urls.each_slice(4).to_a
-      media.last.unshift media[-2].pop if media.size > 1 && media.last.size < 3
-
-      media = media_urls.then do |urls|
-        urls.each_slice case urls.count % 4
-        when 1 then 3
-        when 2 then 3
-        else 4
-        end
-      end
-
-      # Zip status with media
-      media.zip([status]).map do |media, status|
-        { status: status, media: media}.compact
-      end.then do |updates|
-        { updates: updates, count: updates.count }
-      end
+      to_h.to_json
     end
 
     private
 
     def data
-      @data.fetch("data", {})
+      fetch("data", {})
     end
 
     def preview_images
-      @data.dig("data", "preview", "images")
+      dig("data", "preview", "images")
     end
 
     def media_metadata
-      @data.dig("data", "media_metadata")
+      dig("data", "media_metadata")
     end
 
     ##

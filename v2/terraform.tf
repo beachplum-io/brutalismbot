@@ -286,6 +286,8 @@ data "aws_iam_policy_document" "access_states" {
 
     resources = [
       aws_lambda_function.reddit_dequeue.arn,
+      aws_lambda_function.slack_transform.arn,
+      aws_lambda_function.twitter_transform.arn,
     ]
   }
 }
@@ -349,6 +351,40 @@ resource "aws_lambda_permission" "reddit_metrics" {
 
 resource "aws_cloudwatch_log_group" "reddit_metrics" {
   name              = "/aws/lambda/${aws_lambda_function.reddit_metrics.function_name}"
+  retention_in_days = 14
+}
+
+# LAMBDA FUNCTIONS :: SLACK TRANSFORM
+
+resource "aws_lambda_function" "slack_transform" {
+  description      = "Transform Reddit post to Slack"
+  filename         = data.archive_file.package.output_path
+  function_name    = "brutalismbot-v2-slack-transform"
+  handler          = "slack.transform"
+  role             = aws_iam_role.lambda.arn
+  runtime          = "ruby2.7"
+  source_code_hash = data.archive_file.package.output_base64sha256
+}
+
+resource "aws_cloudwatch_log_group" "slack_transform" {
+  name              = "/aws/lambda/${aws_lambda_function.slack_transform.function_name}"
+  retention_in_days = 14
+}
+
+# LAMBDA FUNCTIONS :: TWITTER TRANSFORM
+
+resource "aws_lambda_function" "twitter_transform" {
+  description      = "Transform Reddit post to Twitter"
+  filename         = data.archive_file.package.output_path
+  function_name    = "brutalismbot-v2-twitter-transform"
+  handler          = "twitter.transform"
+  role             = aws_iam_role.lambda.arn
+  runtime          = "ruby2.7"
+  source_code_hash = data.archive_file.package.output_base64sha256
+}
+
+resource "aws_cloudwatch_log_group" "twitter_transform" {
+  name              = "/aws/lambda/${aws_lambda_function.twitter_transform.function_name}"
   retention_in_days = 14
 }
 
@@ -579,11 +615,13 @@ resource "aws_sfn_state_machine" "slack_post" {
   role_arn = aws_iam_role.states.arn
 
   definition = jsonencode({
-    StartAt = "Placeholder"
+    StartAt = "Transform"
     States = {
-      Placeholder = {
-        Type = "Pass"
-        End  = true
+      Transform = {
+        Type      = "Task"
+        Resource  = aws_lambda_function.slack_transform.arn
+        End       = true
+        InputPath = "$.RedditPost"
       }
     }
   })
@@ -594,11 +632,13 @@ resource "aws_sfn_state_machine" "twitter_post" {
   role_arn = aws_iam_role.states.arn
 
   definition = jsonencode({
-    StartAt = "Placeholder"
+    StartAt = "Transform"
     States = {
-      Placeholder = {
-        Type = "Pass"
-        End  = true
+      Transform = {
+        Type      = "Task"
+        Resource  = aws_lambda_function.twitter_transform.arn
+        End       = true
+        InputPath = "$.RedditPost"
       }
     }
   })
