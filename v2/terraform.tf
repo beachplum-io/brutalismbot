@@ -395,35 +395,12 @@ resource "aws_sfn_state_machine" "reddit_dequeue" {
   role_arn = aws_iam_role.states.arn
 
   definition = jsonencode({
-    StartAt = "GetStartTime"
+    StartAt = "DequeueNext"
     States = {
-      GetStartTime = {
-        Type           = "Task"
-        Resource       = "arn:aws:states:::dynamodb:getItem"
-        Next           = "DequeueNext"
-        ResultSelector = { "MinCreatedUTC.$" = "$.Item.CREATED_UTC.S" }
-        Parameters = {
-          TableName            = aws_dynamodb_table.brutalismbot.name
-          ProjectionExpression = "CREATED_UTC"
-          Key = {
-            GUID = { S = "STATS/MAX" }
-            SORT = { S = "REDDIT/POST" }
-          }
-        }
-      }
       DequeueNext = {
         Type     = "Task"
         Resource = aws_lambda_function.reddit_dequeue.arn
         Next     = "GetEvents"
-        Catch = [
-          {
-            ErrorEquals = ["Function<IndexError>"]
-            Next        = "EmptyQueue"
-          }
-        ]
-      }
-      EmptyQueue = {
-        Type = "Succeed"
       }
       GetEvents = {
         Type           = "Parallel"
@@ -461,8 +438,29 @@ resource "aws_sfn_state_machine" "reddit_dequeue" {
             }
           },
           {
-            StartAt = "NextPost"
+            StartAt = "AnyPost?"
             States = {
+              "AnyPost?" = {
+                Type    = "Choice"
+                Default = "NoPost"
+                Choices = [
+                  {
+                    Next      = "NextPost"
+                    Variable  = "$.NextPost"
+                    IsPresent = true
+                  }
+                ]
+              }
+              NoPost = {
+                Type = "Pass"
+                End  = true
+                Result = {
+                  EventBusName = aws_cloudwatch_event_bus.brutalismbot.name
+                  Source       = "reddit"
+                  DetailType   = "no-op"
+                  Detail       = {}
+                }
+              }
               NextPost = {
                 Type = "Pass"
                 End  = true
