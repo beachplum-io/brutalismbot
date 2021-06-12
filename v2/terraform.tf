@@ -136,6 +136,7 @@ resource "aws_cloudwatch_event_rule" "reddit_post" {
   event_pattern = jsonencode({
     source      = ["reddit"]
     detail-type = ["post"]
+    detail      = { "RedditPost" = { "JSON" = [{ exists = true }] } }
   })
 }
 
@@ -408,6 +409,24 @@ resource "aws_sfn_state_machine" "reddit_dequeue" {
         ResultSelector = { "Entries.$" : "$" }
         Branches = [
           {
+            StartAt = "NextPost"
+            States = {
+              NextPost = {
+                Type = "Pass"
+                End  = true
+                Parameters = {
+                  EventBusName = aws_cloudwatch_event_bus.brutalismbot.name
+                  Source       = "reddit"
+                  DetailType   = "post"
+                  Detail = {
+                    "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$" = "$$.Execution.Id"
+                    "RedditPost.$"                                 = "$.NextPost"
+                  }
+                }
+              }
+            }
+          },
+          {
             StartAt = "QueueSize"
             States = {
               QueueSize = {
@@ -432,45 +451,6 @@ resource "aws_sfn_state_machine" "reddit_dequeue" {
                         ]
                       }
                     ]
-                  }
-                }
-              }
-            }
-          },
-          {
-            StartAt = "AnyPost?"
-            States = {
-              "AnyPost?" = {
-                Type    = "Choice"
-                Default = "NoPost"
-                Choices = [
-                  {
-                    Next      = "NextPost"
-                    Variable  = "$.NextPost"
-                    IsPresent = true
-                  }
-                ]
-              }
-              NoPost = {
-                Type = "Pass"
-                End  = true
-                Result = {
-                  EventBusName = aws_cloudwatch_event_bus.brutalismbot.name
-                  Source       = "reddit"
-                  DetailType   = "no-op"
-                  Detail       = {}
-                }
-              }
-              NextPost = {
-                Type = "Pass"
-                End  = true
-                Parameters = {
-                  EventBusName = aws_cloudwatch_event_bus.brutalismbot.name
-                  Source       = "reddit"
-                  DetailType   = "post"
-                  Detail = {
-                    "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$" = "$$.Execution.Id"
-                    "RedditPost.$"                                 = "$.NextPost"
                   }
                 }
               }

@@ -15,11 +15,11 @@ TTL = 90 * 24 * 60 * 60
 handler :dequeue do |event|
   stop  = Time.parse event.fetch "MaxCreatedUTC", UTC.hours_ago(4).iso8601
   queue = NEW.latest
-  post  = queue.shift if queue.first.created_before?(stop)
+  post  = queue.shift if queue.first&.created_before?(stop)
 
   {
     QueueSize: queue.size,
-    NextPost: post.nil? ? nil : {
+    NextPost:  post.nil? ? nil : {
       CreatedUTC: post.created_utc.iso8601,
       TTL:        post.created_utc.to_i + TTL,
       JSON:       post.to_json,
@@ -28,7 +28,7 @@ handler :dequeue do |event|
       Permalink:  post.permalink,
       Title:      post.title,
     }
-  }.compact
+  }
 end
 
 handler :metrics do |event|
