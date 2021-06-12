@@ -12,7 +12,7 @@ end
 handler :transform do |event|
   media = event["Media"]
   title = event["Title"]
-  perma = File.join "https://reddit.com/", event["Permalink"]
+  perma = event["Permalink"]
 
   media_blocks = media.map do |image_url|
     {
@@ -26,7 +26,7 @@ handler :transform do |event|
   context_blocks = [
     {
       type: "context",
-      elements: [ { type: "mrkdwn", text: "<#{ perma }|#{ title }>" } ],
+      elements: [ { type: "mrkdwn", text: "<https://www.reddit.com#{ perma }|#{ title }>" } ],
     }
   ]
 
