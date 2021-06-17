@@ -86,3 +86,10 @@ namespace :terraform do
     sh %{terraform init}
   end
 end
+
+namespace :slack do
+  desc "Install app"
+  task :install do
+    sh %{open https://api.brutalismbot.com/slack/install}
+  end
+end
