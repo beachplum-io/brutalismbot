@@ -6,31 +6,58 @@ require "yake"
 
 require_relative "reddit/brutalism"
 require_relative "reddit/metrics"
-require_relative "reddit/utc"
+
+class Hash
+  def symbolize_names() JSON.parse to_json, symbolize_names: true end
+end
+
+class Integer
+  def days() hours * 24 end
+  def hours() minutes * 60 end
+  def minutes() seconds * 60 end
+  def seconds() self end
+end
+
+class UTC < Time
+  def self.now() super.utc end
+end
 
 MTX = Reddit::Metrics.new
 NEW = Reddit::Brutalism.new
-TTL = 90 * 24 * 60 * 60
+TTL = 14.days
 
 handler :dequeue do |event|
-  stop  = Time.parse event.fetch "MaxCreatedUTC", UTC.hours_ago(4).iso8601
   queue = NEW.latest
-  post  = queue.shift if queue.first&.created_before?(stop)
+  post  = queue.shift if queue.first&.created_before?(UTC.now - 4.hours)
 
   {
     QueueSize: queue.size,
-    NextPost:  post.nil? ? nil : {
-      CreatedUTC: post.created_utc.iso8601,
-      TTL:        post.created_utc.to_i + TTL,
-      JSON:       post.to_json,
-      Media:      post.media_urls,
-      Name:       post.name,
-      Permalink:  post.permalink,
-      Title:      post.title,
+    NextPost: post.nil? ? nil : {
+      CREATED_UTC: post.created_utc.iso8601,
+      DATA:        post.to_h,
+      NAME:        post.name,
+      PERMALINK:   post.permalink,
+      TITLE:       post.title,
+      TTL:         post.created_utc.to_i + TTL,
     }
+  }.compact
+end
+
+handler :itemize do |event|
+  post = Reddit::Post.new event.symbolize_names
+  {
+    GUID:        { S: post.name },
+    SORT:        { S: "REDDIT/SORT" },
+    CREATED_UTC: { S: post.created_utc.iso8601 },
+    JSON:        { S: post.to_json },
+    MEDIA:       { L: post.media.map { |x| { S: x.last[:u] } } },
+    NAME:        { S: post.name },
+    PERMALINK:   { S: post.permalink },
+    TITLE:       { S: post.title },
+    TTL:         { N: (post.created_utc.to_i + TTL).to_s },
   }
 end
 
 handler :metrics do |event|
-  MTX.publish(**JSON.parse(event.to_json, symbolize_names: true))
+  MTX.put_metric_data(**event.symbolize_names)
 end

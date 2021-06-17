@@ -104,27 +104,6 @@ resource "aws_cloudwatch_event_target" "reddit_dequeue" {
   rule     = aws_cloudwatch_event_rule.reddit_dequeue.name
 }
 
-# EVENTBRIDGE :: REDDIT METRICS
-
-resource "aws_cloudwatch_event_rule" "reddit_metrics" {
-  description    = "Publish Reddit metrics"
-  event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
-  is_enabled     = true
-  name           = "reddit-metrics"
-
-  event_pattern = jsonencode({
-    source      = ["reddit"]
-    detail-type = ["metrics"]
-  })
-}
-
-resource "aws_cloudwatch_event_target" "reddit_metrics" {
-  arn            = aws_lambda_function.reddit_metrics.arn
-  event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
-  input_path     = "$.detail"
-  rule           = aws_cloudwatch_event_rule.reddit_metrics.name
-}
-
 # EVENTBRIDGE :: REDDIT POST
 
 resource "aws_cloudwatch_event_rule" "reddit_post" {
@@ -136,7 +115,6 @@ resource "aws_cloudwatch_event_rule" "reddit_post" {
   event_pattern = jsonencode({
     source      = ["reddit"]
     detail-type = ["post"]
-    detail      = { "RedditPost" = { "JSON" = [{ exists = true }] } }
   })
 }
 
@@ -164,6 +142,73 @@ resource "aws_cloudwatch_event_target" "twitter_post" {
   rule           = aws_cloudwatch_event_rule.reddit_post.name
 }
 
+# EVENTBRIDGE :: SLACK POST AUTH
+
+resource "aws_cloudwatch_event_rule" "reddit_post_slack" {
+  description    = "Handle new posts for a Slack workspace"
+  event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
+  is_enabled     = true
+  name           = "reddit-post-slack"
+
+  event_pattern = jsonencode({
+    source      = ["reddit"]
+    detail-type = ["post-slack"]
+  })
+}
+
+resource "aws_cloudwatch_event_target" "reddit_post_slack" {
+  arn            = aws_sfn_state_machine.slack_post_auth.id
+  event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
+  input_path     = "$.detail"
+  role_arn       = aws_iam_role.events.arn
+  rule           = aws_cloudwatch_event_rule.reddit_post_slack.name
+}
+
+# EVENTBRIDGE :: SLACK INSTALL
+
+resource "aws_cloudwatch_event_rule" "slack_install" {
+  description    = "Slack install events"
+  event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
+  is_enabled     = true
+  name           = "slack-install"
+
+  event_pattern = jsonencode({
+    source      = ["slack"]
+    detail-type = ["oauth"]
+  })
+}
+
+resource "aws_cloudwatch_event_target" "slack_install" {
+  arn            = aws_sfn_state_machine.slack_install.id
+  event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
+  input_path     = "$.detail"
+  role_arn       = aws_iam_role.events.arn
+  rule           = aws_cloudwatch_event_rule.slack_install.name
+}
+
+# EVENTBRIDGE :: SLACK UNINSTALL
+
+resource "aws_cloudwatch_event_rule" "slack_uninstall" {
+  description    = "Slack uninstall events"
+  event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
+  is_enabled     = true
+  name           = "slack-uninstall"
+
+  event_pattern = jsonencode({
+    source      = ["slack"]
+    detail-type = ["event"]
+    detail      = { event = { type = ["app_uninstalled"] } }
+  })
+}
+
+resource "aws_cloudwatch_event_target" "slack_uninstall" {
+  arn            = aws_sfn_state_machine.slack_uninstall.id
+  event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
+  input_path     = "$.detail"
+  role_arn       = aws_iam_role.events.arn
+  rule           = aws_cloudwatch_event_rule.slack_uninstall.name
+}
+
 # IAM :: EVENTS
 
 data "aws_iam_policy_document" "trust_events" {
@@ -186,7 +231,10 @@ data "aws_iam_policy_document" "access_events" {
     resources = [
       aws_sfn_state_machine.reddit_dequeue.arn,
       aws_sfn_state_machine.reddit_post.arn,
+      aws_sfn_state_machine.slack_install.arn,
       aws_sfn_state_machine.slack_post.arn,
+      aws_sfn_state_machine.slack_post_auth.arn,
+      aws_sfn_state_machine.slack_uninstall.arn,
       aws_sfn_state_machine.twitter_post.arn,
     ]
   }
@@ -286,9 +334,12 @@ data "aws_iam_policy_document" "access_states" {
     actions = ["lambda:InvokeFunction"]
 
     resources = [
+      aws_lambda_function.dynamodb_query.arn,
       aws_lambda_function.reddit_dequeue.arn,
-      aws_lambda_function.slack_transform.arn,
-      aws_lambda_function.twitter_transform.arn,
+      aws_lambda_function.reddit_itemize.arn,
+      aws_lambda_function.reddit_metrics.arn,
+      aws_lambda_function.slack_post.arn,
+      aws_lambda_function.twitter_post.arn,
     ]
   }
 }
@@ -312,6 +363,25 @@ data "archive_file" "package" {
   type        = "zip"
 }
 
+# LAMBDA FUNCTIONS :: DYNAMODB QUERY
+
+resource "aws_lambda_function" "dynamodb_query" {
+  description      = "Execute query against DynamoDB Table"
+  filename         = data.archive_file.package.output_path
+  function_name    = "brutalismbot-v2-dynamodb-query"
+  handler          = "dynamodb.query"
+  memory_size      = 512
+  role             = aws_iam_role.lambda.arn
+  runtime          = "ruby2.7"
+  source_code_hash = data.archive_file.package.output_base64sha256
+  timeout          = 10
+}
+
+resource "aws_cloudwatch_log_group" "dynamodb_query" {
+  name              = "/aws/lambda/${aws_lambda_function.dynamodb_query.function_name}"
+  retention_in_days = 14
+}
+
 # LAMBDA FUNCTIONS :: REDDIT DEQUEUE
 
 resource "aws_lambda_function" "reddit_dequeue" {
@@ -331,6 +401,23 @@ resource "aws_cloudwatch_log_group" "reddit_dequeue" {
   retention_in_days = 14
 }
 
+# LAMBDA FUNCTIONS :: REDDIT ITEMIZE
+
+resource "aws_lambda_function" "reddit_itemize" {
+  description      = "Transform Reddit post to DynamoDB item"
+  filename         = data.archive_file.package.output_path
+  function_name    = "brutalismbot-v2-reddit-itemize"
+  handler          = "reddit.itemize"
+  role             = aws_iam_role.lambda.arn
+  runtime          = "ruby2.7"
+  source_code_hash = data.archive_file.package.output_base64sha256
+}
+
+resource "aws_cloudwatch_log_group" "reddit_itemize" {
+  name              = "/aws/lambda/${aws_lambda_function.reddit_itemize.function_name}"
+  retention_in_days = 14
+}
+
 # LAMBDA FUNCTIONS :: REDDIT METRICS
 
 resource "aws_lambda_function" "reddit_metrics" {
@@ -343,53 +430,46 @@ resource "aws_lambda_function" "reddit_metrics" {
   source_code_hash = data.archive_file.package.output_base64sha256
 }
 
-resource "aws_lambda_permission" "reddit_metrics" {
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.reddit_metrics.function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.reddit_metrics.arn
-}
-
 resource "aws_cloudwatch_log_group" "reddit_metrics" {
   name              = "/aws/lambda/${aws_lambda_function.reddit_metrics.function_name}"
   retention_in_days = 14
 }
 
-# LAMBDA FUNCTIONS :: SLACK TRANSFORM
+# LAMBDA FUNCTIONS :: SLACK POST
 
-resource "aws_lambda_function" "slack_transform" {
-  description      = "Transform Reddit post to Slack"
+resource "aws_lambda_function" "slack_post" {
+  description      = "Post to Slack workspace"
   filename         = data.archive_file.package.output_path
-  function_name    = "brutalismbot-v2-slack-transform"
-  handler          = "slack.transform"
+  function_name    = "brutalismbot-v2-slack-post"
+  handler          = "slack.post"
   role             = aws_iam_role.lambda.arn
   runtime          = "ruby2.7"
   source_code_hash = data.archive_file.package.output_base64sha256
 }
 
-resource "aws_cloudwatch_log_group" "slack_transform" {
-  name              = "/aws/lambda/${aws_lambda_function.slack_transform.function_name}"
+resource "aws_cloudwatch_log_group" "slack_post" {
+  name              = "/aws/lambda/${aws_lambda_function.slack_post.function_name}"
   retention_in_days = 14
 }
 
-# LAMBDA FUNCTIONS :: TWITTER TRANSFORM
+# LAMBDA FUNCTIONS :: TWITTER POST
 
-resource "aws_lambda_function" "twitter_transform" {
-  description      = "Transform Reddit post to Twitter"
+resource "aws_lambda_function" "twitter_post" {
+  description      = "Post to Twitter"
   filename         = data.archive_file.package.output_path
-  function_name    = "brutalismbot-v2-twitter-transform"
-  handler          = "twitter.transform"
+  function_name    = "brutalismbot-v2-twitter-post"
+  handler          = "twitter.post"
   role             = aws_iam_role.lambda.arn
   runtime          = "ruby2.7"
   source_code_hash = data.archive_file.package.output_base64sha256
 }
 
-resource "aws_cloudwatch_log_group" "twitter_transform" {
-  name              = "/aws/lambda/${aws_lambda_function.twitter_transform.function_name}"
+resource "aws_cloudwatch_log_group" "twitter_post" {
+  name              = "/aws/lambda/${aws_lambda_function.twitter_post.function_name}"
   retention_in_days = 14
 }
 
-# STATE MACHINES
+# STATE MACHINES :: REDDIT
 
 resource "aws_sfn_state_machine" "reddit_dequeue" {
   name     = "brutalismbot-v2-reddit-dequeue"
@@ -401,68 +481,81 @@ resource "aws_sfn_state_machine" "reddit_dequeue" {
       DequeueNext = {
         Type     = "Task"
         Resource = aws_lambda_function.reddit_dequeue.arn
-        Next     = "GetEvents"
+        Next     = "PutEventsAndMetrics"
       }
-      GetEvents = {
-        Type           = "Parallel"
-        Next           = "PublishEvents"
-        ResultSelector = { "Entries.$" : "$" }
+      PutEventsAndMetrics = {
+        Type       = "Parallel"
+        End        = true
+        OutputPath = "$[0]"
         Branches = [
           {
-            StartAt = "NextPost"
+            StartAt = "NextPost?"
             States = {
-              NextPost = {
+              "NextPost?" = {
+                Type    = "Choice"
+                Default = "Finish"
+                Choices = [
+                  {
+                    Next      = "GetEvent"
+                    Variable  = "$.NextPost"
+                    IsPresent = true
+                  }
+                ]
+              }
+              GetEvent = {
                 Type = "Pass"
-                End  = true
+                Next = "PutEvent"
                 Parameters = {
                   EventBusName = aws_cloudwatch_event_bus.brutalismbot.name
                   Source       = "reddit"
                   DetailType   = "post"
                   Detail = {
                     "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$" = "$$.Execution.Id"
-                    "RedditPost.$"                                 = "$.NextPost"
+                    "CREATED_UTC.$"                                = "$.NextPost.CREATED_UTC"
+                    "DATA.$"                                       = "$.NextPost.DATA"
+                    "NAME.$"                                       = "$.NextPost.NAME"
+                    "PERMALINK.$"                                  = "$.NextPost.PERMALINK"
+                    "TITLE.$"                                      = "$.NextPost.TITLE"
+                    "TTL.$"                                        = "States.JsonToString($.NextPost.TTL)"
                   }
                 }
               }
+              PutEvent = {
+                Type       = "Task"
+                Resource   = "arn:aws:states:::events:putEvents"
+                End        = true
+                Parameters = { "Entries.$" = "States.Array($)" }
+              }
+              Finish = { Type = "Succeed" }
             }
           },
           {
-            StartAt = "QueueSize"
+            StartAt = "SendMetrics"
             States = {
-              QueueSize = {
-                Type = "Pass"
-                End  = true
+              SendMetrics = {
+                Type     = "Task"
+                Resource = aws_lambda_function.reddit_metrics.arn
+                End      = true
                 Parameters = {
-                  EventBusName = aws_cloudwatch_event_bus.brutalismbot.name
-                  Source       = "reddit"
-                  DetailType   = "metrics"
-                  Detail = {
-                    namespace = "Brutalismbot"
-                    metric_data = [
-                      {
-                        metric_name = "QueueSize"
-                        unit        = "Count"
-                        "value.$"   = "$.QueueSize"
-                        dimensions = [
-                          {
-                            name  = "QueueName"
-                            value = "/r/brutalism"
-                          }
-                        ]
-                      }
-                    ]
-                  }
+                  namespace = "Brutalismbot"
+                  metric_data = [
+                    {
+                      metric_name = "QueueSize"
+                      unit        = "Count"
+                      "value.$"   = "$.QueueSize"
+                      dimensions = [
+                        {
+                          name  = "QueueName"
+                          value = "/r/brutalism"
+                        }
+                      ]
+                    }
+                  ]
                 }
               }
             }
           }
         ]
-      }
-      PublishEvents = {
-        Type       = "Task"
-        End        = true
-        Resource   = "arn:aws:states:::events:putEvents"
-        Parameters = { "Entries.$" : "$.Entries" }
       }
     }
   })
@@ -477,7 +570,7 @@ resource "aws_sfn_state_machine" "reddit_post" {
     States = {
       GetItems = {
         Type = "Parallel"
-        Next = "NewMaxCreatedUTC"
+        Next = "NewMaxCreatedUTC?"
         ResultSelector = {
           "Item.$"          = "$[0]"
           "MaxCreatedUTC.$" = "$[1]"
@@ -487,19 +580,17 @@ resource "aws_sfn_state_machine" "reddit_post" {
             StartAt = "GetItem"
             States = {
               GetItem = {
-                Type      = "Pass"
-                End       = true
-                InputPath = "$.RedditPost"
+                Type = "Pass"
+                End  = true
                 Parameters = {
                   SORT        = { "S" = "REDDIT/POST" }
-                  GUID        = { "S.$" = "$.Name" }
-                  CREATED_UTC = { "S.$" = "$.CreatedUTC" }
-                  JSON        = { "S.$" = "$.JSON" }
-                  MEDIA       = { "L.$" = "$.Media" }
-                  NAME        = { "S.$" = "$.Name" }
-                  PERMALINK   = { "S.$" = "$.Permalink" }
-                  TITLE       = { "S.$" = "$.Title" }
-                  TTL         = { "N.$" = "States.JsonToString($.TTL)" }
+                  GUID        = { "S.$" = "$.NAME" }
+                  CREATED_UTC = { "S.$" = "$.CREATED_UTC" }
+                  JSON        = { "S.$" = "States.JsonToString($.DATA)" }
+                  NAME        = { "S.$" = "$.NAME" }
+                  PERMALINK   = { "S.$" = "$.PERMALINK" }
+                  TITLE       = { "S.$" = "$.TITLE" }
+                  TTL         = { "N.$" = "$.TTL" }
                 }
               }
             }
@@ -525,18 +616,37 @@ resource "aws_sfn_state_machine" "reddit_post" {
           }
         ]
       }
-      NewMaxCreatedUTC = {
+      "NewMaxCreatedUTC?" = {
         Type    = "Choice"
-        Default = "InsertItemOnly"
+        Default = "InsertItem"
         Choices = [
           {
-            Next               = "InsertItemWithNewMax"
+            Next               = "UpdateMaxCreatedUTC"
             Variable           = "$.MaxCreatedUTC"
             StringLessThanPath = "$.Item.CREATED_UTC.S"
           }
         ]
       }
-      InsertItemOnly = {
+      UpdateMaxCreatedUTC = {
+        Type       = "Task"
+        Resource   = "arn:aws:states:::dynamodb:updateItem"
+        Next       = "InsertItem"
+        ResultPath = "$.MaxCreatedUTC"
+        Parameters = {
+          TableName                = aws_dynamodb_table.brutalismbot.name
+          UpdateExpression         = "SET CREATED_UTC = :CREATED_UTC, #NAME = :NAME"
+          ExpressionAttributeNames = { "#NAME" = "NAME" }
+          ExpressionAttributeValues = {
+            ":CREATED_UTC.$" = "$.Item.CREATED_UTC"
+            ":NAME.$"        = "$.Item.NAME"
+          }
+          Key = {
+            GUID = { S = "STATS/MAX" }
+            SORT = { S = "REDDIT/POST" }
+          }
+        }
+      }
+      InsertItem = {
         Type     = "Task"
         Resource = "arn:aws:states:::dynamodb:putItem"
         End      = true
@@ -544,45 +654,124 @@ resource "aws_sfn_state_machine" "reddit_post" {
           TableName = aws_dynamodb_table.brutalismbot.name
           "Item.$"  = "$.Item"
         }
-      },
-      InsertItemWithNewMax = {
+      }
+    }
+  })
+}
+
+# STATE MACHINES :: SLACK
+
+resource "aws_sfn_state_machine" "slack_install" {
+  name     = "brutalismbot-v2-slack-install"
+  role_arn = aws_iam_role.states.arn
+
+  definition = jsonencode({
+    StartAt = "Split"
+    States = {
+      Split = {
         Type = "Parallel"
-        End  = true
+        Next = "PutEvents"
+        ResultSelector = {
+          "AccessToken.$" = "$[0].AccessToken"
+          "URL.$"         = "$[0].URL"
+          "JSON.$"        = "$[1]"
+        }
         Branches = [
           {
-            StartAt = "InsertItem"
+            StartAt = "GetAuth"
             States = {
-              InsertItem = {
-                Type     = "Task"
-                Resource = "arn:aws:states:::dynamodb:putItem"
-                End      = true
+              GetAuth = {
+                Type = "Pass"
+                End  = true
                 Parameters = {
-                  TableName = aws_dynamodb_table.brutalismbot.name
-                  "Item.$"  = "$.Item"
+                  "AccessToken.$" = "$.access_token"
+                  "URL.$"         = "$.incoming_webhook.url"
                 }
               }
             }
           },
           {
-            StartAt = "UpdateMaxCreatedUTC"
+            StartAt = "GetLastPostName"
             States = {
-              UpdateMaxCreatedUTC = {
-                Type     = "Task"
-                Resource = "arn:aws:states:::dynamodb:updateItem"
-                End      = true
+              GetLastPostName = {
+                Type           = "Task"
+                Resource       = "arn:aws:states:::dynamodb:getItem"
+                Next           = "GetLastPost"
+                ResultSelector = { "NAME.$" = "$.Item.NAME.S" }
                 Parameters = {
-                  TableName                 = aws_dynamodb_table.brutalismbot.name
-                  UpdateExpression          = "SET CREATED_UTC = :X"
-                  ExpressionAttributeValues = { ":X.$" = "$.Item.CREATED_UTC" }
+                  TableName                = aws_dynamodb_table.brutalismbot.name
+                  ProjectionExpression     = "#NAME"
+                  ExpressionAttributeNames = { "#NAME" = "NAME" }
                   Key = {
                     GUID = { S = "STATS/MAX" }
                     SORT = { S = "REDDIT/POST" }
                   }
                 }
               }
+              GetLastPost = {
+                Type           = "Task"
+                Resource       = "arn:aws:states:::dynamodb:getItem"
+                End            = true
+                ResultSelector = { "JSON.$" = "$.Item.JSON.S" }
+                Parameters = {
+                  TableName            = aws_dynamodb_table.brutalismbot.name
+                  ProjectionExpression = "JSON"
+                  Key = {
+                    GUID = { "S.$" = "$.NAME" }
+                    SORT = { S = "REDDIT/POST" }
+                  }
+                }
+              }
+            }
+          },
+          {
+            StartAt = "GetItem"
+            States = {
+              GetItem = {
+                Type = "Pass"
+                Next = "PutItem"
+                Parameters = {
+                  GUID         = { "S.$" = "States.Format('{}/{}', $.team.id, $.incoming_webhook.channel_id)" }
+                  SORT         = { "S" = "SLACK/AUTH" }
+                  CREATED_UTC  = { "S.$" = "$$.Execution.StartTime" }
+                  JSON         = { "S.$" = "States.JsonToString($)" }
+                  ACCESS_TOKEN = { "S.$" = "$.access_token" }
+                  APP_ID       = { "S.$" = "$.app_id" }
+                  CHANNEL_ID   = { "S.$" = "$.incoming_webhook.channel_id" }
+                  CHANNEL_NAME = { "S.$" = "$.incoming_webhook.channel" }
+                  TEAM_ID      = { "S.$" = "$.team.id" }
+                  TEAM_NAME    = { "S.$" = "$.team.name" }
+                  USER_ID      = { "S.$" = "$.authed_user.id" }
+                  WEBHOOK_URL  = { "S.$" = "$.incoming_webhook.url" }
+                }
+              }
+              PutItem = {
+                Type     = "Task"
+                Resource = "arn:aws:states:::dynamodb:putItem"
+                End      = true
+                Parameters = {
+                  TableName = aws_dynamodb_table.brutalismbot.name
+                  "Item.$"  = "$"
+                }
+              }
             }
           }
         ]
+      }
+      PutEvents = {
+        Type     = "Task"
+        Resource = "arn:aws:states:::events:putEvents"
+        End      = true
+        Parameters = {
+          Entries = [
+            {
+              EventBusName = aws_cloudwatch_event_bus.brutalismbot.name
+              Source       = "reddit"
+              DetailType   = "post-slack"
+              "Detail.$"   = "$"
+            }
+          ]
+        }
       }
     }
   })
@@ -593,30 +782,242 @@ resource "aws_sfn_state_machine" "slack_post" {
   role_arn = aws_iam_role.states.arn
 
   definition = jsonencode({
-    StartAt = "Transform"
+    StartAt = "GetQuery"
     States = {
-      Transform = {
-        Type      = "Task"
-        Resource  = aws_lambda_function.slack_transform.arn
-        End       = true
-        InputPath = "$.RedditPost"
+      GetQuery = {
+        Type       = "Pass"
+        Next       = "ListAuths"
+        ResultPath = "$.QUERY"
+        Parameters = {
+          IndexName                 = "Chrono"
+          Limit                     = 10
+          KeyConditionExpression    = "SORT = :SORT"
+          FilterExpression          = "attribute_not_exists(DISABLED)"
+          ProjectionExpression      = "ACCESS_TOKEN,WEBHOOK_URL,TEAM_ID,CHANNEL_ID"
+          ExpressionAttributeValues = { ":SORT" = "SLACK/AUTH" }
+        }
       }
+      ListAuths = {
+        Type       = "Task"
+        Resource   = aws_lambda_function.dynamodb_query.arn
+        Next       = "GetEvents"
+        InputPath  = "$.QUERY"
+        ResultPath = "$.QUERY"
+      }
+      GetEvents = {
+        Type       = "Map"
+        Next       = "PublishEvents"
+        ItemsPath  = "$.QUERY.Items"
+        ResultPath = "$.ENTRIES"
+        Parameters = {
+          "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$" = "$$.Execution.Id"
+          "ACCESS_TOKEN.$"                               = "$$.Map.Item.Value.ACCESS_TOKEN"
+          "CHANNEL_ID.$"                                 = "$$.Map.Item.Value.CHANNEL_ID"
+          "TEAM_ID.$"                                    = "$$.Map.Item.Value.TEAM_ID"
+          "WEBHOOK_URL.$"                                = "$$.Map.Item.Value.WEBHOOK_URL"
+          "CREATED_UTC.$"                                = "$.CREATED_UTC"
+          "DATA.$"                                       = "$.DATA"
+          "NAME.$"                                       = "$.NAME"
+          "PERMALINK.$"                                  = "$.PERMALINK"
+          "TITLE.$"                                      = "$.TITLE"
+          "TTL.$"                                        = "$.TTL"
+        }
+        Iterator = {
+          StartAt = "GetEvent"
+          States = {
+            GetEvent = {
+              Type = "Pass"
+              End  = true
+              Parameters = {
+                EventBusName = aws_cloudwatch_event_bus.brutalismbot.name
+                Source       = "reddit"
+                DetailType   = "post-slack"
+                "Detail.$"   = "$"
+              }
+            }
+          }
+        }
+      }
+      PublishEvents = {
+        Type       = "Task"
+        Resource   = "arn:aws:states:::events:putEvents"
+        Next       = "NextPage?"
+        ResultPath = "$.ENTRIES"
+        Parameters = { "Entries.$" = "$.ENTRIES" }
+      }
+      "NextPage?" = {
+        Type    = "Choice"
+        Default = "Finish"
+        Choices = [
+          {
+            Next      = "NextPage"
+            Variable  = "$.QUERY.LastEvaluatedKey"
+            IsPresent = true
+          }
+        ]
+      }
+      NextPage = {
+        Type = "Pass"
+        Next = "ListAuths"
+        Parameters = {
+          "Item.$" = "$.Item"
+          Query = {
+            IndexName                 = "Chrono"
+            Limit                     = 10
+            KeyConditionExpression    = "SORT = :SORT"
+            ProjectionExpression      = "ACCESS_TOKEN,WEBHOOK_URL"
+            ExpressionAttributeValues = { ":SORT" = "SLACK/AUTH" }
+            "ExclusiveStartKey.$"     = "$.QUERY.LastEvaluatedKey"
+          }
+        }
+      }
+      Finish = { Type = "Succeed" }
     }
   })
 }
+
+resource "aws_sfn_state_machine" "slack_post_auth" {
+  name     = "brutalismbot-v2-slack-post-auth"
+  role_arn = aws_iam_role.states.arn
+
+  definition = jsonencode({
+    StartAt = "Post"
+    States = {
+      Post = {
+        Type       = "Task"
+        Resource   = aws_lambda_function.slack_post.arn
+        Next       = "GetItem"
+        ResultPath = "$.RESULT"
+      }
+      GetItem = {
+        Type = "Pass"
+        Next = "PutItem"
+        Parameters = {
+          SORT        = { "S" = "SLACK/POST" }
+          CHANNEL_ID  = { "S.$" = "$.CHANNEL_ID" }
+          CREATED_UTC = { "S.$" = "$.CREATED_UTC" }
+          GUID        = { "S.$" = "States.Format('{}/{}', $.TEAM_ID, $.CHANNEL_ID)" }
+          NAME        = { "S.$" = "$.NAME" }
+          RESULT      = { "S.$" = "States.JsonToString($.RESULT)" }
+          STATUS_CODE = { "S.$" = "$.RESULT.statusCode" }
+          TEAM_ID     = { "S.$" = "$.TEAM_ID" }
+        }
+      }
+      PutItem = {
+        Type       = "Task"
+        Resource   = "arn:aws:states:::dynamodb:putItem"
+        Next       = "OK?"
+        ResultPath = "$.RESULT.dynamodb"
+        Parameters = {
+          TableName = aws_dynamodb_table.brutalismbot.name
+          "Item.$"  = "$"
+        }
+      }
+      "OK?" = {
+        Type    = "Choice"
+        Default = "Fail"
+        Choices = [
+          {
+            Next         = "Succeed"
+            Variable     = "$.RESULT.statusCode"
+            StringEquals = "200"
+          }
+        ]
+      }
+      Succeed = { Type = "Succeed" }
+      Fail    = { Type = "Fail" }
+    }
+  })
+}
+
+resource "aws_sfn_state_machine" "slack_uninstall" {
+  name     = "brutalismbot-v2-slack-uninstall"
+  role_arn = aws_iam_role.states.arn
+
+  definition = jsonencode({
+    StartAt = "GetQuery"
+    States = {
+      GetQuery = {
+        Type = "Pass"
+        Next = "GetItems"
+        Parameters = {
+          TableName                 = aws_dynamodb_table.brutalismbot.name
+          IndexName                 = "SlackTeam"
+          Limit                     = 25
+          ProjectionExpression      = "GUID,SORT"
+          KeyConditionExpression    = "TEAM_ID = :TEAM_ID"
+          ExpressionAttributeValues = { ":TEAM_ID.$" = "$.team_id" }
+        }
+      }
+      GetItems = {
+        Type     = "Task"
+        Resource = aws_lambda_function.dynamodb_query.arn
+        Next     = "DeleteItems"
+      }
+      DeleteItems = {
+        Type       = "Map"
+        Next       = "NextPage?"
+        ItemsPath  = "$.Items"
+        ResultPath = "$.Items"
+        Iterator = {
+          StartAt = "DeleteItem"
+          States = {
+            DeleteItem = {
+              Type     = "Task"
+              Resource = "arn:aws:states:::dynamodb:deleteItem"
+              End      = true
+              Parameters = {
+                TableName = aws_dynamodb_table.brutalismbot.name
+                Key = {
+                  GUID = { "S.$" = "$.GUID" }
+                  SORT = { "S.$" = "$.SORT" }
+                }
+              }
+            }
+          }
+        }
+      }
+      "NextPage?" = {
+        Type    = "Choice"
+        Default = "Finish"
+        Choices = [
+          {
+            Next      = "NextPage"
+            Variable  = "$.LastEvaluatedKey"
+            IsPresent = true
+          }
+        ]
+      }
+      NextPage = {
+        Type = "Pass"
+        Next = "GetItems"
+        Parameters = {
+          TableName                 = aws_dynamodb_table.brutalismbot.name
+          IndexName                 = "SlackTeam"
+          Limit                     = 25
+          ProjectionExpression      = "GUID,SORT"
+          KeyConditionExpression    = "TEAM_ID = :TEAM_ID"
+          ExpressionAttributeValues = { ":TEAM_ID.$" = "$.team_id" }
+          "ExclusiveStartKey.$"     = "$.LastEvaluatedKey"
+        }
+      }
+      Finish = { Type = "Succeed" }
+    }
+  })
+}
+
+# STATE MACHINES :: TWITTER
 
 resource "aws_sfn_state_machine" "twitter_post" {
   name     = "brutalismbot-v2-twitter-post"
   role_arn = aws_iam_role.states.arn
 
   definition = jsonencode({
-    StartAt = "Transform"
+    StartAt = "Pass"
     States = {
-      Transform = {
-        Type      = "Task"
-        Resource  = aws_lambda_function.twitter_transform.arn
-        End       = true
-        InputPath = "$.RedditPost"
+      Pass = {
+        Type = "Pass"
+        End  = true
       }
     }
   })

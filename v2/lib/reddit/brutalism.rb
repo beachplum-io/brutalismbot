@@ -5,7 +5,6 @@ require "aws-sdk-dynamodb"
 require "yake/logger"
 
 require_relative "post"
-require_relative "utc"
 
 module Reddit
   class Brutalism
@@ -32,10 +31,14 @@ module Reddit
       end
     end
 
+    def all
+      to_a
+    end
+
     def latest
       params = { key: { GUID: "STATS/MAX", SORT: "REDDIT/POST" }, projection_expression: "CREATED_UTC" }
       logger.info("GET ITEM #{ params.to_json }")
-      start = Time.parse @table.get_item(**params).item&.fetch("CREATED_UTC", UTC.epoch.iso8601)
+      start = Time.parse @table.get_item(**params).item&.fetch("CREATED_UTC", "1970-01-01T00:00:00Z")
       after(start).reject(&:is_self?).sort_by(&:created_utc)
     end
 

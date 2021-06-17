@@ -11,9 +11,9 @@ module Reddit
       @client = client || Aws::CloudWatch::Client.new
     end
 
-    def publish(**params)
+    def put_metric_data(**params)
       logger.info("CloudWatch:PutMetricData #{ params.to_json }")
-      @client.put_metric_data(**params).to_h
+      params.tap { @client.put_metric_data(**params) }
     end
   end
 end

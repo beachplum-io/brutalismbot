@@ -1,5 +1,10 @@
 module Slack
   class Auth < OpenStruct
+    def initialize(...)
+      super
+      yield self if block_given?
+    end
+
     def inspect
       "#<#{ self.class } team_id: #{ team_id }, channel_id: #{ channel_id }>"
     end
@@ -9,7 +14,7 @@ module Slack
     end
 
     def key
-      "#{ team_id }/#{ channel_id }"
+      File.join(team_id, channel_id)
     end
 
     def channel_id

@@ -1,21 +1,18 @@
+require "json"
+
+require "twitter"
 require "yake"
 
+require_relative "reddit/post"
+require_relative "twitter/brutalismbot"
+
+BRUTALISMBOT = Twitter::Brutalismbot.new
+
 handler :transform do |event|
-  # Extract info from event
-  media = event["Media"]
-  title = event["Title"]
-  perma = File.join "https://reddit.com/", event["Permalink"]
+  post = Reddit::Post.new JSON.parse event["JSON"], symbolize_names: true
+  post.to_twitter
+end
 
-  # Get status
-  max    = 279 - perma.length
-  status = title.length <= max ? title : "#{ title[0..max] }…" + "\n#{ perma }"
-
-  # Zip status with media
-  size    = (media.count % 4).between?(1, 2) ? 3 : 4
-  updates = media.each_slice(size).zip([status]).map do |media, status|
-    { Status: status, Media: media }.compact
-  end
-
-  # Return updates
-  { Updates: updates, Count: updates.count }
+handler :post do |event|
+  BRUTALISMBOT.post(**JSON.parse(event.to_json, symbolize_names: true))
 end
