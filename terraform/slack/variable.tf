@@ -27,10 +27,6 @@ variable "lambda_source_code_hash" {
   description = "Lambda function source code hash"
 }
 
-variable "slack_sns_topic_arn" {
-  description = "Slack SNS topic ARN"
-}
-
 variable "tags" {
   description = "Resource tags"
   type        = map(string)

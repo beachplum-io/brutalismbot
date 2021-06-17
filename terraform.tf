@@ -56,10 +56,6 @@ data "aws_lambda_layer_version" "brutalismbot" {
   layer_name = "brutalismbot"
 }
 
-data "aws_sns_topic" "brutalismbot_slack" {
-  name = "brutalismbot-slack"
-}
-
 module "reddit" {
   source = "./terraform/reddit"
 
@@ -83,7 +79,6 @@ module "slack" {
   lambda_layers           = local.lambda_layers
   lambda_role_arn         = aws_iam_role.lambda.arn
   lambda_source_code_hash = local.lambda_source_code_hash
-  slack_sns_topic_arn     = data.aws_sns_topic.brutalismbot_slack.arn
   tags                    = local.tags
 
   lambda_environment = {

@@ -5,7 +5,6 @@ locals {
   lambda_role_arn         = var.lambda_role_arn
   lambda_runtime          = var.lambda_runtime
   lambda_source_code_hash = var.lambda_source_code_hash
-  slack_sns_topic_arn     = var.slack_sns_topic_arn
   tags                    = var.tags
 }
 
@@ -97,32 +96,4 @@ resource "aws_lambda_function" "uninstall" {
   environment {
     variables = local.lambda_environment
   }
-}
-
-resource "aws_lambda_permission" "install" {
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.install.function_name
-  principal     = "sns.amazonaws.com"
-  source_arn    = local.slack_sns_topic_arn
-}
-
-resource "aws_lambda_permission" "uninstall" {
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.uninstall.function_name
-  principal     = "sns.amazonaws.com"
-  source_arn    = local.slack_sns_topic_arn
-}
-
-resource "aws_sns_topic_subscription" "install" {
-  endpoint      = aws_lambda_function.install.arn
-  filter_policy = jsonencode({ type = ["oauth"] })
-  protocol      = "lambda"
-  topic_arn     = local.slack_sns_topic_arn
-}
-
-resource "aws_sns_topic_subscription" "uninstall" {
-  endpoint      = aws_lambda_function.uninstall.arn
-  filter_policy = jsonencode({ type = ["event"], id = ["app_uninstalled"] })
-  protocol      = "lambda"
-  topic_arn     = local.slack_sns_topic_arn
 }
