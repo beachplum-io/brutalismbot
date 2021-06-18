@@ -23,6 +23,7 @@ handler :post do |event|
   end
 
   {
+    ok:         res.body.downcase == "ok",
     statusCode: res.code,
     body:       res.body,
     headers:    res.each_header.sort.to_h,

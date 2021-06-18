@@ -901,13 +901,14 @@ resource "aws_sfn_state_machine" "slack_post_auth" {
           RESULT      = { "S.$" = "States.JsonToString($.RESULT)" }
           STATUS_CODE = { "S.$" = "$.RESULT.statusCode" }
           TEAM_ID     = { "S.$" = "$.TEAM_ID" }
+          OK          = { "BOOL.$" = "States.JsonToString($.RESULT.ok)" }
         }
       }
       PutItem = {
         Type       = "Task"
         Resource   = "arn:aws:states:::dynamodb:putItem"
         Next       = "OK?"
-        ResultPath = "$.RESULT.dynamodb"
+        ResultPath = "$.RESULT.DYNAMODB"
         Parameters = {
           TableName = aws_dynamodb_table.brutalismbot.name
           "Item.$"  = "$"
@@ -919,8 +920,8 @@ resource "aws_sfn_state_machine" "slack_post_auth" {
         Choices = [
           {
             Next         = "Succeed"
-            Variable     = "$.RESULT.statusCode"
-            StringEquals = "200"
+            Variable     = "$.OK.BOOL"
+            StringEquals = "true"
           }
         ]
       }
