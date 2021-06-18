@@ -55,12 +55,12 @@ module Reddit
     end
 
     class << self
-      def hot(**headers)
-        new(:hot, **headers)
+      def hot(table = nil, **headers)
+        new(:hot, table, **headers)
       end
 
-      def top(**headers)
-        new(:top, **headers)
+      def top(table = nil, **headers)
+        new(:top, table, **headers)
       end
     end
   end

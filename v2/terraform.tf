@@ -253,6 +253,10 @@ resource "aws_iam_role_policy" "events" {
 
 # IAM :: LAMBDA
 
+data "aws_kms_alias" "brutalismbot" { name = "alias/brutalismbot" }
+
+data "aws_secretsmanager_secret" "twitter" { name = "brutalismbot/twitter" }
+
 data "aws_iam_policy_document" "trust_lambda" {
   statement {
     sid     = "AssumeEvents"
@@ -282,6 +286,20 @@ data "aws_iam_policy_document" "access_lambda" {
     sid       = "Logs"
     actions   = ["logs:*"]
     resources = ["*"]
+  }
+
+  statement {
+    sid = "Secrets"
+
+    actions = [
+      "kms:Decrypt",
+      "secretsmanager:GetSecretValue",
+    ]
+
+    resources = [
+      data.aws_kms_alias.brutalismbot.target_key_arn,
+      data.aws_secretsmanager_secret.twitter.arn,
+    ]
   }
 
   statement {
@@ -368,7 +386,7 @@ resource "aws_lambda_function" "dynamodb_query" {
   description      = "Execute query against DynamoDB Table"
   filename         = data.archive_file.package.output_path
   function_name    = "brutalismbot-v2-dynamodb-query"
-  handler          = "dynamodb.query"
+  handler          = "index.dynamodb_query"
   memory_size      = 512
   role             = aws_iam_role.lambda.arn
   runtime          = "ruby2.7"
@@ -387,7 +405,7 @@ resource "aws_lambda_function" "reddit_dequeue" {
   description      = "Dequeue next post from /r/brutalism"
   filename         = data.archive_file.package.output_path
   function_name    = "brutalismbot-v2-reddit-dequeue"
-  handler          = "reddit.dequeue"
+  handler          = "index.reddit_dequeue"
   memory_size      = 512
   role             = aws_iam_role.lambda.arn
   runtime          = "ruby2.7"
@@ -406,7 +424,7 @@ resource "aws_lambda_function" "reddit_metrics" {
   description      = "Publish Reddit metrics"
   filename         = data.archive_file.package.output_path
   function_name    = "brutalismbot-v2-reddit-metrics"
-  handler          = "reddit.metrics"
+  handler          = "index.reddit_metrics"
   role             = aws_iam_role.lambda.arn
   runtime          = "ruby2.7"
   source_code_hash = data.archive_file.package.output_base64sha256
@@ -423,7 +441,7 @@ resource "aws_lambda_function" "slack_post" {
   description      = "Post to Slack workspace"
   filename         = data.archive_file.package.output_path
   function_name    = "brutalismbot-v2-slack-post"
-  handler          = "slack.post"
+  handler          = "index.slack_post"
   role             = aws_iam_role.lambda.arn
   runtime          = "ruby2.7"
   source_code_hash = data.archive_file.package.output_base64sha256
@@ -436,14 +454,19 @@ resource "aws_cloudwatch_log_group" "slack_post" {
 
 # LAMBDA FUNCTIONS :: TWITTER POST
 
+data "aws_lambda_layer_version" "twitter" { layer_name = "twitter-ruby2-7" }
+
 resource "aws_lambda_function" "twitter_post" {
   description      = "Post to Twitter"
   filename         = data.archive_file.package.output_path
   function_name    = "brutalismbot-v2-twitter-post"
-  handler          = "twitter.post"
+  handler          = "index.twitter_post"
+  layers           = [data.aws_lambda_layer_version.twitter.arn]
+  memory_size      = 512
   role             = aws_iam_role.lambda.arn
   runtime          = "ruby2.7"
   source_code_hash = data.archive_file.package.output_base64sha256
+  timeout          = 10
 }
 
 resource "aws_cloudwatch_log_group" "twitter_post" {
@@ -785,12 +808,12 @@ resource "aws_sfn_state_machine" "slack_post" {
         Resource   = aws_lambda_function.dynamodb_query.arn
         Next       = "GetEvents"
         InputPath  = "$.QUERY"
-        ResultPath = "$.QUERY"
+        ResultPath = "$.RESULT"
       }
       GetEvents = {
         Type       = "Map"
         Next       = "PublishEvents"
-        ItemsPath  = "$.QUERY.Items"
+        ItemsPath  = "$.RESULT.Items"
         ResultPath = "$.ENTRIES"
         Parameters = {
           "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$" = "$$.Execution.Id"
@@ -840,19 +863,10 @@ resource "aws_sfn_state_machine" "slack_post" {
         ]
       }
       NextPage = {
-        Type = "Pass"
-        Next = "ListAuths"
-        Parameters = {
-          "Item.$" = "$.Item"
-          Query = {
-            IndexName                 = "Chrono"
-            Limit                     = 10
-            KeyConditionExpression    = "SORT = :SORT"
-            ProjectionExpression      = "ACCESS_TOKEN,WEBHOOK_URL"
-            ExpressionAttributeValues = { ":SORT" = "SLACK/AUTH" }
-            "ExclusiveStartKey.$"     = "$.QUERY.LastEvaluatedKey"
-          }
-        }
+        Type       = "Pass"
+        Next       = "ListAuths"
+        InputPath  = "$.RESULT.LastEvaluatedKey"
+        ResultPath = "$.QUERY.ExclusiveStartKey"
       }
       Finish = { Type = "Succeed" }
     }
