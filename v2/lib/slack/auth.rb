@@ -9,6 +9,10 @@ module Slack
       "#<#{ self.class } team_id: #{ team_id }, channel_id: #{ channel_id }>"
     end
 
+    def to_h
+      @table.to_h.sort.to_h
+    end
+
     def to_json
       to_h.to_json
     end
@@ -18,23 +22,27 @@ module Slack
     end
 
     def channel_id
-      dig("incoming_webhook", "channel_id")
+      dig(:incoming_webhook, :channel_id)
     end
 
     def channel_name
-      dig("incoming_webhook", "channel")
+      dig(:incoming_webhook, :channel)
     end
 
     def team_id
-      dig("team", "id") || dig("team_id")
+      dig(:team, :id) || dig(:team_id)
     end
 
     def team_name
-      dig("team", "name") || dig("team_name")
+      dig(:team, :name) || dig(:team_name)
     end
 
     def url
-      URI(dig "incoming_webhook", "url")
+      URI(dig :incoming_webhook, :url)
+    end
+
+    def user_id
+      dig(:authed_user, :id) || dig(:user_id)
     end
   end
 end

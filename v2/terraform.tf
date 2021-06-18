@@ -713,14 +713,15 @@ resource "aws_sfn_state_machine" "slack_install" {
                 Type = "Pass"
                 Next = "PutItem"
                 Parameters = {
-                  GUID         = { "S.$" = "States.Format('{}/{}', $.team.id, $.incoming_webhook.channel_id)" }
                   SORT         = { "S" = "SLACK/AUTH" }
-                  CREATED_UTC  = { "S.$" = "$$.Execution.StartTime" }
-                  JSON         = { "S.$" = "States.JsonToString($)" }
                   ACCESS_TOKEN = { "S.$" = "$.access_token" }
                   APP_ID       = { "S.$" = "$.app_id" }
                   CHANNEL_ID   = { "S.$" = "$.incoming_webhook.channel_id" }
                   CHANNEL_NAME = { "S.$" = "$.incoming_webhook.channel" }
+                  CREATED_UTC  = { "S.$" = "$$.Execution.StartTime" }
+                  GUID         = { "S.$" = "States.Format('{}/{}', $.team.id, $.incoming_webhook.channel_id)" }
+                  JSON         = { "S.$" = "States.JsonToString($)" }
+                  SCOPE        = { "S.$" = "$.scope" }
                   TEAM_ID      = { "S.$" = "$.team.id" }
                   TEAM_NAME    = { "S.$" = "$.team.name" }
                   USER_ID      = { "S.$" = "$.authed_user.id" }

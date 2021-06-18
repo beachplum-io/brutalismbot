@@ -38,7 +38,7 @@ handler :migrate do
   dynamodb = Aws::DynamoDB::Client.new
   bucket.objects(prefix: "data/v1/auths/").map do |obj|
     Yake.logger.info "GET s3://#{ bucket.name }/#{ obj.key }"
-    Slack::Auth.new JSON.parse obj.get.body.read do |auth|
+    Slack::Auth.new JSON.parse obj.get.body.read, symbolize_names: true do |auth|
       auth.created_utc = obj.last_modified.iso8601
     end
   end.map do |auth|
@@ -46,17 +46,19 @@ handler :migrate do
       put: {
         table_name: "Brutalismbot",
         item: {
-          GUID:         File.join(auth.team_id, auth.channel_id),
-          SORT:         "SLACK/AUTH",
-          CREATED_UTC:  auth.created_utc || Time.now.utc.iso8601,
           ACCESS_TOKEN: auth.access_token,
-          TEAM_ID:      auth.team_id,
-          TEAM_NAME:    auth.team_name,
+          APP_ID:       auth.app_id,
           CHANNEL_ID:   auth.channel_id,
           CHANNEL_NAME: auth.channel_name,
-          SCOPE:        auth.scope,
-          WEBHOOK_URL:  auth.url.to_s,
+          CREATED_UTC:  auth.created_utc || Time.now.utc.iso8601,
+          GUID:         File.join(auth.team_id, auth.channel_id),
           JSON:         auth.to_json,
+          SCOPE:        auth.scope,
+          SORT:         "SLACK/AUTH",
+          TEAM_ID:      auth.team_id,
+          TEAM_NAME:    auth.team_name,
+          USER_ID:      auth.user_id,
+          WEBHOOK_URL:  auth.url.to_s,
         }.compact
       }
     }
