@@ -336,7 +336,6 @@ data "aws_iam_policy_document" "access_states" {
     resources = [
       aws_lambda_function.dynamodb_query.arn,
       aws_lambda_function.reddit_dequeue.arn,
-      aws_lambda_function.reddit_itemize.arn,
       aws_lambda_function.reddit_metrics.arn,
       aws_lambda_function.slack_post.arn,
       aws_lambda_function.twitter_post.arn,
@@ -398,23 +397,6 @@ resource "aws_lambda_function" "reddit_dequeue" {
 
 resource "aws_cloudwatch_log_group" "reddit_dequeue" {
   name              = "/aws/lambda/${aws_lambda_function.reddit_dequeue.function_name}"
-  retention_in_days = 14
-}
-
-# LAMBDA FUNCTIONS :: REDDIT ITEMIZE
-
-resource "aws_lambda_function" "reddit_itemize" {
-  description      = "Transform Reddit post to DynamoDB item"
-  filename         = data.archive_file.package.output_path
-  function_name    = "brutalismbot-v2-reddit-itemize"
-  handler          = "reddit.itemize"
-  role             = aws_iam_role.lambda.arn
-  runtime          = "ruby2.7"
-  source_code_hash = data.archive_file.package.output_base64sha256
-}
-
-resource "aws_cloudwatch_log_group" "reddit_itemize" {
-  name              = "/aws/lambda/${aws_lambda_function.reddit_itemize.function_name}"
   retention_in_days = 14
 }
 

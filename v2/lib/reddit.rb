@@ -25,10 +25,11 @@ end
 MTX = Reddit::Metrics.new
 NEW = Reddit::Brutalism.new
 TTL = 14.days
+LAG = 4.hours
 
 handler :dequeue do |event|
   queue = NEW.latest
-  post  = queue.shift if queue.first&.created_before?(UTC.now - 4.hours)
+  post  = queue.shift if queue.first&.created_before?(UTC.now - LAG)
 
   {
     QueueSize: queue.size,
@@ -41,21 +42,6 @@ handler :dequeue do |event|
       TTL:         post.created_utc.to_i + TTL,
     }
   }.compact
-end
-
-handler :itemize do |event|
-  post = Reddit::Post.new event.symbolize_names
-  {
-    GUID:        { S: post.name },
-    SORT:        { S: "REDDIT/SORT" },
-    CREATED_UTC: { S: post.created_utc.iso8601 },
-    JSON:        { S: post.to_json },
-    MEDIA:       { L: post.media.map { |x| { S: x.last[:u] } } },
-    NAME:        { S: post.name },
-    PERMALINK:   { S: post.permalink },
-    TITLE:       { S: post.title },
-    TTL:         { N: (post.created_utc.to_i + TTL).to_s },
-  }
 end
 
 handler :metrics do |event|
