@@ -996,11 +996,12 @@ resource "aws_sfn_state_machine" "twitter_post" {
   role_arn = aws_iam_role.states.arn
 
   definition = jsonencode({
-    StartAt = "Pass"
+    StartAt = "Post"
     States = {
-      Pass = {
-        Type = "Pass"
-        End  = true
+      Post = {
+        Type     = "Task"
+        Resource = aws_lambda_function.twitter_post.arn
+        End      = true
       }
     }
   })
