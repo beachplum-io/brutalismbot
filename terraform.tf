@@ -29,6 +29,8 @@ provider "aws" {
 }
 
 locals {
+  is_enabled = true
+
   tags = {
     App  = "core"
     Name = "brutalismbot"
@@ -151,7 +153,7 @@ resource "aws_cloudwatch_event_target" "reddit_dequeue" {
 resource "aws_cloudwatch_event_rule" "reddit_post" {
   description    = "Handle new posts for Reddit"
   event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
-  is_enabled     = true
+  is_enabled     = local.is_enabled
   name           = "reddit-post"
 
   event_pattern = jsonencode({
@@ -189,7 +191,7 @@ resource "aws_cloudwatch_event_target" "twitter_post" {
 resource "aws_cloudwatch_event_rule" "reddit_post_slack" {
   description    = "Handle new posts for a Slack workspace"
   event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
-  is_enabled     = true
+  is_enabled     = local.is_enabled
   name           = "reddit-post-slack"
 
   event_pattern = jsonencode({
@@ -899,7 +901,7 @@ resource "aws_sfn_state_machine" "slack_post" {
         Choices = [
           {
             Next      = "NextPage"
-            Variable  = "$.QUERY.LastEvaluatedKey"
+            Variable  = "$.RESULT.LastEvaluatedKey"
             IsPresent = true
           }
         ]
