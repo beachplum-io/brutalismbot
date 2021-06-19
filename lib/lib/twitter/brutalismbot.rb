@@ -2,7 +2,6 @@ require "json"
 require "open-uri"
 
 require "aws-sdk-secretsmanager"
-require "twitter"
 require "yake/logger"
 
 module Twitter
@@ -20,6 +19,7 @@ module Twitter
         params = { secret_id: SECRET_ID }
         logger.info("GET SECRET #{ params.to_json }")
         secret = OpenStruct.new JSON.parse Aws::SecretsManager::Client.new.get_secret_value(**params).secret_string
+        require "twitter"
         Twitter::REST::Client.new do |config|
           config.access_token        = secret.TWITTER_ACCESS_TOKEN
           config.access_token_secret = secret.TWITTER_ACCESS_TOKEN_SECRET
