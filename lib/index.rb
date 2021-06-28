@@ -3,35 +3,11 @@ require "json"
 require "aws-sdk-dynamodb"
 require "yake"
 
+require_relative "lib/common"
 require_relative "lib/reddit/brutalism"
 require_relative "lib/reddit/metrics"
 require_relative "lib/reddit/post"
 require_relative "lib/twitter/brutalismbot"
-
-class Hash
-  def symbolize_names() JSON.parse to_json, symbolize_names: true end
-end
-
-class Integer
-  def days() hours * 24 end
-  def hours() minutes * 60 end
-  def minutes() seconds * 60 end
-  def seconds() self end
-end
-
-class String
-  def camel_case() split(/_/).map(&:capitalize).join end
-  def snake_case() gsub(/([a-z])([A-Z])/, '\1_\2').downcase end
-end
-
-class Symbol
-  def camel_case() to_s.camel_case.to_sym end
-  def snake_case() to_s.snake_case.to_sym end
-end
-
-class UTC < Time
-  def self.now() super.utc end
-end
 
 TABLE       = Aws::DynamoDB::Table.new name: ENV["TABLE_NAME"] || "Brutalismbot"
 R_BRUTALISM = Reddit::Brutalism.new :new, TABLE
