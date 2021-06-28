@@ -937,7 +937,7 @@ resource "aws_sfn_state_machine" "slack_post_auth" {
           SORT        = { "S" = "SLACK/POST" }
           CHANNEL_ID  = { "S.$" = "$.CHANNEL_ID" }
           CREATED_UTC = { "S.$" = "$.CREATED_UTC" }
-          GUID        = { "S.$" = "States.Format('{}/{}', $.TEAM_ID, $.CHANNEL_ID)" }
+          GUID        = { "S.$" = "States.Format('{}/{}/{}', $.TEAM_ID, $.CHANNEL_ID, $.NAME)" }
           NAME        = { "S.$" = "$.NAME" }
           RESULT      = { "S.$" = "States.JsonToString($.RESULT)" }
           STATUS_CODE = { "S.$" = "$.RESULT.statusCode" }
