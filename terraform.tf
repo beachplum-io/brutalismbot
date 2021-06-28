@@ -434,7 +434,7 @@ resource "aws_lambda_function" "dynamodb_query" {
   description      = "Execute query against DynamoDB Table"
   filename         = data.archive_file.package.output_path
   function_name    = "brutalismbot-dynamodb-query"
-  handler          = "index.dynamodb_query"
+  handler          = "dynamodb.query"
   memory_size      = 512
   role             = aws_iam_role.lambda.arn
   runtime          = "ruby2.7"
