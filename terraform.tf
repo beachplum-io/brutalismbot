@@ -447,6 +447,63 @@ resource "aws_cloudwatch_log_group" "dynamodb_query" {
   retention_in_days = 14
 }
 
+# LAMBDA FUNCTIONS :: HTTP :: GET
+
+resource "aws_lambda_function" "http_get" {
+  description      = "Do HTTP GET"
+  filename         = data.archive_file.package.output_path
+  function_name    = "brutalismbot-http-get"
+  handler          = "http.get"
+  memory_size      = 512
+  role             = aws_iam_role.lambda.arn
+  runtime          = "ruby2.7"
+  source_code_hash = data.archive_file.package.output_base64sha256
+  timeout          = 29
+}
+
+resource "aws_cloudwatch_log_group" "http_get" {
+  name              = "/aws/lambda/${aws_lambda_function.http_get.function_name}"
+  retention_in_days = 14
+}
+
+# LAMBDA FUNCTIONS :: HTTP :: GET
+
+resource "aws_lambda_function" "http_head" {
+  description      = "Do HTTP HEAD"
+  filename         = data.archive_file.package.output_path
+  function_name    = "brutalismbot-http-head"
+  handler          = "http.head"
+  memory_size      = 512
+  role             = aws_iam_role.lambda.arn
+  runtime          = "ruby2.7"
+  source_code_hash = data.archive_file.package.output_base64sha256
+  timeout          = 29
+}
+
+resource "aws_cloudwatch_log_group" "http_head" {
+  name              = "/aws/lambda/${aws_lambda_function.http_head.function_name}"
+  retention_in_days = 14
+}
+
+# LAMBDA FUNCTIONS :: HTTP :: POST
+
+resource "aws_lambda_function" "http_post" {
+  description      = "Do HTTP POST"
+  filename         = data.archive_file.package.output_path
+  function_name    = "brutalismbot-http-post"
+  handler          = "http.post"
+  memory_size      = 512
+  role             = aws_iam_role.lambda.arn
+  runtime          = "ruby2.7"
+  source_code_hash = data.archive_file.package.output_base64sha256
+  timeout          = 29
+}
+
+resource "aws_cloudwatch_log_group" "http_post" {
+  name              = "/aws/lambda/${aws_lambda_function.http_post.function_name}"
+  retention_in_days = 14
+}
+
 # LAMBDA FUNCTIONS :: REDDIT DEQUEUE
 
 resource "aws_lambda_function" "reddit_dequeue" {

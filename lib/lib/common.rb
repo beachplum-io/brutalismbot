@@ -1,8 +1,11 @@
+require "base64"
 require "json"
 require "time"
 
 class Hash
+  def encode64() to_json.encode64 end
   def symbolize_names() JSON.parse to_json, symbolize_names: true end
+  def to_form() URI.encode_www_form(self) end
 end
 
 class Integer
@@ -15,8 +18,11 @@ end
 
 class String
   def camel_case() split(/_/).map(&:capitalize).join end
+  def decode64() Base64.strict_decode64(self) end
+  def encode64() Base64.strict_encode64(self) end
   def snake_case() gsub(/([a-z])([A-Z])/, '\1_\2').downcase end
   def to_h_from_json(**params) JSON.parse(self, **params) end
+  def to_h_from_form() URI.decode_www_form(self).to_h end
 end
 
 class Symbol
