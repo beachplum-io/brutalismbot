@@ -8,10 +8,14 @@ terraform {
   }
 
   required_providers {
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.2"
+    }
+
     aws = {
-      source                = "hashicorp/aws"
-      version               = "~> 3.38"
-      configuration_aliases = [aws.v2]
+      source  = "hashicorp/aws"
+      version = "~> 3.38"
     }
   }
 }
