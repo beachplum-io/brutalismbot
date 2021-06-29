@@ -33,7 +33,7 @@ provider "aws" {
 }
 
 locals {
-  is_enabled = true
+  is_enabled = false
 
   tags = {
     App  = "core"
@@ -401,9 +401,12 @@ data "aws_iam_policy_document" "access_states" {
 
     resources = [
       aws_lambda_function.dynamodb_query.arn,
+      aws_lambda_function.http_get.arn,
+      aws_lambda_function.http_head.arn,
+      aws_lambda_function.http_post.arn,
       aws_lambda_function.reddit_dequeue.arn,
       aws_lambda_function.reddit_metrics.arn,
-      aws_lambda_function.slack_post.arn,
+      aws_lambda_function.slack_transform.arn,
       aws_lambda_function.twitter_post.arn,
     ]
   }
@@ -540,20 +543,20 @@ resource "aws_cloudwatch_log_group" "reddit_metrics" {
   retention_in_days = 14
 }
 
-# LAMBDA FUNCTIONS :: SLACK POST
+# LAMBDA FUNCTIONS :: SLACK TRANSFORM
 
-resource "aws_lambda_function" "slack_post" {
-  description      = "Post to Slack workspace"
+resource "aws_lambda_function" "slack_transform" {
+  description      = "Transform Reddit post to Slack"
   filename         = data.archive_file.package.output_path
-  function_name    = "brutalismbot-slack-post"
-  handler          = "index.slack_post"
+  function_name    = "brutalismbot-slack-transform"
+  handler          = "index.slack_transform"
   role             = aws_iam_role.lambda.arn
   runtime          = "ruby2.7"
   source_code_hash = data.archive_file.package.output_base64sha256
 }
 
-resource "aws_cloudwatch_log_group" "slack_post" {
-  name              = "/aws/lambda/${aws_lambda_function.slack_post.function_name}"
+resource "aws_cloudwatch_log_group" "slack_transform" {
+  name              = "/aws/lambda/${aws_lambda_function.slack_transform.function_name}"
   retention_in_days = 14
 }
 
@@ -592,6 +595,19 @@ resource "aws_sfn_state_machine" "reddit_dequeue" {
         Type     = "Task"
         Resource = aws_lambda_function.reddit_dequeue.arn
         Next     = "PutEventsAndMetrics"
+        Retry = [
+          {
+            BackoffRate     = 2
+            IntervalSeconds = 60
+            MaxAttempts     = 3
+            ErrorEquals = [
+              "Lambda.AWSLambdaException",
+              "Lambda.SdkClientException",
+              "Lambda.ServiceException",
+              "Lambda.Unknown",
+            ]
+          }
+        ]
       }
       PutEventsAndMetrics = {
         Type       = "Parallel"
@@ -613,20 +629,16 @@ resource "aws_sfn_state_machine" "reddit_dequeue" {
                 ]
               }
               GetEvent = {
-                Type = "Pass"
-                Next = "PutEvent"
+                Type      = "Pass"
+                Next      = "PutEvent"
+                InputPath = "$.NextPost"
                 Parameters = {
                   EventBusName = aws_cloudwatch_event_bus.brutalismbot.name
                   Source       = "reddit"
                   DetailType   = "post"
                   Detail = {
                     "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$" = "$$.Execution.Id"
-                    "CREATED_UTC.$"                                = "$.NextPost.CREATED_UTC"
-                    "DATA.$"                                       = "$.NextPost.DATA"
-                    "NAME.$"                                       = "$.NextPost.NAME"
-                    "PERMALINK.$"                                  = "$.NextPost.PERMALINK"
-                    "TITLE.$"                                      = "$.NextPost.TITLE"
-                    "TTL.$"                                        = "States.JsonToString($.NextPost.TTL)"
+                    "REDDIT.$"                                     = "$"
                   }
                 }
               }
@@ -662,6 +674,18 @@ resource "aws_sfn_state_machine" "reddit_dequeue" {
                     }
                   ]
                 }
+                Retry = [
+                  {
+                    BackoffRate     = 2
+                    IntervalSeconds = 3
+                    MaxAttempts     = 4
+                    ErrorEquals = [
+                      "Lambda.AWSLambdaException",
+                      "Lambda.SdkClientException",
+                      "Lambda.ServiceException",
+                    ]
+                  }
+                ]
               }
             }
           }
@@ -690,8 +714,9 @@ resource "aws_sfn_state_machine" "reddit_post" {
             StartAt = "GetItem"
             States = {
               GetItem = {
-                Type = "Pass"
-                End  = true
+                Type      = "Pass"
+                End       = true
+                InputPath = "$.REDDIT"
                 Parameters = {
                   SORT        = { "S" = "REDDIT/POST" }
                   GUID        = { "S.$" = "$.NAME" }
@@ -700,7 +725,7 @@ resource "aws_sfn_state_machine" "reddit_post" {
                   NAME        = { "S.$" = "$.NAME" }
                   PERMALINK   = { "S.$" = "$.PERMALINK" }
                   TITLE       = { "S.$" = "$.TITLE" }
-                  TTL         = { "N.$" = "$.TTL" }
+                  TTL         = { "N.$" = "States.JsonToString($.TTL)" }
                 }
               }
             }
@@ -741,14 +766,15 @@ resource "aws_sfn_state_machine" "reddit_post" {
         Type       = "Task"
         Resource   = "arn:aws:states:::dynamodb:updateItem"
         Next       = "InsertItem"
+        InputPath  = "$.Item"
         ResultPath = "$.MaxCreatedUTC"
         Parameters = {
           TableName                = aws_dynamodb_table.brutalismbot.name
           UpdateExpression         = "SET CREATED_UTC = :CREATED_UTC, #NAME = :NAME"
           ExpressionAttributeNames = { "#NAME" = "NAME" }
           ExpressionAttributeValues = {
-            ":CREATED_UTC.$" = "$.Item.CREATED_UTC"
-            ":NAME.$"        = "$.Item.NAME"
+            ":CREATED_UTC.$" = "$.CREATED_UTC"
+            ":NAME.$"        = "$.NAME"
           }
           Key = {
             GUID = { S = "STATS/MAX" }
@@ -757,12 +783,13 @@ resource "aws_sfn_state_machine" "reddit_post" {
         }
       }
       InsertItem = {
-        Type     = "Task"
-        Resource = "arn:aws:states:::dynamodb:putItem"
-        End      = true
+        Type      = "Task"
+        Resource  = "arn:aws:states:::dynamodb:putItem"
+        End       = true
+        InputPath = "$.Item"
         Parameters = {
           TableName = aws_dynamodb_table.brutalismbot.name
-          "Item.$"  = "$.Item"
+          "Item.$"  = "$"
         }
       }
     }
@@ -893,18 +920,38 @@ resource "aws_sfn_state_machine" "slack_post" {
   role_arn = aws_iam_role.states.arn
 
   definition = jsonencode({
-    StartAt = "GetQuery"
+    StartAt = "TransformPost"
     States = {
+      TransformPost = {
+        Type       = "Task"
+        Resource   = aws_lambda_function.slack_transform.arn
+        Next       = "GetQuery"
+        InputPath  = "$.REDDIT.DATA"
+        ResultPath = "$.SLACK.BODY"
+        Retry = [
+          {
+            BackoffRate     = 2
+            IntervalSeconds = 3
+            MaxAttempts     = 4
+            ErrorEquals = [
+              "Lambda.AWSLambdaException",
+              "Lambda.SdkClientException",
+              "Lambda.ServiceException",
+            ]
+          }
+        ]
+      }
       GetQuery = {
         Type       = "Pass"
         Next       = "ListAuths"
-        ResultPath = "$.QUERY"
+        ResultPath = "$.DYNAMODB.QUERY"
         Parameters = {
+          TableName                 = aws_dynamodb_table.brutalismbot.name
           IndexName                 = "Chrono"
           Limit                     = 10
           KeyConditionExpression    = "SORT = :SORT"
           FilterExpression          = "attribute_not_exists(DISABLED)"
-          ProjectionExpression      = "ACCESS_TOKEN,WEBHOOK_URL,TEAM_ID,CHANNEL_ID"
+          ProjectionExpression      = "ACCESS_TOKEN,CHANNEL_ID,CHANNEL_NAME,TEAM_ID,TEAM_NAME,WEBHOOK_URL"
           ExpressionAttributeValues = { ":SORT" = "SLACK/AUTH" }
         }
       }
@@ -912,26 +959,38 @@ resource "aws_sfn_state_machine" "slack_post" {
         Type       = "Task"
         Resource   = aws_lambda_function.dynamodb_query.arn
         Next       = "GetEvents"
-        InputPath  = "$.QUERY"
-        ResultPath = "$.RESULT"
+        InputPath  = "$.DYNAMODB.QUERY"
+        ResultPath = "$.DYNAMODB.RESULT"
+        Retry = [
+          {
+            BackoffRate     = 2
+            IntervalSeconds = 3
+            MaxAttempts     = 4
+            ErrorEquals = [
+              "Lambda.AWSLambdaException",
+              "Lambda.SdkClientException",
+              "Lambda.ServiceException",
+            ]
+          }
+        ]
       }
       GetEvents = {
         Type       = "Map"
         Next       = "PublishEvents"
-        ItemsPath  = "$.RESULT.Items"
-        ResultPath = "$.ENTRIES"
+        ItemsPath  = "$.DYNAMODB.RESULT.Items"
+        ResultPath = "$.EVENTBRIDGE.ENTRIES"
         Parameters = {
           "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$" = "$$.Execution.Id"
-          "ACCESS_TOKEN.$"                               = "$$.Map.Item.Value.ACCESS_TOKEN"
-          "CHANNEL_ID.$"                                 = "$$.Map.Item.Value.CHANNEL_ID"
-          "TEAM_ID.$"                                    = "$$.Map.Item.Value.TEAM_ID"
-          "WEBHOOK_URL.$"                                = "$$.Map.Item.Value.WEBHOOK_URL"
-          "CREATED_UTC.$"                                = "$.CREATED_UTC"
-          "DATA.$"                                       = "$.DATA"
-          "NAME.$"                                       = "$.NAME"
-          "PERMALINK.$"                                  = "$.PERMALINK"
-          "TITLE.$"                                      = "$.TITLE"
-          "TTL.$"                                        = "$.TTL"
+          "REDDIT.$"                                     = "$.REDDIT"
+          SLACK = {
+            "ACCESS_TOKEN.$" = "$$.Map.Item.Value.ACCESS_TOKEN"
+            "BODY.$"         = "$.SLACK.BODY"
+            "CHANNEL_ID.$"   = "$$.Map.Item.Value.CHANNEL_ID"
+            "CHANNEL_NAME.$" = "$$.Map.Item.Value.CHANNEL_NAME"
+            "TEAM_ID.$"      = "$$.Map.Item.Value.TEAM_ID"
+            "TEAM_NAME.$"    = "$$.Map.Item.Value.TEAM_NAME"
+            "WEBHOOK_URL.$"  = "$$.Map.Item.Value.WEBHOOK_URL"
+          }
         }
         Iterator = {
           StartAt = "GetEvent"
@@ -950,11 +1009,12 @@ resource "aws_sfn_state_machine" "slack_post" {
         }
       }
       PublishEvents = {
-        Type       = "Task"
-        Resource   = "arn:aws:states:::events:putEvents"
-        Next       = "NextPage?"
-        ResultPath = "$.ENTRIES"
-        Parameters = { "Entries.$" = "$.ENTRIES" }
+        Type           = "Task"
+        Resource       = "arn:aws:states:::events:putEvents"
+        Next           = "NextPage?"
+        ResultPath     = "$.EVENTBRIDGE"
+        ResultSelector = { "ENTRIES.$" = "$.Entries" }
+        Parameters     = { "Entries.$" = "$.EVENTBRIDGE.ENTRIES" }
       }
       "NextPage?" = {
         Type    = "Choice"
@@ -962,7 +1022,7 @@ resource "aws_sfn_state_machine" "slack_post" {
         Choices = [
           {
             Next      = "NextPage"
-            Variable  = "$.RESULT.LastEvaluatedKey"
+            Variable  = "$.DYNAMODB.RESULT.LastEvaluatedKey"
             IsPresent = true
           }
         ]
@@ -970,8 +1030,8 @@ resource "aws_sfn_state_machine" "slack_post" {
       NextPage = {
         Type       = "Pass"
         Next       = "ListAuths"
-        InputPath  = "$.RESULT.LastEvaluatedKey"
-        ResultPath = "$.QUERY.ExclusiveStartKey"
+        InputPath  = "$.DYNAMODB.RESULT.LastEvaluatedKey"
+        ResultPath = "$.DYNAMODB.QUERY.ExclusiveStartKey"
       }
       Finish = { Type = "Succeed" }
     }
@@ -983,37 +1043,66 @@ resource "aws_sfn_state_machine" "slack_post_auth" {
   role_arn = aws_iam_role.states.arn
 
   definition = jsonencode({
-    StartAt = "Post"
+    StartAt = "GetPOST"
     States = {
-      Post = {
+      GetPOST = {
+        Type       = "Pass"
+        Next       = "SendPOST"
+        InputPath  = "$.SLACK"
+        ResultPath = "$.HTTP.POST"
+        Parameters = {
+          "url.$"  = "$.WEBHOOK_URL"
+          "body.$" = "States.JsonToString($.BODY)"
+          headers = {
+            "authorization.$" = "States.Format('Bearer {}', $.ACCESS_TOKEN)"
+            "content-type"    = "application/json; charset=utf-8"
+          }
+        }
+      }
+      SendPOST = {
         Type       = "Task"
-        Resource   = aws_lambda_function.slack_post.arn
+        Resource   = aws_lambda_function.http_post.arn
         Next       = "GetItem"
-        ResultPath = "$.RESULT"
+        InputPath  = "$.HTTP.POST"
+        ResultPath = "$.HTTP.RESULT"
+        Retry = [
+          {
+            BackoffRate     = 2
+            IntervalSeconds = 3
+            MaxAttempts     = 4
+            ErrorEquals = [
+              "Lambda.AWSLambdaException",
+              "Lambda.SdkClientException",
+              "Lambda.ServiceException",
+            ]
+          }
+        ]
       }
       GetItem = {
-        Type = "Pass"
-        Next = "PutItem"
+        Type       = "Pass"
+        Next       = "PutItem"
+        ResultPath = "$.DYNAMODB.PUT_ITEM"
         Parameters = {
           SORT        = { "S" = "SLACK/POST" }
-          CHANNEL_ID  = { "S.$" = "$.CHANNEL_ID" }
-          CREATED_UTC = { "S.$" = "$.CREATED_UTC" }
-          GUID        = { "S.$" = "States.Format('{}/{}/{}', $.TEAM_ID, $.CHANNEL_ID, $.NAME)" }
-          NAME        = { "S.$" = "$.NAME" }
-          RESULT      = { "S.$" = "States.JsonToString($.RESULT)" }
-          STATUS_CODE = { "S.$" = "$.RESULT.statusCode" }
-          TEAM_ID     = { "S.$" = "$.TEAM_ID" }
-          OK          = { "BOOL.$" = "States.JsonToString($.RESULT.ok)" }
+          BODY        = { "S.$" = "$.HTTP.RESULT.body" }
+          CHANNEL_ID  = { "S.$" = "$.SLACK.CHANNEL_ID" }
+          CREATED_UTC = { "S.$" = "$.REDDIT.CREATED_UTC" }
+          GUID        = { "S.$" = "States.Format('{}/{}/{}', $.SLACK.TEAM_ID, $.SLACK.CHANNEL_ID, $.REDDIT.NAME)" }
+          HEADERS     = { "S.$" = "States.JsonToString($.HTTP.RESULT.headers)" }
+          NAME        = { "S.$" = "$.REDDIT.NAME" }
+          STATUS_CODE = { "S.$" = "$.HTTP.RESULT.statusCode" }
+          TEAM_ID     = { "S.$" = "$.SLACK.TEAM_ID" }
+          TTL         = { "N.$" = "States.JsonToString($.REDDIT.TTL)" }
         }
       }
       PutItem = {
         Type       = "Task"
         Resource   = "arn:aws:states:::dynamodb:putItem"
         Next       = "OK?"
-        ResultPath = "$.RESULT.DYNAMODB"
+        ResultPath = "$.DYNAMODB.RESULT"
         Parameters = {
           TableName = aws_dynamodb_table.brutalismbot.name
-          "Item.$"  = "$"
+          "Item.$"  = "$.DYNAMODB.PUT_ITEM"
         }
       }
       "OK?" = {
@@ -1022,8 +1111,8 @@ resource "aws_sfn_state_machine" "slack_post_auth" {
         Choices = [
           {
             Next         = "Succeed"
-            Variable     = "$.OK.BOOL"
-            StringEquals = "true"
+            Variable     = "$.HTTP.RESULT.body"
+            StringEquals = "ok"
           }
         ]
       }
@@ -1122,6 +1211,18 @@ resource "aws_sfn_state_machine" "twitter_post" {
         Type     = "Task"
         Resource = aws_lambda_function.twitter_post.arn
         End      = true
+        Retry = [
+          {
+            BackoffRate     = 2
+            IntervalSeconds = 3
+            MaxAttempts     = 4
+            ErrorEquals = [
+              "Lambda.AWSLambdaException",
+              "Lambda.SdkClientException",
+              "Lambda.ServiceException",
+            ]
+          }
+        ]
       }
     }
   })

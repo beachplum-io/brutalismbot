@@ -43,25 +43,8 @@ handler :reddit_metrics do |event|
   METRICS.put_metric_data(**event.symbolize_names)
 end
 
-handler :slack_post do |event|
-  uri     = URI event["WEBHOOK_URL"]
-  post    = Reddit::Post.new event["DATA"].symbolize_names
-  headers = {
-    "authorization" => "Bearer #{ event["ACCESS_TOKEN"] }",
-    "content-type"  => "application/json; charset=utf-8"
-  }
-  res  = Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
-    req = Net::HTTP::Post.new(uri.path, **headers)
-    req.body = post.to_slack.to_json
-    http.request req
-  end
-
-  {
-    ok:         res.body.downcase == "ok",
-    statusCode: res.code,
-    body:       res.body,
-    headers:    res.each_header.sort.to_h,
-  }
+handler :slack_transform do |event|
+  Reddit::Post.new(event.symbolize_names).to_slack
 end
 
 handler :twitter_post do |event|
