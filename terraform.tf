@@ -33,7 +33,7 @@ provider "aws" {
 }
 
 locals {
-  is_enabled = false
+  is_enabled = true
 
   tags = {
     App  = "core"
@@ -142,7 +142,7 @@ resource "aws_cloudwatch_event_rule" "reddit_dequeue" {
   event_bus_name      = "default"
   is_enabled          = true
   name                = "brutalismbot-every-15m"
-  schedule_expression = "rate(15 minutes)"
+  schedule_expression = "rate(30 minutes)"
 }
 
 resource "aws_cloudwatch_event_target" "reddit_dequeue" {
@@ -408,6 +408,7 @@ data "aws_iam_policy_document" "access_states" {
       aws_lambda_function.reddit_metrics.arn,
       aws_lambda_function.slack_transform.arn,
       aws_lambda_function.twitter_post.arn,
+      aws_lambda_function.twitter_transform.arn,
     ]
   }
 }
@@ -426,12 +427,13 @@ resource "aws_iam_role_policy" "states" {
 # LAMBDA FUNCTIONS
 
 data "archive_file" "package" {
-  output_path = "${path.module}/pkg/lambda.zip"
-  source_dir  = "${path.module}/lib"
-  type        = "zip"
+  output_file_mode = "0666"
+  output_path      = "${path.module}/pkg/package.zip"
+  source_dir       = "${path.module}/lib"
+  type             = "zip"
 }
 
-# LAMBDA FUNCTIONS :: DYNAMODB QUERY
+# LAMBDA FUNCTIONS :: DYNAMODB :: QUERY
 
 resource "aws_lambda_function" "dynamodb_query" {
   description      = "Execute query against DynamoDB Table"
@@ -507,13 +509,13 @@ resource "aws_cloudwatch_log_group" "http_post" {
   retention_in_days = 14
 }
 
-# LAMBDA FUNCTIONS :: REDDIT DEQUEUE
+# LAMBDA FUNCTIONS :: REDDIT :: DEQUEUE
 
 resource "aws_lambda_function" "reddit_dequeue" {
   description      = "Dequeue next post from /r/brutalism"
   filename         = data.archive_file.package.output_path
   function_name    = "brutalismbot-reddit-dequeue"
-  handler          = "index.reddit_dequeue"
+  handler          = "reddit.dequeue"
   memory_size      = 512
   role             = aws_iam_role.lambda.arn
   runtime          = "ruby2.7"
@@ -526,13 +528,13 @@ resource "aws_cloudwatch_log_group" "reddit_dequeue" {
   retention_in_days = 14
 }
 
-# LAMBDA FUNCTIONS :: REDDIT METRICS
+# LAMBDA FUNCTIONS :: REDDIT :: METRICS
 
 resource "aws_lambda_function" "reddit_metrics" {
   description      = "Publish Reddit metrics"
   filename         = data.archive_file.package.output_path
   function_name    = "brutalismbot-reddit-metrics"
-  handler          = "index.reddit_metrics"
+  handler          = "reddit.metrics"
   role             = aws_iam_role.lambda.arn
   runtime          = "ruby2.7"
   source_code_hash = data.archive_file.package.output_base64sha256
@@ -543,13 +545,13 @@ resource "aws_cloudwatch_log_group" "reddit_metrics" {
   retention_in_days = 14
 }
 
-# LAMBDA FUNCTIONS :: SLACK TRANSFORM
+# LAMBDA FUNCTIONS :: SLACK :: TRANSFORM
 
 resource "aws_lambda_function" "slack_transform" {
   description      = "Transform Reddit post to Slack"
   filename         = data.archive_file.package.output_path
   function_name    = "brutalismbot-slack-transform"
-  handler          = "index.slack_transform"
+  handler          = "slack.transform"
   role             = aws_iam_role.lambda.arn
   runtime          = "ruby2.7"
   source_code_hash = data.archive_file.package.output_base64sha256
@@ -560,15 +562,26 @@ resource "aws_cloudwatch_log_group" "slack_transform" {
   retention_in_days = 14
 }
 
-# LAMBDA FUNCTIONS :: TWITTER POST
+# LAMBDA FUNCTIONS :: TWITTER
+
+data "archive_file" "twitter" {
+  output_path = "${path.module}/pkg/twitter.zip"
+  source_dir  = "${path.module}/lib"
+  type        = "zip"
+
+  excludes = ["http.rb"]
+}
+
 
 data "aws_lambda_layer_version" "twitter" { layer_name = "twitter-ruby2-7" }
 
+# LAMBDA FUNCTIONS :: TWITTER :: POST
+
 resource "aws_lambda_function" "twitter_post" {
   description      = "Post to Twitter"
-  filename         = data.archive_file.package.output_path
+  filename         = data.archive_file.twitter.output_path
   function_name    = "brutalismbot-twitter-post"
-  handler          = "index.twitter_post"
+  handler          = "tweet.post"
   layers           = [data.aws_lambda_layer_version.twitter.arn]
   memory_size      = 512
   role             = aws_iam_role.lambda.arn
@@ -579,6 +592,24 @@ resource "aws_lambda_function" "twitter_post" {
 
 resource "aws_cloudwatch_log_group" "twitter_post" {
   name              = "/aws/lambda/${aws_lambda_function.twitter_post.function_name}"
+  retention_in_days = 14
+}
+
+# LAMBDA FUNCTIONS :: TWITTER TRANSFORM
+
+resource "aws_lambda_function" "twitter_transform" {
+  description      = "Transform Reddit post to Twitter"
+  filename         = data.archive_file.package.output_path
+  function_name    = "brutalismbot-twitter-transform"
+  handler          = "tweet.transform"
+  layers           = [data.aws_lambda_layer_version.twitter.arn]
+  role             = aws_iam_role.lambda.arn
+  runtime          = "ruby2.7"
+  source_code_hash = data.archive_file.package.output_base64sha256
+}
+
+resource "aws_cloudwatch_log_group" "twitter_transform" {
+  name              = "/aws/lambda/${aws_lambda_function.twitter_transform.function_name}"
   retention_in_days = 14
 }
 
@@ -927,7 +958,7 @@ resource "aws_sfn_state_machine" "slack_post" {
         Resource   = aws_lambda_function.slack_transform.arn
         Next       = "GetQuery"
         InputPath  = "$.REDDIT.DATA"
-        ResultPath = "$.SLACK.BODY"
+        ResultPath = "$.SLACK.DATA"
         Retry = [
           {
             BackoffRate     = 2
@@ -984,7 +1015,7 @@ resource "aws_sfn_state_machine" "slack_post" {
           "REDDIT.$"                                     = "$.REDDIT"
           SLACK = {
             "ACCESS_TOKEN.$" = "$$.Map.Item.Value.ACCESS_TOKEN"
-            "BODY.$"         = "$.SLACK.BODY"
+            "DATA.$"         = "$.SLACK.DATA"
             "CHANNEL_ID.$"   = "$$.Map.Item.Value.CHANNEL_ID"
             "CHANNEL_NAME.$" = "$$.Map.Item.Value.CHANNEL_NAME"
             "TEAM_ID.$"      = "$$.Map.Item.Value.TEAM_ID"
@@ -1052,7 +1083,7 @@ resource "aws_sfn_state_machine" "slack_post_auth" {
         ResultPath = "$.HTTP.POST"
         Parameters = {
           "url.$"  = "$.WEBHOOK_URL"
-          "body.$" = "States.JsonToString($.BODY)"
+          "body.$" = "States.JsonToString($.DATA)"
           headers = {
             "authorization.$" = "States.Format('Bearer {}', $.ACCESS_TOKEN)"
             "content-type"    = "application/json; charset=utf-8"
@@ -1205,12 +1236,33 @@ resource "aws_sfn_state_machine" "twitter_post" {
   role_arn = aws_iam_role.states.arn
 
   definition = jsonencode({
-    StartAt = "Post"
+    StartAt = "TransformPost"
     States = {
+      TransformPost = {
+        Type       = "Task"
+        Resource   = aws_lambda_function.twitter_transform.arn
+        Next       = "Post"
+        InputPath  = "$.REDDIT.DATA"
+        ResultPath = "$.TWITTER.DATA"
+        Retry = [
+          {
+            BackoffRate     = 2
+            IntervalSeconds = 3
+            MaxAttempts     = 4
+            ErrorEquals = [
+              "Lambda.AWSLambdaException",
+              "Lambda.SdkClientException",
+              "Lambda.ServiceException",
+            ]
+          }
+        ]
+      }
       Post = {
-        Type     = "Task"
-        Resource = aws_lambda_function.twitter_post.arn
-        End      = true
+        Type       = "Task"
+        Resource   = aws_lambda_function.twitter_post.arn
+        End        = true
+        InputPath  = "$.TWITTER.DATA"
+        ResultPath = "$.TWITTER.RESULT"
         Retry = [
           {
             BackoffRate     = 2
