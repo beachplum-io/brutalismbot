@@ -946,6 +946,82 @@ resource "aws_sfn_state_machine" "slack_install" {
   })
 }
 
+resource "aws_sfn_state_machine" "slack_uninstall" {
+  name     = "brutalismbot-slack-uninstall"
+  role_arn = aws_iam_role.states.arn
+
+  definition = jsonencode({
+    StartAt = "GetQuery"
+    States = {
+      GetQuery = {
+        Type = "Pass"
+        Next = "GetItems"
+        Parameters = {
+          TableName                 = aws_dynamodb_table.brutalismbot.name
+          IndexName                 = "SlackTeam"
+          Limit                     = 25
+          ProjectionExpression      = "GUID,SORT"
+          KeyConditionExpression    = "TEAM_ID = :TEAM_ID"
+          ExpressionAttributeValues = { ":TEAM_ID.$" = "$.team_id" }
+        }
+      }
+      GetItems = {
+        Type     = "Task"
+        Resource = aws_lambda_function.dynamodb_query.arn
+        Next     = "DeleteItems"
+      }
+      DeleteItems = {
+        Type       = "Map"
+        Next       = "NextPage?"
+        ItemsPath  = "$.Items"
+        ResultPath = "$.Items"
+        Iterator = {
+          StartAt = "DeleteItem"
+          States = {
+            DeleteItem = {
+              Type     = "Task"
+              Resource = "arn:aws:states:::dynamodb:deleteItem"
+              End      = true
+              Parameters = {
+                TableName = aws_dynamodb_table.brutalismbot.name
+                Key = {
+                  GUID = { "S.$" = "$.GUID" }
+                  SORT = { "S.$" = "$.SORT" }
+                }
+              }
+            }
+          }
+        }
+      }
+      "NextPage?" = {
+        Type    = "Choice"
+        Default = "Finish"
+        Choices = [
+          {
+            Next      = "NextPage"
+            Variable  = "$.LastEvaluatedKey"
+            IsPresent = true
+          }
+        ]
+      }
+      NextPage = {
+        Type = "Pass"
+        Next = "GetItems"
+        Parameters = {
+          TableName                 = aws_dynamodb_table.brutalismbot.name
+          IndexName                 = "SlackTeam"
+          Limit                     = 25
+          ProjectionExpression      = "GUID,SORT"
+          KeyConditionExpression    = "TEAM_ID = :TEAM_ID"
+          ExpressionAttributeValues = { ":TEAM_ID.$" = "$.team_id" }
+          "ExclusiveStartKey.$"     = "$.LastEvaluatedKey"
+        }
+      }
+      Finish = { Type = "Succeed" }
+    }
+  })
+}
+
 resource "aws_sfn_state_machine" "slack_post" {
   name     = "brutalismbot-slack-post"
   role_arn = aws_iam_role.states.arn
@@ -1149,82 +1225,6 @@ resource "aws_sfn_state_machine" "slack_post_auth" {
       }
       Succeed = { Type = "Succeed" }
       Fail    = { Type = "Fail" }
-    }
-  })
-}
-
-resource "aws_sfn_state_machine" "slack_uninstall" {
-  name     = "brutalismbot-slack-uninstall"
-  role_arn = aws_iam_role.states.arn
-
-  definition = jsonencode({
-    StartAt = "GetQuery"
-    States = {
-      GetQuery = {
-        Type = "Pass"
-        Next = "GetItems"
-        Parameters = {
-          TableName                 = aws_dynamodb_table.brutalismbot.name
-          IndexName                 = "SlackTeam"
-          Limit                     = 25
-          ProjectionExpression      = "GUID,SORT"
-          KeyConditionExpression    = "TEAM_ID = :TEAM_ID"
-          ExpressionAttributeValues = { ":TEAM_ID.$" = "$.team_id" }
-        }
-      }
-      GetItems = {
-        Type     = "Task"
-        Resource = aws_lambda_function.dynamodb_query.arn
-        Next     = "DeleteItems"
-      }
-      DeleteItems = {
-        Type       = "Map"
-        Next       = "NextPage?"
-        ItemsPath  = "$.Items"
-        ResultPath = "$.Items"
-        Iterator = {
-          StartAt = "DeleteItem"
-          States = {
-            DeleteItem = {
-              Type     = "Task"
-              Resource = "arn:aws:states:::dynamodb:deleteItem"
-              End      = true
-              Parameters = {
-                TableName = aws_dynamodb_table.brutalismbot.name
-                Key = {
-                  GUID = { "S.$" = "$.GUID" }
-                  SORT = { "S.$" = "$.SORT" }
-                }
-              }
-            }
-          }
-        }
-      }
-      "NextPage?" = {
-        Type    = "Choice"
-        Default = "Finish"
-        Choices = [
-          {
-            Next      = "NextPage"
-            Variable  = "$.LastEvaluatedKey"
-            IsPresent = true
-          }
-        ]
-      }
-      NextPage = {
-        Type = "Pass"
-        Next = "GetItems"
-        Parameters = {
-          TableName                 = aws_dynamodb_table.brutalismbot.name
-          IndexName                 = "SlackTeam"
-          Limit                     = 25
-          ProjectionExpression      = "GUID,SORT"
-          KeyConditionExpression    = "TEAM_ID = :TEAM_ID"
-          ExpressionAttributeValues = { ":TEAM_ID.$" = "$.team_id" }
-          "ExclusiveStartKey.$"     = "$.LastEvaluatedKey"
-        }
-      }
-      Finish = { Type = "Succeed" }
     }
   })
 }
