@@ -42,6 +42,10 @@ module Reddit
       end
     end
 
+    def permalink_url
+      "https://www.reddit.com#{ permalink }"
+    end
+
     def to_h
       @table.sort.to_h
     end
@@ -56,12 +60,19 @@ module Reddit
           type:      "image",
           image_url: image[:u],
           alt_text:  title,
-          title: { type: "plain_text", text: "/r/brutalism [#{ i + 1 }/#{ media.count }]", emoji: true },
+          title: {
+            type: "plain_text",
+            text: "/r/brutalism [#{ i + 1 }/#{ media.count }]",
+            emoji: true
+          }
         }
       end << {
         type: "context",
         elements: [
-          { type: "mrkdwn", text: "<https://www.reddit.com#{ permalink }|#{ title }>" }
+          {
+            type: "mrkdwn",
+            text: "<#{ permalink_url }|#{ title }>"
+          }
         ]
       }
 
@@ -70,8 +81,9 @@ module Reddit
 
     def to_twitter
       # Get status
-      max    = 279 - permalink.length
-      status = title.length <= max ? title : "#{ title[0..max] }…" + "\n#{ permalink }"
+      max    = 279 - permalink_url.length
+      status = title.length <= max ? title : "#{ title[0..max] }…"
+      status << "\n#{ permalink_url }"
 
       # Zip status with media
       size    = (media.count % 4).between?(1, 2) ? 3 : 4
