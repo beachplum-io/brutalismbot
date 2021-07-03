@@ -583,11 +583,11 @@ resource "aws_lambda_function" "twitter_post" {
   function_name    = "brutalismbot-twitter-post"
   handler          = "tweet.post"
   layers           = [data.aws_lambda_layer_version.twitter.arn]
-  memory_size      = 512
+  memory_size      = 1024
   role             = aws_iam_role.lambda.arn
   runtime          = "ruby2.7"
   source_code_hash = data.archive_file.twitter.output_base64sha256
-  timeout          = 10
+  timeout          = 60
 }
 
 resource "aws_cloudwatch_log_group" "twitter_post" {
