@@ -1,6 +1,0 @@
-task :default => 'vendor'
-
-file 'vendor' => 'Gemfile' do
-  rm_rf 'vendor'
-  sh %{bundle}
-end

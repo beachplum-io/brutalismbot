@@ -1,50 +1,49 @@
-require "bundler/setup"
-Bundler.require
+require 'rspec/core/rake_task'
 
-HANDLERS = Dir["lib/*.rb"].map { |x| x[/lib\/(.*?).rb/, 1] }
+task :default => %i[vendor spec]
 
-task :default => %i[spec]
+RSpec::Core::RakeTask.new :spec
 
-desc "Run terraform plan"
+desc 'Run terraform plan'
 task :plan => %i[terraform:plan]
 
-desc "Run terraform apply"
+desc 'Run terraform apply'
 task :apply => %i[terraform:apply]
 
-desc "Run RSpec code examples"
-task :spec => HANDLERS.map { |x| :"spec:#{ x }" }
+desc 'Run RSpec code examples'
+task :spec
 
-namespace :spec do
-  HANDLERS.each do |handler|
-    desc "Run RSpec code examples for #{ handler }"
-    RSpec::Core::RakeTask.new handler do |t|
-      t.pattern = "spec/**{,/*/**}/#{ handler }_spec.rb"
-    end
-  end
-end
-
+desc 'Vendor Lambda dependencies'
+task :vendor => %i[lib/vendor]
 
 namespace :terraform do
-  desc "Run terraform plan"
+  desc 'Run terraform plan'
   task :plan => :init do
     sh %{terraform plan -detailed-exitcode}
   end
 
-  desc "Run terraform apply"
+  desc 'Run terraform apply'
   task :apply => :init do
     sh %{terraform apply}
   end
 
   namespace :apply do
-    desc "Run terraform auto -auto-approve"
+    desc 'Run terraform auto -auto-approve'
     task :auto => :init do
       sh %{terraform apply -auto-approve}
     end
   end
 
-  task :init => ".terraform"
+  task :init => '.terraform'
 
-  directory ".terraform" do
+  directory '.terraform' do
     sh %{terraform init}
+  end
+end
+
+file 'lib/vendor' => 'lib/Gemfile' do
+  cd 'lib' do
+    rm_rf 'vendor'
+    sh    'bundle'
   end
 end
