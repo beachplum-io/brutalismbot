@@ -1,8 +1,6 @@
-require_relative '../lib/dynamodb.rb'
-
-logging :off
-
 RSpec.describe :dynamodb do
+  before { require_relative '../lib/dynamodb.rb' }
+
   context 'query' do
     let :event do
       {

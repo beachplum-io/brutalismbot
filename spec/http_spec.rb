@@ -1,13 +1,11 @@
-require_relative '../lib/http.rb'
-
-logging :off
-
 RSpec.describe :http do
   let :url     do 'https://example.com/' end
   let :json    do { fizz: 'buzz' }.to_json end
   let :form    do { fizz: 'buzz' }.to_form end
   let :body    do { ok:true }.to_json end
   let :headers do { 'content-length' => body.length.to_s, 'content-type' => 'application/json' } end
+
+  before { require_relative '../lib/http' }
 
   context :get do
     let :event do { url: url } end

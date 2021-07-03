@@ -1,8 +1,6 @@
-require_relative '../lib/reddit.rb'
-
-logging :off
-
 RSpec.describe :reddit do
+  before { require_relative '../lib/reddit.rb' }
+
   context 'dequeue' do
     let :post do
       Reddit::Post.new do |post|

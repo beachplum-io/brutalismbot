@@ -3,6 +3,14 @@ Bundler.require
 
 SimpleCov.start
 
+Aws.config = {
+  cloudwatch:     { stub_responses: true },
+  dynamodb:       { stub_responses: true },
+  secretsmanager: { stub_responses: true },
+}
+
+logging :off
+
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
   config.example_status_persistence_file_path = '.rspec_status'

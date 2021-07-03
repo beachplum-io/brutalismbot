@@ -1,8 +1,6 @@
-require_relative '../lib/slack.rb'
-
-logging :off
-
 RSpec.describe :slack do
+  before { require_relative '../lib/slack.rb' }
+
   context 'transform' do
     let :event do
       {
@@ -29,7 +27,7 @@ RSpec.describe :slack do
       }
     end
 
-    it 'should transform the post' do
+    it 'should transform a post' do
       expect(transform event:event).to eq exp
     end
   end
