@@ -1,5 +1,5 @@
-require "json"
-require "time"
+require 'json'
+require 'time'
 
 module Reddit
   class Post < OpenStruct
@@ -21,7 +21,7 @@ module Reddit
     end
 
     def created_utc
-      begin Time.at(self["created_utc"]&.to_f).utc rescue TypeError end
+      begin Time.at(self['created_utc']&.to_f).utc rescue TypeError end
     end
 
     def is_gallery?
@@ -57,20 +57,20 @@ module Reddit
     def to_slack
       blocks = media.map(&:last).each_with_index.map do |image,i|
         {
-          type:      "image",
+          type:      'image',
           image_url: image[:u],
           alt_text:  title,
           title: {
-            type: "plain_text",
+            type: 'plain_text',
             text: "/r/brutalism [#{ i + 1 }/#{ media.count }]",
             emoji: true
           }
         }
       end << {
-        type: "context",
+        type: 'context',
         elements: [
           {
-            type: "mrkdwn",
+            type: 'mrkdwn',
             text: "<#{ permalink_url }|#{ title }>"
           }
         ]

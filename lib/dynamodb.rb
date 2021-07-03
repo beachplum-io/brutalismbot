@@ -1,7 +1,7 @@
-require "aws-sdk-dynamodb"
-require "yake"
+require 'aws-sdk-dynamodb'
+require 'yake'
 
-require_relative "lib/common"
+require_relative 'lib/common'
 
 DYNAMODB = Aws::DynamoDB::Client.new
 

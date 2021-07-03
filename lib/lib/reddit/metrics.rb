@@ -1,7 +1,7 @@
-require "json"
+require 'json'
 
-require "aws-sdk-cloudwatch"
-require "yake/logger"
+require 'aws-sdk-cloudwatch'
+require 'yake/logger'
 
 module Reddit
   class Metrics

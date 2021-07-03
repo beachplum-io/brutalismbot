@@ -1,10 +1,10 @@
-require "open-uri"
-require "time"
+require 'open-uri'
+require 'time'
 
-require "aws-sdk-dynamodb"
-require "yake/logger"
+require 'aws-sdk-dynamodb'
+require 'yake/logger'
 
-require_relative "post"
+require_relative 'post'
 
 module Reddit
   class Brutalism
@@ -13,13 +13,13 @@ module Reddit
 
     attr_reader :headers
 
-    TABLE_NAME = ENV["TABLE_NAME"]        || "Brutalismbot"
-    USER_AGENT = ENV["REDDIT_USER_AGENT"] || "Brutalismbot"
+    TABLE_NAME = ENV['TABLE_NAME']        || 'Brutalismbot'
+    USER_AGENT = ENV['REDDIT_USER_AGENT'] || 'Brutalismbot'
 
     def initialize(resource = :new, table = nil, **headers)
       @uri     = URI "https://www.reddit.com/r/brutalism/#{ resource }.json?raw_json=1"
       @table   = table || Aws::DynamoDB::Table.new(name: TABLE_NAME)
-      @headers = { "user-agent" => USER_AGENT, **headers }
+      @headers = { 'user-agent' => USER_AGENT, **headers }
     end
 
     def each
@@ -36,9 +36,9 @@ module Reddit
     end
 
     def latest
-      params = { key: { GUID: "STATS/MAX", SORT: "REDDIT/POST" }, projection_expression: "CREATED_UTC" }
+      params = { key: { GUID: 'STATS/MAX', SORT: 'REDDIT/POST' }, projection_expression: 'CREATED_UTC' }
       logger.info("GET ITEM #{ params.to_json }")
-      start = Time.parse @table.get_item(**params).item&.fetch("CREATED_UTC", "1970-01-01T00:00:00Z")
+      start = Time.parse @table.get_item(**params).item&.fetch('CREATED_UTC', '1970-01-01T00:00:00Z')
       after(start).reject(&:is_self?).sort_by(&:created_utc)
     end
 

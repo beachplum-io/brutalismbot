@@ -1,12 +1,12 @@
-require "net/http"
+require 'net/http'
 
-require "yake"
+require 'yake'
 
-require_relative "lib/common"
+require_relative 'lib/common'
 
 def request(klass, event)
   uri = URI event[:url]
-  ssl = uri.scheme == "https"
+  ssl = uri.scheme == 'https'
   hed = event[:headers] || {}
   req = klass.new(uri, **hed)
   req.body = event[:body] if event.has_key? :body

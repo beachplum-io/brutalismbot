@@ -1,6 +1,6 @@
-require "base64"
-require "json"
-require "time"
+require 'base64'
+require 'json'
+require 'time'
 
 class Hash
   def encode64() to_json.encode64 end

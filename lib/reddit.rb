@@ -1,11 +1,11 @@
-require "aws-sdk-dynamodb"
-require "yake"
+require 'aws-sdk-dynamodb'
+require 'yake'
 
-require_relative "lib/common"
-require_relative "lib/reddit/brutalism"
-require_relative "lib/reddit/metrics"
+require_relative 'lib/common'
+require_relative 'lib/reddit/brutalism'
+require_relative 'lib/reddit/metrics'
 
-TABLE       = Aws::DynamoDB::Table.new name: ENV["TABLE_NAME"] || "Brutalismbot"
+TABLE       = Aws::DynamoDB::Table.new name: ENV['TABLE_NAME'] || 'Brutalismbot'
 R_BRUTALISM = Reddit::Brutalism.new :new, TABLE
 METRICS     = Reddit::Metrics.new
 

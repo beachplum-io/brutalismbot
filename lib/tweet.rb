@@ -1,8 +1,8 @@
-require "yake"
+require 'yake'
 
-require_relative "lib/common"
-require_relative "lib/reddit/post"
-require_relative "lib/twitter/brutalismbot"
+require_relative 'lib/common'
+require_relative 'lib/reddit/post'
+require_relative 'lib/twitter/brutalismbot'
 
 TWITTER = Twitter::Brutalismbot.new
 
