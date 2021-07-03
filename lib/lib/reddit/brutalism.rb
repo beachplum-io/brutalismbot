@@ -5,13 +5,14 @@ require 'aws-sdk-dynamodb'
 require 'yake/logger'
 
 require_relative 'post'
+require_relative '../common'
 
 module Reddit
   class Brutalism
     include Enumerable
     include Yake::Logger
 
-    attr_reader :headers
+    attr_reader :headers, :table
 
     TABLE_NAME = ENV['TABLE_NAME']        || 'Brutalismbot'
     USER_AGENT = ENV['REDDIT_USER_AGENT'] || 'Brutalismbot'
@@ -25,7 +26,7 @@ module Reddit
     def each
       logger.info("GET #{ @uri }")
       URI.open(@uri, **@headers) do |stream|
-        JSON.parse(stream.read, symbolize_names: true).dig(:data, :children).each do |child|
+        stream.read.to_h_from_json.symbolize_names.dig(:data, :children).each do |child|
           yield Post.new child[:data]
         end
       end
@@ -38,7 +39,8 @@ module Reddit
     def latest
       params = { key: { GUID: 'STATS/MAX', SORT: 'REDDIT/POST' }, projection_expression: 'CREATED_UTC' }
       logger.info("GET ITEM #{ params.to_json }")
-      start = Time.parse @table.get_item(**params).item&.fetch('CREATED_UTC', '1970-01-01T00:00:00Z')
+      item  = @table.get_item(**params).item || {}
+      start = Time.parse item.fetch('CREATED_UTC', '1970-01-01T00:00:00Z')
       after(start).reject(&:is_self?).sort_by(&:created_utc)
     end
 

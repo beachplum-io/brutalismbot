@@ -7,6 +7,8 @@ module Reddit
   class Metrics
     include Yake::Logger
 
+    attr_reader :client
+
     def initialize(client = nil)
       @client = client || Aws::CloudWatch::Client.new
     end

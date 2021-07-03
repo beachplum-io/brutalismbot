@@ -9,20 +9,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-ruby@v1
+      - uses: ruby/setup-ruby@v1
       - uses: hashicorp/setup-terraform@v1
-      - uses: amancevice/aws-sts-assume-role@v0
+      - uses: amancevice/aws-sts-assume-role@main
         with:
           access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           role-arn: ${{ secrets.AWS_ROLE_ARN }}
-      - run: gem install bundler -v 2.1.4
+      - run: gem install bundler
       - run: bundle install --jobs 4 --retry 3
-      - run: bundle exec rake spec
+      - run: bundle exec rake spec plan
         env:
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-      - run: bundle exec rake zip
-      - run: terraform fmt -check
-      - run: terraform init
-      - run: terraform validate
-      - run: terraform plan
