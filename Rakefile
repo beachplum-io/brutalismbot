@@ -1,3 +1,4 @@
+require 'dotenv/load'
 require 'rspec/core/rake_task'
 
 task :default => %i[vendor spec]
