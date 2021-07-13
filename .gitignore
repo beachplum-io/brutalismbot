@@ -10,6 +10,7 @@
 
 **/.terraform/
 **/pkg/
+**/vendor/
 *.env
 *.swp
 *.tfplan
