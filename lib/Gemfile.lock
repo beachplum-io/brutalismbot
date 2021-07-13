@@ -1,13 +1,13 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    addressable (2.7.0)
+    addressable (2.8.0)
       public_suffix (>= 2.0.2, < 5.0)
     buftok (0.2.0)
     domain_name (0.5.20190701)
       unf (>= 0.0.5, < 1.0.0)
     equalizer (0.0.11)
-    ffi (1.15.1)
+    ffi (1.15.3)
     ffi-compiler (1.0.1)
       ffi (>= 1.0.0)
       rake
@@ -16,7 +16,7 @@ GEM
       http-cookie (~> 1.0)
       http-form_data (~> 2.2)
       http-parser (~> 1.2.0)
-    http-cookie (1.0.3)
+    http-cookie (1.0.4)
       domain_name (~> 0.5)
     http-form_data (2.3.0)
     http-parser (1.2.3)
@@ -27,7 +27,7 @@ GEM
     multipart-post (2.1.1)
     naught (1.1.0)
     public_suffix (4.0.6)
-    rake (13.0.3)
+    rake (13.0.6)
     simple_oauth (0.3.1)
     thread_safe (0.3.6)
     twitter (7.0.0)
@@ -47,7 +47,6 @@ GEM
     yake (0.3.0)
 
 PLATFORMS
-  arm64-darwin-20
   x86_64-darwin-20
 
 DEPENDENCIES
@@ -55,4 +54,4 @@ DEPENDENCIES
   yake (~> 0.3)
 
 BUNDLED WITH
-   2.2.21
+   2.2.22
