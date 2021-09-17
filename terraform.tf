@@ -836,24 +836,11 @@ resource "aws_sfn_state_machine" "slack_install" {
         Type = "Parallel"
         Next = "PutEvents"
         ResultSelector = {
-          "AccessToken.$" = "$[0].AccessToken"
-          "URL.$"         = "$[0].URL"
-          "JSON.$"        = "$[1]"
+          "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$" = "$$.Execution.Id"
+          "POST.$"                                       = "$[0]"
+          "SLACK.$"                                      = "$[1]"
         }
         Branches = [
-          {
-            StartAt = "GetAuth"
-            States = {
-              GetAuth = {
-                Type = "Pass"
-                End  = true
-                Parameters = {
-                  "AccessToken.$" = "$.access_token"
-                  "URL.$"         = "$.incoming_webhook.url"
-                }
-              }
-            }
-          },
           {
             StartAt = "GetLastPostName"
             States = {
@@ -873,27 +860,74 @@ resource "aws_sfn_state_machine" "slack_install" {
                 }
               }
               GetLastPost = {
-                Type           = "Task"
-                Resource       = "arn:aws:states:::dynamodb:getItem"
-                End            = true
-                ResultSelector = { "JSON.$" = "$.Item.JSON.S" }
+                Type     = "Task"
+                Resource = "arn:aws:states:::dynamodb:getItem"
+                Next     = "TransformPost"
+                ResultSelector = {
+                  "DATA.$"        = "States.StringToJson($.Item.JSON.S)"
+                  "CREATED_UTC.$" = "$.Item.CREATED_UTC.S"
+                  "NAME.$"        = "$.Item.NAME.S"
+                  "PERMALINK.$"   = "$.Item.PERMALINK.S"
+                  "TITLE.$"       = "$.Item.TITLE.S"
+                  "TTL.$"         = "States.StringToJson($.Item.TTL.N)"
+                }
                 Parameters = {
                   TableName            = aws_dynamodb_table.brutalismbot.name
-                  ProjectionExpression = "JSON"
+                  ProjectionExpression = "CREATED_UTC,JSON,#NAME,PERMALINK,TITLE,#TTL"
+                  ExpressionAttributeNames = {
+                    "#NAME" = "NAME"
+                    "#TTL"  = "TTL"
+                  }
                   Key = {
                     GUID = { "S.$" = "$.NAME" }
                     SORT = { S = "REDDIT/POST" }
                   }
                 }
               }
+              TransformPost = {
+                Type       = "Task"
+                Resource   = aws_lambda_function.slack_transform.arn
+                End        = true
+                InputPath  = "$.DATA"
+                ResultPath = "$.DATA"
+                Retry = [
+                  {
+                    BackoffRate     = 2
+                    IntervalSeconds = 3
+                    MaxAttempts     = 4
+                    ErrorEquals = [
+                      "Lambda.AWSLambdaException",
+                      "Lambda.SdkClientException",
+                      "Lambda.ServiceException",
+                    ]
+                  }
+                ]
+              }
             }
           },
           {
-            StartAt = "GetItem"
+            StartAt = "GetSlack"
             States = {
-              GetItem = {
+              GetSlack = {
                 Type = "Pass"
-                Next = "PutItem"
+                End  = true
+                Parameters = {
+                  "ACCESS_TOKEN.$" = "$.access_token"
+                  "CHANNEL_ID.$"   = "$.incoming_webhook.channel_id"
+                  "CHANNEL_NAME.$" = "$.incoming_webhook.channel"
+                  "TEAM_ID.$"      = "$.team.id"
+                  "TEAM_NAME.$"    = "$.team.name"
+                  "WEBHOOK_URL.$"  = "$.incoming_webhook.url"
+                }
+              }
+            }
+          },
+          {
+            StartAt = "GetDynamoDBItem"
+            States = {
+              GetDynamoDBItem = {
+                Type = "Pass"
+                Next = "PutDynamoDBItem"
                 Parameters = {
                   SORT         = { S = "SLACK/AUTH" }
                   ACCESS_TOKEN = { "S.$" = "$.access_token" }
@@ -910,7 +944,7 @@ resource "aws_sfn_state_machine" "slack_install" {
                   WEBHOOK_URL  = { "S.$" = "$.incoming_webhook.url" }
                 }
               }
-              PutItem = {
+              PutDynamoDBItem = {
                 Type     = "Task"
                 Resource = "arn:aws:states:::dynamodb:putItem"
                 End      = true
