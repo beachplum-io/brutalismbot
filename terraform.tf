@@ -436,6 +436,7 @@ data "archive_file" "package" {
 # LAMBDA FUNCTIONS :: DYNAMODB :: QUERY
 
 resource "aws_lambda_function" "dynamodb_query" {
+  architectures    = ["arm64"]
   description      = "Execute query against DynamoDB Table"
   filename         = data.archive_file.package.output_path
   function_name    = "brutalismbot-dynamodb-query"
@@ -455,6 +456,7 @@ resource "aws_cloudwatch_log_group" "dynamodb_query" {
 # LAMBDA FUNCTIONS :: HTTP :: GET
 
 resource "aws_lambda_function" "http_get" {
+  architectures    = ["arm64"]
   description      = "Do HTTP GET"
   filename         = data.archive_file.package.output_path
   function_name    = "brutalismbot-http-get"
@@ -474,6 +476,7 @@ resource "aws_cloudwatch_log_group" "http_get" {
 # LAMBDA FUNCTIONS :: HTTP :: GET
 
 resource "aws_lambda_function" "http_head" {
+  architectures    = ["arm64"]
   description      = "Do HTTP HEAD"
   filename         = data.archive_file.package.output_path
   function_name    = "brutalismbot-http-head"
@@ -493,6 +496,7 @@ resource "aws_cloudwatch_log_group" "http_head" {
 # LAMBDA FUNCTIONS :: HTTP :: POST
 
 resource "aws_lambda_function" "http_post" {
+  architectures    = ["arm64"]
   description      = "Do HTTP POST"
   filename         = data.archive_file.package.output_path
   function_name    = "brutalismbot-http-post"
@@ -512,6 +516,7 @@ resource "aws_cloudwatch_log_group" "http_post" {
 # LAMBDA FUNCTIONS :: REDDIT :: DEQUEUE
 
 resource "aws_lambda_function" "reddit_dequeue" {
+  architectures    = ["arm64"]
   description      = "Dequeue next post from /r/brutalism"
   filename         = data.archive_file.package.output_path
   function_name    = "brutalismbot-reddit-dequeue"
@@ -531,6 +536,7 @@ resource "aws_cloudwatch_log_group" "reddit_dequeue" {
 # LAMBDA FUNCTIONS :: REDDIT :: METRICS
 
 resource "aws_lambda_function" "reddit_metrics" {
+  architectures    = ["arm64"]
   description      = "Publish Reddit metrics"
   filename         = data.archive_file.package.output_path
   function_name    = "brutalismbot-reddit-metrics"
@@ -548,6 +554,7 @@ resource "aws_cloudwatch_log_group" "reddit_metrics" {
 # LAMBDA FUNCTIONS :: SLACK :: TRANSFORM
 
 resource "aws_lambda_function" "slack_transform" {
+  architectures    = ["arm64"]
   description      = "Transform Reddit post to Slack"
   filename         = data.archive_file.package.output_path
   function_name    = "brutalismbot-slack-transform"
@@ -578,6 +585,7 @@ data "aws_lambda_layer_version" "twitter" { layer_name = "twitter-ruby2-7" }
 # LAMBDA FUNCTIONS :: TWITTER :: POST
 
 resource "aws_lambda_function" "twitter_post" {
+  architectures    = ["arm64"]
   description      = "Post to Twitter"
   filename         = data.archive_file.twitter.output_path
   function_name    = "brutalismbot-twitter-post"
@@ -598,6 +606,7 @@ resource "aws_cloudwatch_log_group" "twitter_post" {
 # LAMBDA FUNCTIONS :: TWITTER :: TRANSFORM
 
 resource "aws_lambda_function" "twitter_transform" {
+  architectures    = ["arm64"]
   description      = "Transform Reddit post to Twitter"
   filename         = data.archive_file.package.output_path
   function_name    = "brutalismbot-twitter-transform"
