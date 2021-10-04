@@ -585,7 +585,7 @@ data "aws_lambda_layer_version" "twitter" { layer_name = "twitter-ruby2-7" }
 # LAMBDA FUNCTIONS :: TWITTER :: POST
 
 resource "aws_lambda_function" "twitter_post" {
-  architectures    = ["arm64"]
+  architectures    = ["x86_64"]
   description      = "Post to Twitter"
   filename         = data.archive_file.twitter.output_path
   function_name    = "brutalismbot-twitter-post"
