@@ -9,7 +9,7 @@ TABLE       = Aws::DynamoDB::Table.new name: ENV['TABLE_NAME'] || 'Brutalismbot'
 R_BRUTALISM = Reddit::Brutalism.new :new, TABLE
 METRICS     = Reddit::Metrics.new
 
-LAG = 4.hours
+LAG = 8.hours
 TTL = 14.days
 
 handler :dequeue do |event|
