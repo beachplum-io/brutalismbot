@@ -9,9 +9,8 @@ def request(klass, event)
   ssl = uri.scheme == 'https'
   hed = event[:headers] || {}
   req = klass.new(uri, **hed)
-  req.body = event[:body] if event.has_key? :body
   Net::HTTP.start(uri.host, uri.port, use_ssl: ssl) do |http|
-    res = http.request req
+    res = http.request req, event[:body]
 
     {
       statusCode: res.code,

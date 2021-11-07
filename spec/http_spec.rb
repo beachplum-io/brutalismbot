@@ -12,7 +12,7 @@ RSpec.describe :http do
     let :res   do OpenStruct.new code: '200', body: body, each_header: headers.each end
 
     it 'should execute a GET request' do
-      expect_any_instance_of(Net::HTTP).to receive(:request).with(an_instance_of Net::HTTP::Get).and_return(res)
+      expect_any_instance_of(Net::HTTP).to receive(:request).with(an_instance_of(Net::HTTP::Get), nil).and_return(res)
       expect(get event: event).to eq statusCode: '200', body: body, headers: headers
     end
   end
@@ -22,7 +22,7 @@ RSpec.describe :http do
     let :res   do OpenStruct.new code: '200', body: nil, each_header: headers.each end
 
     it 'should execute a HEAD request' do
-      expect_any_instance_of(Net::HTTP).to receive(:request).with(an_instance_of Net::HTTP::Head).and_return(res)
+      expect_any_instance_of(Net::HTTP).to receive(:request).with(an_instance_of(Net::HTTP::Head), nil).and_return(res)
       expect(head event: event).to eq statusCode: '200', body: nil, headers: headers
     end
   end
@@ -32,7 +32,7 @@ RSpec.describe :http do
     let :res   do OpenStruct.new code: '200', body: body, each_header: headers.each end
 
     it 'should execute a POST request' do
-      expect_any_instance_of(Net::HTTP).to receive(:request).with(an_instance_of Net::HTTP::Post).and_return(res)
+      expect_any_instance_of(Net::HTTP).to receive(:request).with(an_instance_of(Net::HTTP::Post), {ok:true}.to_json).and_return(res)
       expect(post event: event).to eq statusCode: '200', body: body, headers: headers
     end
   end
