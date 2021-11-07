@@ -33,14 +33,4 @@ RSpec.describe :reddit do
       )
     end
   end
-
-  context 'metrics' do
-    let :event do { 'namespace' => 'RSpec', 'metric_data' => metric_data } end
-    let :metric_data do [] end
-
-    it 'should send metrics' do
-      expect(METRICS.client).to receive(:put_metric_data).with(event.symbolize_names).and_return({})
-      expect(metrics event:event).to eq event.symbolize_names
-    end
-  end
 end

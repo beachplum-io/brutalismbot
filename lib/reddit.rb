@@ -3,14 +3,12 @@ require 'yake'
 
 require_relative 'lib/common'
 require_relative 'lib/reddit/brutalism'
-require_relative 'lib/reddit/metrics'
 
 TABLE       = Aws::DynamoDB::Table.new name: ENV['TABLE_NAME'] || 'Brutalismbot'
 R_BRUTALISM = Reddit::Brutalism.new :new, TABLE
-METRICS     = Reddit::Metrics.new
 
-LAG = 8.hours
-TTL = 14.days
+LAG = (ENV['LAG_HOURS'] || '8').to_i.hours
+TTL = (ENV['TTL_DAYS'] || '14').to_i.days
 
 handler :dequeue do |event|
   queue = R_BRUTALISM.latest
@@ -26,9 +24,5 @@ handler :dequeue do |event|
       TITLE:       post.title,
       TTL:         post.created_utc.to_i + TTL,
     }
-  }.compact
-end
-
-handler :metrics do |event|
-  METRICS.put_metric_data(**event.symbolize_names)
+  }
 end
