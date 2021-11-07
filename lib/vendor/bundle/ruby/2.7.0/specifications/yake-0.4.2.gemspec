@@ -1,14 +1,14 @@
 # -*- encoding: utf-8 -*-
-# stub: yake 0.3.0 ruby lib
+# stub: yake 0.4.2 ruby lib
 
 Gem::Specification.new do |s|
   s.name = "yake".freeze
-  s.version = "0.3.0"
+  s.version = "0.4.2"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0".freeze) if s.respond_to? :required_rubygems_version=
   s.require_paths = ["lib".freeze]
   s.authors = ["Alexander Mancevice".freeze]
-  s.date = "2021-06-28"
+  s.date = "2021-11-04"
   s.email = ["alexander.mancevice@hey.com".freeze]
   s.homepage = "https://github.com/amancevice/yake".freeze
   s.licenses = ["MIT".freeze]

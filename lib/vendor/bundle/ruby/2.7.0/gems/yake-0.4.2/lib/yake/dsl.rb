@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require "json"
+require 'json'
 
-require_relative "logger"
+require_relative 'logger'
 
 module Yake
   module DSL
@@ -22,7 +22,8 @@ module Yake
 
     ##
     # Turn logging on/off
-    def logging(switch, logger = nil)
+    def logging(switch = :on, logger = nil, pretty: true)
+      Yake.pretty = pretty
       if switch == :on
         Yake.logger = logger
       elsif switch == :off

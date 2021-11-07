@@ -9,7 +9,7 @@ Write your AWS Lambda function handlers using a Rake-like declarative syntax:
 
 ```ruby
 # ./lambda_function.rb
-require "yake"
+require 'yake'
 
 handler :lambda_handler do |event|
   # Your code here
@@ -22,11 +22,11 @@ You can even declare Sinatra-like API Gateway routes for a main entrypoint:
 
 ```ruby
 # ./lambda_function.rb
-require "yake/api"
+require 'yake/api'
 
-header "content-type" => "application/json"
+header 'content-type' => 'application/json'
 
-get "/fizz" do
+get '/fizz' do
   respond 200, { ok: true }.to_json
 end
 
@@ -44,7 +44,7 @@ end
 Add this line to your application's Gemfile:
 
 ```ruby
-gem "yake"
+gem 'yake'
 ```
 
 And then execute:
@@ -82,10 +82,12 @@ REPORT RequestId: 149c500f-028a-4b57-8977-0ef568cf8caf	Duration: 43.97 ms	Billed
 
 Logging the request ID in this way makes gathering logs lines for a particular execution in CloudWatch much easier.
 
-This feature can be disabled by adding a declaration in your handler file:
+You can or disable the logger:
 
 ```ruby
-logging :off
+logging :off              # disables logging entirely
+logging pretty: false     # Logs event/result in compact JSON
+logging :on, MyLogger.new # Use a custom logger
 ```
 
 Include `Yake::Logger` on a class to access this logger:
@@ -108,35 +110,35 @@ Requiring the `yake/api` module will add the API-specific DSL into your handler.
 Define API routes using Sinatra-like syntax
 
 ```ruby
-any "/…" do |event|
+any '/…' do |event|
   # Handle 'ANY /…' route key events
 end
 
-delete "/…" do |event|
+delete '/…' do |event|
   # Handle 'DELETE /…' route key events
 end
 
-get "/…" do |event|
+get '/…' do |event|
   # Handle 'GET /…' route key events
 end
 
-head "/…" do |event|
+head '/…' do |event|
   # Handle 'HEAD /…' route key events
 end
 
-options "/…" do |event|
+options '/…' do |event|
   # Handle 'OPTIONS /…' route key events
 end
 
-patch "/…" do |event|
+patch '/…' do |event|
   # Handle 'PATCH /…' route key events
 end
 
-post "/…" do |event|
+post '/…' do |event|
   # Handle 'POST /…' route key events
 end
 
-put "/…" do |event|
+put '/…' do |event|
   # Handle 'PUT /…' route key events
 end
 ```
@@ -146,14 +148,14 @@ Helper methods are also made available to help produce a response for API Gatewa
 Set a default header for ALL responses:
 
 ```ruby
-header "content-type" => "application/json; charset=utf-8"
-header "x-custom-header" => "fizz"
+header 'content-type' => 'application/json; charset=utf-8'
+header 'x-custom-header' => 'fizz'
 ```
 
 Produce an API Gateway-style response object:
 
 ```ruby
-respond 200, { ok: true }.to_json, "x-extra-header" => "buzz"
+respond 200, { ok: true }.to_json, 'x-extra-header' => 'buzz'
 # {
 #   "statusCode" => 200,
 #   "body" => '{"ok":true}',
@@ -177,11 +179,35 @@ end
 
 Finally, `yake` does not depend on any other gems, using the Ruby stdlib only. This helps keep your Lambda packages slim & speedy.
 
+## Datadog Integration
+
+As of `~> 0.4`, `yake` comes with a helper for writing Lambdas that integrate with Datadog's `datadog-ruby` gem.
+
+Creating a Lambda handler that wraps the Datadog tooling is easy:
+
+```ruby
+require 'aws-sdk-someservice'
+require 'yake/datadog'
+
+# Configure Datadog to use AWS tracing
+Datadog::Lambda.configure_apm { |config| config.use :aws }
+
+datadog :handler do |event|
+  # …
+end
+```
+
+## Deployment
+
+After writing your Lambda handler code you can deploy it to AWS using any number of tools. I recommend the following tools:
+
+- [Terraform](https://www.terraform.io) — my personal favorite Infrastructure-as-Code tool
+- [AWS SAM](https://aws.amazon.com/serverless/sam/) — a great alternative with less configuration than Terraform
+- [Serverless](https://www.serverless.com) — Supposedly the most popular option, though I have not used it
+
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
-
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+After checking out the repo, run `bundle` to install dependencies. Then, run `rake spec` to run the tests.
 
 ## Contributing
 

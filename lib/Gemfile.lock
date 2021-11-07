@@ -44,14 +44,15 @@ GEM
     unf (0.1.4)
       unf_ext
     unf_ext (0.0.7.7)
-    yake (0.3.0)
+    yake (0.4.2)
 
 PLATFORMS
+  ruby
   x86_64-darwin-20
 
 DEPENDENCIES
   twitter (~> 7.0)
-  yake (~> 0.3)
+  yake (~> 0.4)
 
 BUNDLED WITH
    2.2.22
