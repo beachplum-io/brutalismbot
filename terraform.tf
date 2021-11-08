@@ -1068,7 +1068,8 @@ resource "aws_sfn_state_machine" "slack_post" {
           Limit                     = 10
           KeyConditionExpression    = "SORT = :SORT"
           FilterExpression          = "attribute_not_exists(DISABLED)"
-          ProjectionExpression      = "ACCESS_TOKEN,APP_ID,CHANNEL_ID,CHANNEL_NAME,TEAM_ID,TEAM_NAME,WEBHOOK_URL"
+          ProjectionExpression      = "ACCESS_TOKEN,APP_ID,CHANNEL_ID,CHANNEL_NAME,#SCOPE,TEAM_ID,TEAM_NAME,WEBHOOK_URL"
+          ExpressionAttributeNames  = { "#SCOPE" = "SCOPE" }
           ExpressionAttributeValues = { ":SORT" = { S = "SLACK/AUTH" } }
         }
       }
@@ -1085,6 +1086,7 @@ resource "aws_sfn_state_machine" "slack_post" {
           "KeyConditionExpression.$"    = "$.KeyConditionExpression"
           "FilterExpression.$"          = "$.FilterExpression"
           "ProjectionExpression.$"      = "$.ProjectionExpression"
+          "ExpressionAttributeNames.$"  = "$.ExpressionAttributeNames"
           "ExpressionAttributeValues.$" = "$.ExpressionAttributeValues"
         }
       }
@@ -1101,6 +1103,7 @@ resource "aws_sfn_state_machine" "slack_post" {
             "APP_ID.$"       = "$$.Map.Item.Value.APP_ID.S"
             "CHANNEL_ID.$"   = "$$.Map.Item.Value.CHANNEL_ID.S"
             "CHANNEL_NAME.$" = "$$.Map.Item.Value.CHANNEL_NAME.S"
+            "SCOPE.$"        = "$$.Map.Item.Value.SCOPE.S"
             "TEAM_ID.$"      = "$$.Map.Item.Value.TEAM_ID.S"
             "TEAM_NAME.$"    = "$$.Map.Item.Value.TEAM_NAME.S"
             "WEBHOOK_URL.$"  = "$$.Map.Item.Value.WEBHOOK_URL.S"
@@ -1154,6 +1157,7 @@ resource "aws_sfn_state_machine" "slack_post" {
           "KeyConditionExpression.$"    = "$.QUERY.KeyConditionExpression"
           "FilterExpression.$"          = "$.QUERY.FilterExpression"
           "ProjectionExpression.$"      = "$.QUERY.ProjectionExpression"
+          "ExpressionAttributeNames.$"  = "$.QUERY.ExpressionAttributeNames"
           "ExpressionAttributeValues.$" = "$.QUERY.ExpressionAttributeValues"
           "ExclusiveStartKey.$"         = "$.RESULT.LastEvaluatedKey"
         }
@@ -1380,7 +1384,7 @@ resource "aws_sfn_state_machine" "twitter_post" {
         Parameters = {
           TableName                 = aws_dynamodb_table.brutalismbot.name
           UpdateExpression          = "SET JSON = :JSON"
-          ExpressionAttributeValues = { ":JSON.$" = "States.JsonToString($.DATA)" }
+          ExpressionAttributeValues = { ":JSON" = { "S.$" = "States.JsonToString($.DATA)" } }
           Key = {
             GUID = { "S.$" = "States.Format('@brutalismbot/{}', $.NAME)" }
             SORT = { S = "TWITTER/POST" }
