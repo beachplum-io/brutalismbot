@@ -10,6 +10,9 @@ RSpec::Core::RakeTask.new :spec => :vendor
 
 task :default => :spec
 
+desc 'Run terraform init'
+task :init => :'terraform:init'
+
 desc 'Run terraform plan'
 task :plan => :'terraform:plan'
 
