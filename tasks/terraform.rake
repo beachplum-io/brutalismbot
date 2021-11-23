@@ -29,8 +29,15 @@ namespace :terraform do
     task :'state-machines' do
       sh <<~SH
         terraform state list | grep aws_sfn_state_machine | xargs -n1 terraform taint
-        terraform state list | grep aws_sfn_state_machine | tac | xargs -n1 terraform apply -auto-approve -target 
+        terraform state list | grep aws_sfn_state_machine | tac | xargs -n1 terraform apply -auto-approve -target
       SH
+    end
+  end
+
+  namespace :state do
+    desc 'List state'
+    task :list do
+      sh %{terraform state list}
     end
   end
 

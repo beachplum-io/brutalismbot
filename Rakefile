@@ -21,3 +21,6 @@ task :apply => :'terraform:apply'
 
 desc 'Run terraform apply -auto-approve'
 task :'apply:auto' => :'terraform:apply:auto'
+
+desc 'List state'
+task :state => :'terraform:state:list'
