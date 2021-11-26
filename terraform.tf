@@ -1046,183 +1046,141 @@ resource "aws_sfn_state_machine" "slack_post" {
   role_arn = aws_iam_role.states.arn
 
   definition = jsonencode({
-    StartAt = "Parallelize1"
+    StartAt = "GetQuery?"
     States = {
-      Parallelize1 = {
-        Type = "Parallel"
-        Next = "Parallelize2"
-        ResultSelector = {
-          "DYNAMODB.$" = "$[0]"
-          "POST.$"     = "$[1].POST"
+      "GetQuery?" = {
+        Type    = "Choice"
+        Default = "GetQuery"
+        Choices = [{
+          Next      = "ListAuths"
+          Variable  = "$.DYNAMODB"
+          IsPresent = true
+        }]
+      }
+      GetQuery = {
+        Type       = "Pass"
+        Next       = "ListAuths"
+        ResultPath = "$.DYNAMODB"
+        Parameters = {
+          TableName                 = aws_dynamodb_table.brutalismbot.name
+          IndexName                 = "Chrono"
+          Limit                     = 10
+          KeyConditionExpression    = "SORT = :SORT"
+          FilterExpression          = "attribute_not_exists(DISABLED)"
+          ProjectionExpression      = "ACCESS_TOKEN,APP_ID,CHANNEL_ID,CHANNEL_NAME,#SCOPE,TEAM_ID,TEAM_NAME,WEBHOOK_URL"
+          ExpressionAttributeNames  = { "#SCOPE" = "SCOPE" }
+          ExpressionAttributeValues = { ":SORT" = { S = "SLACK/AUTH" } }
+          ExclusiveStartKey         = null
         }
-        Branches = [
-          {
-            StartAt = "GetQuery?"
-            States = {
-              "GetQuery?" = {
-                Type    = "Choice"
-                Default = "GetQuery"
-                Choices = [{
-                  Next      = "ListAuths"
-                  Variable  = "$.DYNAMODB"
-                  IsPresent = true
-                }]
-              }
-              GetQuery = {
-                Type       = "Pass"
-                Next       = "ListAuths"
-                ResultPath = "$.DYNAMODB"
-                Parameters = {
-                  TableName                 = aws_dynamodb_table.brutalismbot.name
-                  IndexName                 = "Chrono"
-                  Limit                     = 10
-                  KeyConditionExpression    = "SORT = :SORT"
-                  FilterExpression          = "attribute_not_exists(DISABLED)"
-                  ProjectionExpression      = "ACCESS_TOKEN,APP_ID,CHANNEL_ID,CHANNEL_NAME,#SCOPE,TEAM_ID,TEAM_NAME,WEBHOOK_URL"
-                  ExpressionAttributeNames  = { "#SCOPE" = "SCOPE" }
-                  ExpressionAttributeValues = { ":SORT" = { S = "SLACK/AUTH" } }
-                  ExclusiveStartKey         = null
-                }
-              },
-              ListAuths = {
-                Type      = "Task"
-                Resource  = "arn:aws:states:::aws-sdk:dynamodb:query"
-                End       = true
-                InputPath = "$.DYNAMODB"
-                Parameters = {
-                  "TableName.$"                 = "$.TableName"
-                  "IndexName.$"                 = "$.IndexName"
-                  "KeyConditionExpression.$"    = "$.KeyConditionExpression"
-                  "FilterExpression.$"          = "$.FilterExpression"
-                  "Limit.$"                     = "$.Limit"
-                  "ProjectionExpression.$"      = "$.ProjectionExpression"
-                  "ExpressionAttributeNames.$"  = "$.ExpressionAttributeNames"
-                  "ExpressionAttributeValues.$" = "$.ExpressionAttributeValues"
-                  "ExclusiveStartKey.$"         = "$.ExclusiveStartKey"
-                }
-              }
-            }
-          },
-          {
-            StartAt = "TransformPost?"
-            States = {
-              "TransformPost?" = {
-                Type    = "Choice"
-                Default = "TransformPost"
-                Choices = [{
-                  Next      = "PassPost"
-                  Variable  = "$.POST.DATA.blocks"
-                  IsPresent = true
-                }]
-              }
-              PassPost = { Type = "Succeed" }
-              TransformPost = {
-                Type       = "Task"
-                Resource   = aws_lambda_function.slack_transform.arn
-                End        = true
-                InputPath  = "$.POST.DATA"
-                ResultPath = "$.POST.DATA"
-                Retry = [
-                  {
-                    BackoffRate     = 2
-                    IntervalSeconds = 3
-                    MaxAttempts     = 4
-                    ErrorEquals = [
-                      "Lambda.AWSLambdaException",
-                      "Lambda.SdkClientException",
-                      "Lambda.ServiceException",
-                    ]
-                  }
-                ]
-              }
+      }
+      ListAuths = {
+        Type       = "Task"
+        Resource   = "arn:aws:states:::aws-sdk:dynamodb:query"
+        Next       = "NextPage?"
+        InputPath  = "$.DYNAMODB"
+        ResultPath = "$.DYNAMODB"
+        Parameters = {
+          "TableName.$"                 = "$.TableName"
+          "IndexName.$"                 = "$.IndexName"
+          "KeyConditionExpression.$"    = "$.KeyConditionExpression"
+          "FilterExpression.$"          = "$.FilterExpression"
+          "Limit.$"                     = "$.Limit"
+          "ProjectionExpression.$"      = "$.ProjectionExpression"
+          "ExpressionAttributeNames.$"  = "$.ExpressionAttributeNames"
+          "ExpressionAttributeValues.$" = "$.ExpressionAttributeValues"
+          "ExclusiveStartKey.$"         = "$.ExclusiveStartKey"
+        }
+      }
+      "NextPage?" = {
+        Type    = "Choice"
+        Default = "GetEvents"
+        Choices = [{
+          Next      = "NextPage"
+          Variable  = "$.DYNAMODB.LastEvaluatedKey"
+          IsPresent = true
+        }]
+      },
+      NextPage = {
+        Type       = "Task"
+        Resource   = "arn:aws:states:::states:startExecution"
+        Next       = "GetEvents"
+        ResultPath = "$.STATES"
+        Parameters = {
+          "StateMachineArn.$" = "$$.StateMachine.Id"
+          # "Name.$"            = "States.Format('{}.', $$.Execution.Name)"
+          Input = {
+            "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$" = "$$.Execution.Id"
+            "POST.$"                                       = "$.POST"
+            DYNAMODB = {
+              TableName                 = aws_dynamodb_table.brutalismbot.name
+              IndexName                 = "Chrono"
+              Limit                     = 10
+              KeyConditionExpression    = "SORT = :SORT"
+              FilterExpression          = "attribute_not_exists(DISABLED)"
+              ProjectionExpression      = "ACCESS_TOKEN,APP_ID,CHANNEL_ID,CHANNEL_NAME,#SCOPE,TEAM_ID,TEAM_NAME,WEBHOOK_URL"
+              ExpressionAttributeNames  = { "#SCOPE" = "SCOPE" }
+              ExpressionAttributeValues = { ":SORT" = { S = "SLACK/AUTH" } }
+              "ExclusiveStartKey.$"     = "$.DYNAMODB.LastEvaluatedKey"
             }
           }
-        ]
-      },
-      Parallelize2 = {
-        Type           = "Parallel"
+        }
+      }
+      GetEvents = {
+        Type           = "Map"
         Next           = "PublishEvents"
-        ResultSelector = { "Entries.$" = "$[1]" }
-        Branches = [
-          {
-            StartAt = "NextPage?"
-            States = {
-              "NextPage?" = {
-                Type    = "Choice"
-                Default = "Finish"
-                Choices = [{
-                  Next      = "NextPage"
-                  Variable  = "$.DYNAMODB.LastEvaluatedKey"
-                  IsPresent = true
-                }]
-              },
-              Finish = { Type = "Succeed" }
-              NextPage = {
-                Type     = "Task"
-                Resource = "arn:aws:states:::states:startExecution"
-                End      = true
-                Parameters = {
-                  "StateMachineArn.$" = "$$.StateMachine.Id"
-                  # "Name.$"            = "States.Format('{}.', $$.Execution.Name)"
-                  Input = {
-                    "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$" = "$$.Execution.Id"
-                    "POST.$"                                       = "$.POST"
-                    DYNAMODB = {
-                      TableName                 = aws_dynamodb_table.brutalismbot.name
-                      IndexName                 = "Chrono"
-                      Limit                     = 10
-                      KeyConditionExpression    = "SORT = :SORT"
-                      FilterExpression          = "attribute_not_exists(DISABLED)"
-                      ProjectionExpression      = "ACCESS_TOKEN,APP_ID,CHANNEL_ID,CHANNEL_NAME,#SCOPE,TEAM_ID,TEAM_NAME,WEBHOOK_URL"
-                      ExpressionAttributeNames  = { "#SCOPE" = "SCOPE" }
-                      ExpressionAttributeValues = { ":SORT" = { S = "SLACK/AUTH" } }
-                      "ExclusiveStartKey.$"     = "$.DYNAMODB.LastEvaluatedKey"
-                    }
-                  }
+        ItemsPath      = "$.DYNAMODB.Items"
+        ResultSelector = { "Entries.$" = "$" }
+        Parameters = {
+          "POST.$" = "$.POST"
+          SLACK = {
+            "ACCESS_TOKEN.$" = "$$.Map.Item.Value.ACCESS_TOKEN.S"
+            "APP_ID.$"       = "$$.Map.Item.Value.APP_ID.S"
+            "CHANNEL_ID.$"   = "$$.Map.Item.Value.CHANNEL_ID.S"
+            "CHANNEL_NAME.$" = "$$.Map.Item.Value.CHANNEL_NAME.S"
+            "SCOPE.$"        = "$$.Map.Item.Value.SCOPE.S"
+            "TEAM_ID.$"      = "$$.Map.Item.Value.TEAM_ID.S"
+            "TEAM_NAME.$"    = "$$.Map.Item.Value.TEAM_NAME.S"
+            "WEBHOOK_URL.$"  = "$$.Map.Item.Value.WEBHOOK_URL.S"
+          }
+        }
+        Iterator = {
+          StartAt = "TransformPost"
+          States = {
+            TransformPost = {
+              Type       = "Task"
+              Resource   = aws_lambda_function.slack_transform.arn
+              Next       = "GetEvent"
+              InputPath  = "$.POST.DATA"
+              ResultPath = "$.POST.DATA"
+              Retry = [
+                {
+                  BackoffRate     = 2
+                  IntervalSeconds = 3
+                  MaxAttempts     = 4
+                  ErrorEquals = [
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.ServiceException",
+                  ]
                 }
-              }
+              ]
             }
-          },
-          {
-            StartAt = "GetEvents"
-            States = {
-              GetEvents = {
-                Type      = "Map"
-                End       = true
-                ItemsPath = "$.DYNAMODB.Items"
-                Parameters = {
+            GetEvent = {
+              Type = "Pass"
+              End  = true
+              Parameters = {
+                EventBusName = aws_cloudwatch_event_bus.brutalismbot.name
+                Source       = "reddit"
+                DetailType   = "post/slack"
+                Detail = {
                   "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$" = "$$.Execution.Id"
                   "POST.$"                                       = "$.POST"
-                  SLACK = {
-                    "ACCESS_TOKEN.$" = "$$.Map.Item.Value.ACCESS_TOKEN.S"
-                    "APP_ID.$"       = "$$.Map.Item.Value.APP_ID.S"
-                    "CHANNEL_ID.$"   = "$$.Map.Item.Value.CHANNEL_ID.S"
-                    "CHANNEL_NAME.$" = "$$.Map.Item.Value.CHANNEL_NAME.S"
-                    "SCOPE.$"        = "$$.Map.Item.Value.SCOPE.S"
-                    "TEAM_ID.$"      = "$$.Map.Item.Value.TEAM_ID.S"
-                    "TEAM_NAME.$"    = "$$.Map.Item.Value.TEAM_NAME.S"
-                    "WEBHOOK_URL.$"  = "$$.Map.Item.Value.WEBHOOK_URL.S"
-                  }
-                }
-                Iterator = {
-                  StartAt = "GetEvent"
-                  States = {
-                    GetEvent = {
-                      Type = "Pass"
-                      End  = true
-                      Parameters = {
-                        EventBusName = aws_cloudwatch_event_bus.brutalismbot.name
-                        Source       = "reddit"
-                        DetailType   = "post-slack"
-                        "Detail.$"   = "$"
-                      }
-                    }
-                  }
+                  "SLACK.$"                                      = "$.SLACK"
                 }
               }
             }
           }
-        ]
+        }
       }
       PublishEvents = {
         Type       = "Task"
