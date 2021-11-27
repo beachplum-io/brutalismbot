@@ -33,7 +33,7 @@ provider "aws" {
 }
 
 locals {
-  is_enabled = true
+  is_enabled = false
   lag_hours  = "8"
   ttl_days   = "14"
 
@@ -1197,57 +1197,44 @@ resource "aws_sfn_state_machine" "slack_post_auth" {
   role_arn = aws_iam_role.states.arn
 
   definition = jsonencode({
-    StartAt = "GetQuery"
+    StartAt = "GetItem"
     States = {
-      GetQuery = {
-        Type       = "Pass"
-        Next       = "GetItem"
-        ResultPath = "$.DYNAMODB.QUERY"
-        Parameters = {
-          TableName            = aws_dynamodb_table.brutalismbot.name
-          ProjectionExpression = "BODY"
-          Key = {
-            SORT = { S = "SLACK/POST" }
-            GUID = { "S.$" = "States.Format('{}/{}/{}/{}', $.SLACK.APP_ID, $.SLACK.TEAM_ID, $.SLACK.CHANNEL_ID, $.POST.NAME)" }
-          }
-        }
-      }
       GetItem = {
         Type       = "Task"
         Resource   = "arn:aws:states:::aws-sdk:dynamodb:getItem"
         Next       = "PutItem?"
-        InputPath  = "$.DYNAMODB.QUERY"
-        ResultPath = "$.DYNAMODB.ITEM"
+        ResultPath = "$.DYNAMODB"
         Parameters = {
-          "TableName.$"            = "$.TableName"
-          "ProjectionExpression.$" = "$.ProjectionExpression"
-          "Key.$"                  = "$.Key"
+          TableName            = aws_dynamodb_table.brutalismbot.name
+          ProjectionExpression = "BODY"
+          Key = {
+            GUID = { "S.$" = "States.Format('{}/{}/{}/{}', $.SLACK.APP_ID, $.SLACK.TEAM_ID, $.SLACK.CHANNEL_ID, $.POST.NAME)" }
+            SORT = { S = "SLACK/POST" }
+          }
         }
       }
       "PutItem?" = {
         Type    = "Choice"
         Default = "PutItem"
-        Choices = [
-          {
-            Next = "Succeed"
-            And = [
-              {
-                Variable  = "$.DYNAMODB.ITEM.Item.BODY.S"
-                IsPresent = true
-              },
-              {
-                Variable     = "$.DYNAMODB.ITEM.Item.BODY.S"
-                StringEquals = "ok"
-              }
-            ]
-          }
-        ]
+        Choices = [{
+          Next = "Succeed"
+          And = [
+            {
+              Variable  = "$.DYNAMODB.Item.BODY.S"
+              IsPresent = true
+            },
+            {
+              Variable     = "$.DYNAMODB.Item.BODY.S"
+              StringEquals = "ok"
+            }
+          ]
+        }]
       }
       PutItem = {
         Type       = "Task"
         Resource   = "arn:aws:states:::aws-sdk:dynamodb:putItem"
         Next       = "SendPOST"
-        ResultPath = "$.DYNAMODB.ITEM"
+        ResultPath = "$.DYNAMODB"
         Parameters = {
           TableName = aws_dynamodb_table.brutalismbot.name
           Item = {
