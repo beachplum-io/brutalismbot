@@ -24,9 +24,9 @@ namespace :terraform do
   desc 'Run terraform init'
   task :init => %i[vendor .terraform]
 
-  namespace :reset do
+  namespace :'state-machines' do
     desc 'Taint State Machines'
-    task :'state-machines' do
+    task :reset do
       sh <<~SH
         terraform state list | grep aws_sfn_state_machine | xargs -n1 terraform taint
         terraform state list | grep aws_sfn_state_machine | tac | xargs -n1 terraform apply -auto-approve -target
