@@ -1096,7 +1096,7 @@ resource "aws_sfn_state_machine" "slack_post" {
           Limit                     = 10
           KeyConditionExpression    = "SORT = :SORT"
           FilterExpression          = "attribute_not_exists(DISABLED)"
-          ProjectionExpression      = "ACCESS_TOKEN,APP_ID,CHANNEL_ID,CHANNEL_NAME,#SCOPE,TEAM_ID,TEAM_NAME,WEBHOOK_URL"
+          ProjectionExpression      = "ACCESS_TOKEN,APP_ID,CHANNEL_ID,CHANNEL_NAME,#SCOPE,TEAM_ID,TEAM_NAME,USER_ID,WEBHOOK_URL"
           ExpressionAttributeNames  = { "#SCOPE" = "SCOPE" }
           ExpressionAttributeValues = { ":SORT" = { S = "SLACK/AUTH" } }
           ExclusiveStartKey         = null
@@ -1176,6 +1176,7 @@ resource "aws_sfn_state_machine" "slack_post" {
             "SCOPE.$"        = "$$.Map.Item.Value.SCOPE.S"
             "TEAM_ID.$"      = "$$.Map.Item.Value.TEAM_ID.S"
             "TEAM_NAME.$"    = "$$.Map.Item.Value.TEAM_NAME.S"
+            "USER_ID.$"      = "$$.Map.Item.Value.USER_ID.S"
             "WEBHOOK_URL.$"  = "$$.Map.Item.Value.WEBHOOK_URL.S"
           }
         }
@@ -1231,43 +1232,12 @@ resource "aws_sfn_state_machine" "slack_post_auth" {
   role_arn = aws_iam_role.states.arn
 
   definition = jsonencode({
-    StartAt = "GetItem"
+    StartAt = "PutItem"
     States = {
-      GetItem = {
-        Type       = "Task"
-        Resource   = "arn:aws:states:::aws-sdk:dynamodb:getItem"
-        Next       = "PutItem?"
-        ResultPath = "$.DYNAMODB"
-        Parameters = {
-          TableName            = aws_dynamodb_table.brutalismbot.name
-          ProjectionExpression = "BODY"
-          Key = {
-            GUID = { "S.$" = "States.Format('{}/{}/{}/{}', $.SLACK.APP_ID, $.SLACK.TEAM_ID, $.SLACK.CHANNEL_ID, $.POST.NAME)" }
-            SORT = { S = "SLACK/POST" }
-          }
-        }
-      }
-      "PutItem?" = {
-        Type    = "Choice"
-        Default = "PutItem"
-        Choices = [{
-          Next = "Succeed"
-          And = [
-            {
-              Variable  = "$.DYNAMODB.Item.BODY.S"
-              IsPresent = true
-            },
-            {
-              Variable     = "$.DYNAMODB.Item.BODY.S"
-              StringEquals = "ok"
-            }
-          ]
-        }]
-      }
       PutItem = {
         Type       = "Task"
         Resource   = "arn:aws:states:::aws-sdk:dynamodb:putItem"
-        Next       = "SendPOST"
+        Next       = "PostMethod"
         ResultPath = "$.DYNAMODB"
         Parameters = {
           TableName = aws_dynamodb_table.brutalismbot.name
@@ -1279,12 +1249,90 @@ resource "aws_sfn_state_machine" "slack_post_auth" {
             GUID        = { "S.$" = "States.Format('{}/{}/{}/{}', $.SLACK.APP_ID, $.SLACK.TEAM_ID, $.SLACK.CHANNEL_ID, $.POST.NAME)" }
             JSON        = { "S.$" = "States.JsonToString($.POST.DATA)" }
             NAME        = { "S.$" = "$.POST.NAME" }
+            SCOPE       = { "S.$" = "$.SLACK.SCOPE" }
             TEAM_ID     = { "S.$" = "$.SLACK.TEAM_ID" }
             TTL         = { "N.$" = "States.JsonToString($.POST.TTL)" }
           }
         }
       }
-      SendPOST = {
+      "PostMethod" = {
+        Type    = "Choice"
+        Default = "SendWebhook"
+        Choices = [
+          {
+            Next = "AddUser"
+            And = [
+              {
+                Variable  = "$.SLACK.SCOPE"
+                IsPresent = true
+              },
+              {
+                Variable      = "$.SLACK.SCOPE"
+                StringMatches = "*chat:write*"
+              },
+              {
+                Variable      = "$.SLACK.CHANNEL_ID"
+                StringMatches = "D*"
+              }
+            ]
+          },
+          {
+            Next = "AddChannel"
+            And = [
+              {
+                Variable  = "$.SLACK.SCOPE"
+                IsPresent = true
+              },
+              {
+                Variable      = "$.SLACK.SCOPE"
+                StringMatches = "*im:write*"
+              }
+            ]
+          }
+        ]
+      }
+      AddChannel = {
+        Type       = "Pass"
+        Next       = "SendChat"
+        InputPath  = "$.SLACK.CHANNEL_ID"
+        ResultPath = "$.POST.DATA.channel"
+      }
+      AddUser = {
+        Type       = "Pass"
+        Next       = "SendChat"
+        InputPath  = "$.SLACK.USER_ID"
+        ResultPath = "$.POST.DATA.channel"
+      }
+      SendChat = {
+        Type       = "Task"
+        Resource   = aws_lambda_function.http_post.arn
+        Next       = "UpdateItem"
+        ResultPath = "$.HTTP"
+        ResultSelector = {
+          "statusCode.$" = "$.statusCode"
+          "headers.$"    = "$.headers"
+          "body.$"       = "States.StringToJson($.body)"
+        }
+        Parameters = {
+          url      = "https://slack.com/api/chat.postMessage"
+          "body.$" = "States.JsonToString($.POST.DATA)"
+          headers = {
+            "authorization.$" = "States.Format('Bearer {}', $.SLACK.ACCESS_TOKEN)"
+            "content-type"    = "application/json; charset=utf-8"
+          }
+        }
+        Retry = [{
+          BackoffRate     = 2
+          IntervalSeconds = 3
+          MaxAttempts     = 4
+          ErrorEquals = [
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.ServiceException",
+          ]
+        }]
+      }
+      SendWebhook = {
         Type       = "Task"
         Resource   = aws_lambda_function.http_post.arn
         Next       = "UpdateItem"
@@ -1297,18 +1345,16 @@ resource "aws_sfn_state_machine" "slack_post_auth" {
             "content-type"    = "application/json; charset=utf-8"
           }
         }
-        Retry = [
-          {
-            BackoffRate     = 2
-            IntervalSeconds = 3
-            MaxAttempts     = 4
-            ErrorEquals = [
-              "Lambda.AWSLambdaException",
-              "Lambda.SdkClientException",
-              "Lambda.ServiceException",
-            ]
-          }
-        ]
+        Retry = [{
+          BackoffRate     = 2
+          IntervalSeconds = 3
+          MaxAttempts     = 4
+          ErrorEquals = [
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.ServiceException",
+          ]
+        }]
       }
       UpdateItem = {
         Type       = "Task"
@@ -1343,6 +1389,23 @@ resource "aws_sfn_state_machine" "slack_post_auth" {
               {
                 Variable     = "$.HTTP.body"
                 StringEquals = "ok"
+              }
+            ]
+          },
+          {
+            Next = "Succeed"
+            And = [
+              {
+                Variable     = "$.HTTP.statusCode"
+                StringEquals = "200"
+              },
+              {
+                Variable  = "$.HTTP.body.ok"
+                IsPresent = true
+              },
+              {
+                Variable      = "$.HTTP.body.ok"
+                BooleanEquals = true
               }
             ]
           }
