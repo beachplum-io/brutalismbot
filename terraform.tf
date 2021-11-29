@@ -753,7 +753,7 @@ resource "aws_sfn_state_machine" "reddit_post" {
                     SORT        = { S = "REDDIT/POST" }
                     GUID        = { "S.$" = "$.NAME" }
                     CREATED_UTC = { "S.$" = "$.CREATED_UTC" }
-                    JSON        = { "S.$" = "States.JsonToString($.DATA)" }
+                    JSON        = { "S.$" = "$.DATA" }
                     NAME        = { "S.$" = "$.NAME" }
                     PERMALINK   = { "S.$" = "$.PERMALINK" }
                     TITLE       = { "S.$" = "$.TITLE" }
@@ -915,7 +915,7 @@ resource "aws_sfn_state_machine" "slack_install" {
                   CHANNEL_NAME = { "S.$" = "$.incoming_webhook.channel" }
                   CREATED_UTC  = { "S.$" = "$$.Execution.StartTime" }
                   GUID         = { "S.$" = "States.Format('{}/{}/{}', $.app_id, $.team.id, $.incoming_webhook.channel_id)" }
-                  JSON         = { "S.$" = "States.JsonToString($)" }
+                  JSON         = { "S.$" = "$" }
                   SCOPE        = { "S.$" = "$.scope" }
                   TEAM_ID      = { "S.$" = "$.team.id" }
                   TEAM_NAME    = { "S.$" = "$.team.name" }
@@ -1247,7 +1247,7 @@ resource "aws_sfn_state_machine" "slack_post_auth" {
             CHANNEL_ID  = { "S.$" = "$.SLACK.CHANNEL_ID" }
             CREATED_UTC = { "S.$" = "$.POST.CREATED_UTC" }
             GUID        = { "S.$" = "States.Format('{}/{}/{}/{}', $.SLACK.APP_ID, $.SLACK.TEAM_ID, $.SLACK.CHANNEL_ID, $.POST.NAME)" }
-            JSON        = { "S.$" = "States.JsonToString($.POST.DATA)" }
+            JSON        = { "S.$" = "$.POST.DATA" }
             NAME        = { "S.$" = "$.POST.NAME" }
             SCOPE       = { "S.$" = "$.SLACK.SCOPE" }
             TEAM_ID     = { "S.$" = "$.SLACK.TEAM_ID" }
@@ -1306,7 +1306,7 @@ resource "aws_sfn_state_machine" "slack_post_auth" {
       SendChat = {
         Type       = "Task"
         Resource   = aws_lambda_function.http_post.arn
-        Next       = "UpdateItem"
+        Next       = "GetChatUpdate"
         ResultPath = "$.HTTP"
         ResultSelector = {
           "statusCode.$" = "$.statusCode"
@@ -1335,7 +1335,7 @@ resource "aws_sfn_state_machine" "slack_post_auth" {
       SendWebhook = {
         Type       = "Task"
         Resource   = aws_lambda_function.http_post.arn
-        Next       = "UpdateItem"
+        Next       = "GetWebhookUpdate"
         ResultPath = "$.HTTP"
         Parameters = {
           "url.$"  = "$.SLACK.WEBHOOK_URL"
@@ -1356,23 +1356,56 @@ resource "aws_sfn_state_machine" "slack_post_auth" {
           ]
         }]
       }
-      UpdateItem = {
-        Type       = "Task"
-        Resource   = "arn:aws:states:::aws-sdk:dynamodb:updateItem"
-        Next       = "OK?"
+      GetChatUpdate = {
+        Type       = "Pass"
+        Next       = "UpdateItem"
         ResultPath = "$.DYNAMODB"
         Parameters = {
           TableName        = aws_dynamodb_table.brutalismbot.name
-          UpdateExpression = "SET BODY = :BODY, HEADERS = :HEADERS, STATUS_CODE = :STATUS_CODE"
+          UpdateExpression = "SET BODY = :BODY, EXECUTION_ID = :EXECUTION_ID, HEADERS = :HEADERS, STATUS_CODE = :STATUS_CODE, TS = :TS"
           ExpressionAttributeValues = {
-            ":BODY"        = { "S.$" = "$.HTTP.body" }
-            ":HEADERS"     = { "S.$" = "States.JsonToString($.HTTP.headers)" }
-            ":STATUS_CODE" = { "S.$" = "$.HTTP.statusCode" }
+            ":BODY"         = { "S.$" = "$.HTTP.body" }
+            ":EXECUTION_ID" = { "S.$" = "$$.Execution.Id" }
+            ":HEADERS"      = { "S.$" = "$.HTTP.headers" }
+            ":STATUS_CODE"  = { "S.$" = "$.HTTP.statusCode" }
+            ":TS"           = { "S.$" = "$.HTTP.body.ts" }
           }
           Key = {
             GUID = { "S.$" = "States.Format('{}/{}/{}/{}', $.SLACK.APP_ID, $.SLACK.TEAM_ID, $.SLACK.CHANNEL_ID, $.POST.NAME)" }
             SORT = { S = "SLACK/POST" }
           }
+        }
+      }
+      GetWebhookUpdate = {
+        Type       = "Pass"
+        Next       = "UpdateItem"
+        ResultPath = "$.DYNAMODB"
+        Parameters = {
+          TableName        = aws_dynamodb_table.brutalismbot.name
+          UpdateExpression = "SET BODY = :BODY, EXECUTION_ID = :EXECUTION_ID, HEADERS = :HEADERS, STATUS_CODE = :STATUS_CODE"
+          ExpressionAttributeValues = {
+            ":BODY"         = { "S.$" = "$.HTTP.body" }
+            ":EXECUTION_ID" = { "S.$" = "$$.Execution.Id" }
+            ":HEADERS"      = { "S.$" = "$.HTTP.headers" }
+            ":STATUS_CODE"  = { "S.$" = "$.HTTP.statusCode" }
+          }
+          Key = {
+            GUID = { "S.$" = "States.Format('{}/{}/{}/{}', $.SLACK.APP_ID, $.SLACK.TEAM_ID, $.SLACK.CHANNEL_ID, $.POST.NAME)" }
+            SORT = { S = "SLACK/POST" }
+          }
+        }
+      }
+      UpdateItem = {
+        Type       = "Task"
+        Resource   = "arn:aws:states:::aws-sdk:dynamodb:updateItem"
+        Next       = "OK?"
+        InputPath  = "$.DYNAMODB"
+        ResultPath = "$.DYNAMODB"
+        Parameters = {
+          "TableName.$"                 = "$.TableName"
+          "UpdateExpression.$"          = "$.UpdateExpression"
+          "ExpressionAttributeValues.$" = "$.ExpressionAttributeValues"
+          "Key.$"                       = "$.Key"
         }
       }
       "OK?" = {
@@ -1455,7 +1488,7 @@ resource "aws_sfn_state_machine" "twitter_post" {
             SORT        = { S = "TWITTER/POST" }
             GUID        = { "S.$" = "States.Format('@brutalismbot/{}', $.NAME)" }
             CREATED_UTC = { "S.$" = "$.CREATED_UTC" }
-            JSON        = { "S.$" = "States.JsonToString($.DATA)" }
+            JSON        = { "S.$" = "$.DATA" }
             NAME        = { "S.$" = "$.NAME" }
             PERMALINK   = { "S.$" = "$.PERMALINK" }
             TITLE       = { "S.$" = "$.TITLE" }
@@ -1487,9 +1520,12 @@ resource "aws_sfn_state_machine" "twitter_post" {
         InputPath  = "$.POST"
         ResultPath = "$.UPDATE"
         Parameters = {
-          TableName                 = aws_dynamodb_table.brutalismbot.name
-          UpdateExpression          = "SET JSON = :JSON"
-          ExpressionAttributeValues = { ":JSON" = { "S.$" = "States.JsonToString($.DATA)" } }
+          TableName        = aws_dynamodb_table.brutalismbot.name
+          UpdateExpression = "SET EXECUTION_ID = :EXECUTION_ID, JSON = :JSON"
+          ExpressionAttributeValues = {
+            ":EXECUTION_ID" = { "S.$" = "$$.Execution.Id" }
+            ":JSON"         = { "S.$" = "$.DATA" }
+          }
           Key = {
             GUID = { "S.$" = "States.Format('@brutalismbot/{}', $.NAME)" }
             SORT = { S = "TWITTER/POST" }
