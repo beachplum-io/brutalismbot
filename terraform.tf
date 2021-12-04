@@ -1535,3 +1535,10 @@ resource "aws_sfn_state_machine" "twitter_post" {
     }
   })
 }
+
+# OUTPUTS
+
+output "state_machine_reddit_dequeue_arn" {
+  description = "Reddit dequeue state machine ARN"
+  value       = aws_sfn_state_machine.reddit_dequeue.id
+}
