@@ -1407,6 +1407,12 @@ resource "aws_sfn_state_machine" "slack_post_auth" {
           "ExpressionAttributeValues.$" = "$.ExpressionAttributeValues"
           "Key.$"                       = "$.Key"
         }
+        Retry = [{
+          BackoffRate     = 2
+          IntervalSeconds = 3
+          MaxAttempts     = 4
+          ErrorEquals     = ["DynamoDD.InternalServerErrorException"]
+        }]
       }
       "OK?" = {
         Type    = "Choice"
