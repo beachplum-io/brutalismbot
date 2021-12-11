@@ -157,7 +157,7 @@ resource "aws_cloudwatch_event_target" "reddit_dequeue" {
 # EVENTBRIDGE :: REDDIT POST
 
 resource "aws_cloudwatch_event_rule" "reddit_post" {
-  description    = "Handle new posts for Reddit"
+  description    = "Handle new posts from Reddit"
   event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
   is_enabled     = local.is_enabled
   name           = "reddit-post"
@@ -176,6 +176,20 @@ resource "aws_cloudwatch_event_target" "reddit_post" {
   rule           = aws_cloudwatch_event_rule.reddit_post.name
 }
 
+# EVENTBRIDGE :: SLACK POST
+
+resource "aws_cloudwatch_event_rule" "reddit_post_slack" {
+  description    = "Handle new posts from Reddit for Slack"
+  event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
+  is_enabled     = local.is_enabled
+  name           = "reddit-post-slack"
+
+  event_pattern = jsonencode({
+    source      = ["reddit"]
+    detail-type = ["post/slack"]
+  })
+}
+
 resource "aws_cloudwatch_event_target" "slack_post" {
   arn            = aws_sfn_state_machine.slack_post.id
   event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
@@ -184,34 +198,27 @@ resource "aws_cloudwatch_event_target" "slack_post" {
   rule           = aws_cloudwatch_event_rule.reddit_post.name
 }
 
-resource "aws_cloudwatch_event_target" "twitter_post" {
-  arn            = aws_sfn_state_machine.twitter_post.id
-  event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
-  input_path     = "$.detail"
-  role_arn       = aws_iam_role.events.arn
-  rule           = aws_cloudwatch_event_rule.reddit_post.name
-}
 
 # EVENTBRIDGE :: SLACK POST AUTH
 
-resource "aws_cloudwatch_event_rule" "reddit_post_slack" {
+resource "aws_cloudwatch_event_rule" "reddit_post_slack_channel" {
   description    = "Handle new posts for a Slack workspace"
   event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
   is_enabled     = local.is_enabled
-  name           = "reddit-post-slack"
+  name           = "reddit-post-slack-channel"
 
   event_pattern = jsonencode({
     source      = ["reddit"]
-    detail-type = ["post-slack"]
+    detail-type = ["post/slack/channel"]
   })
 }
 
-resource "aws_cloudwatch_event_target" "reddit_post_slack" {
-  arn            = aws_sfn_state_machine.slack_post_auth.id
+resource "aws_cloudwatch_event_target" "reddit_post_slack_channel" {
+  arn            = aws_sfn_state_machine.slack_post_channel.id
   event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
   input_path     = "$.detail"
   role_arn       = aws_iam_role.events.arn
-  rule           = aws_cloudwatch_event_rule.reddit_post_slack.name
+  rule           = aws_cloudwatch_event_rule.reddit_post_slack_channel.name
 }
 
 # EVENTBRIDGE :: SLACK INSTALL
@@ -259,6 +266,29 @@ resource "aws_cloudwatch_event_target" "slack_uninstall" {
   rule           = aws_cloudwatch_event_rule.slack_uninstall.name
 }
 
+# EVENTBRIDGE :: TWITTER
+
+resource "aws_cloudwatch_event_rule" "reddit_post_twitter" {
+  description    = "Handle new posts from Reddit for Twitter"
+  event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
+  is_enabled     = local.is_enabled
+  name           = "reddit-post"
+
+  event_pattern = jsonencode({
+    source      = ["reddit"]
+    detail-type = ["post/twitter"]
+  })
+}
+
+resource "aws_cloudwatch_event_target" "twitter_post" {
+  arn            = aws_sfn_state_machine.twitter_post.id
+  event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
+  input_path     = "$.detail"
+  role_arn       = aws_iam_role.events.arn
+  rule           = aws_cloudwatch_event_rule.reddit_post_twitter.name
+}
+
+
 # IAM :: EVENTS
 
 data "aws_iam_policy_document" "trust_events" {
@@ -283,7 +313,7 @@ data "aws_iam_policy_document" "access_events" {
       aws_sfn_state_machine.reddit_post.arn,
       aws_sfn_state_machine.slack_install.arn,
       aws_sfn_state_machine.slack_post.arn,
-      aws_sfn_state_machine.slack_post_auth.arn,
+      aws_sfn_state_machine.slack_post_channel.arn,
       aws_sfn_state_machine.slack_uninstall.arn,
       aws_sfn_state_machine.twitter_post.arn,
     ]
@@ -1227,8 +1257,8 @@ resource "aws_sfn_state_machine" "slack_post" {
   })
 }
 
-resource "aws_sfn_state_machine" "slack_post_auth" {
-  name     = "brutalismbot-slack-post-auth"
+resource "aws_sfn_state_machine" "slack_post_channel" {
+  name     = "brutalismbot-slack-post-channel"
   role_arn = aws_iam_role.states.arn
 
   definition = jsonencode({
