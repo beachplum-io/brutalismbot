@@ -195,7 +195,7 @@ resource "aws_cloudwatch_event_target" "reddit_post_slack" {
   event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
   input_path     = "$.detail"
   role_arn       = aws_iam_role.events.arn
-  rule           = aws_cloudwatch_event_rule.reddit_post.name
+  rule           = aws_cloudwatch_event_rule.reddit_post_slack.name
 }
 
 
