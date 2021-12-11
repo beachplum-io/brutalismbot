@@ -272,7 +272,7 @@ resource "aws_cloudwatch_event_rule" "reddit_post_twitter" {
   description    = "Handle new posts from Reddit for Twitter"
   event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
   is_enabled     = local.is_enabled
-  name           = "reddit-post"
+  name           = "reddit-post-twitter"
 
   event_pattern = jsonencode({
     source      = ["reddit"]
@@ -797,18 +797,17 @@ resource "aws_sfn_state_machine" "reddit_post" {
       }
       "NewMaxCreatedUTC?" = {
         Type    = "Choice"
-        Default = "Finish"
+        Default = "GetEvents"
         Choices = [{
           Next               = "UpdateMaxCreatedUTC"
           Variable           = "$.MAX_CREATED_UTC"
           StringLessThanPath = "$.POST.CREATED_UTC"
         }]
       }
-      Finish = { Type = "Succeed" }
       UpdateMaxCreatedUTC = {
         Type      = "Task"
         Resource  = "arn:aws:states:::aws-sdk:dynamodb:updateItem"
-        End       = true
+        Next      = "GetEvents"
         InputPath = "$.POST"
         Parameters = {
           TableName                = aws_dynamodb_table.brutalismbot.name
@@ -823,6 +822,79 @@ resource "aws_sfn_state_machine" "reddit_post" {
             SORT = { S = "REDDIT/POST" }
           }
         }
+      }
+      GetEvents = {
+        Type           = "Parallel"
+        Next           = "PutEvents"
+        ResultSelector = { "Entries.$" = "$" }
+        Branches = [
+          {
+            StartAt = "GetSlack"
+            States = {
+              GetSlack = {
+                Type      = "Task"
+                Resource  = aws_lambda_function.slack_transform.arn
+                End       = true
+                InputPath = "$.POST.DATA"
+                ResultSelector = {
+                  EventBusName = aws_cloudwatch_event_bus.brutalismbot.name
+                  Source       = "reddit"
+                  DetailType   = "post/slack"
+                  Detail = {
+                    "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$" = "$$.Execution.Id"
+                    "POST.$"                                       = "$"
+                  }
+                }
+                Retry = [{
+                  BackoffRate     = 2
+                  IntervalSeconds = 3
+                  MaxAttempts     = 4
+                  ErrorEquals = [
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.ServiceException",
+                  ]
+                }]
+              }
+            }
+          },
+          {
+            StartAt = "GetTwitter"
+            States = {
+              GetTwitter = {
+                Type      = "Task"
+                Resource  = aws_lambda_function.twitter_transform.arn
+                End       = true
+                InputPath = "$.POST.DATA"
+                ResultSelector = {
+                  EventBusName = aws_cloudwatch_event_bus.brutalismbot.name
+                  Source       = "reddit"
+                  DetailType   = "post/twitter"
+                  Detail = {
+                    "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$" = "$$.Execution.Id"
+                    "POST.$"                                       = "$"
+                  }
+                }
+                Retry = [{
+                  BackoffRate     = 2
+                  IntervalSeconds = 3
+                  MaxAttempts     = 4
+                  ErrorEquals = [
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.ServiceException",
+                  ]
+                }]
+              }
+            }
+          }
+        ]
+      }
+      PutEvents = {
+        Type       = "Task"
+        Resource   = "arn:aws:states:::events:putEvents"
+        End        = true
+        Parameters = { "Entries.$" = "$.Entries" }
       }
     }
   })
@@ -1211,25 +1283,8 @@ resource "aws_sfn_state_machine" "slack_post" {
           }
         }
         Iterator = {
-          StartAt = "TransformPost"
+          StartAt = "GetEvent"
           States = {
-            TransformPost = {
-              Type       = "Task"
-              Resource   = aws_lambda_function.slack_transform.arn
-              Next       = "GetEvent"
-              InputPath  = "$.POST.DATA"
-              ResultPath = "$.POST.DATA"
-              Retry = [{
-                BackoffRate     = 2
-                IntervalSeconds = 3
-                MaxAttempts     = 4
-                ErrorEquals = [
-                  "Lambda.AWSLambdaException",
-                  "Lambda.SdkClientException",
-                  "Lambda.ServiceException",
-                ]
-              }]
-            }
             GetEvent = {
               Type = "Pass"
               End  = true
@@ -1493,25 +1548,8 @@ resource "aws_sfn_state_machine" "twitter_post" {
   role_arn = aws_iam_role.states.arn
 
   definition = jsonencode({
-    StartAt = "TransformPost"
+    StartAt = "PutItem"
     States = {
-      TransformPost = {
-        Type       = "Task"
-        Resource   = aws_lambda_function.twitter_transform.arn
-        Next       = "PutItem"
-        InputPath  = "$.POST.DATA"
-        ResultPath = "$.POST.DATA"
-        Retry = [{
-          BackoffRate     = 2
-          IntervalSeconds = 3
-          MaxAttempts     = 4
-          ErrorEquals = [
-            "Lambda.AWSLambdaException",
-            "Lambda.SdkClientException",
-            "Lambda.ServiceException",
-          ]
-        }]
-      }
       PutItem = {
         Type       = "Task"
         Resource   = "arn:aws:states:::aws-sdk:dynamodb:putItem"
