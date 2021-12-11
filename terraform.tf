@@ -33,7 +33,7 @@ provider "aws" {
 }
 
 locals {
-  is_enabled = true
+  is_enabled = false
   lag_hours  = "8"
   ttl_days   = "14"
 
