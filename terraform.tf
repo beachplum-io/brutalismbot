@@ -33,7 +33,7 @@ provider "aws" {
 }
 
 locals {
-  is_enabled = false
+  is_enabled = true
   lag_hours  = "8"
   ttl_days   = "14"
 
@@ -190,7 +190,7 @@ resource "aws_cloudwatch_event_rule" "reddit_post_slack" {
   })
 }
 
-resource "aws_cloudwatch_event_target" "slack_post" {
+resource "aws_cloudwatch_event_target" "reddit_post_slack" {
   arn            = aws_sfn_state_machine.slack_post.id
   event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
   input_path     = "$.detail"
@@ -280,7 +280,7 @@ resource "aws_cloudwatch_event_rule" "reddit_post_twitter" {
   })
 }
 
-resource "aws_cloudwatch_event_target" "twitter_post" {
+resource "aws_cloudwatch_event_target" "reddit_post_twitter" {
   arn            = aws_sfn_state_machine.twitter_post.id
   event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
   input_path     = "$.detail"
@@ -742,7 +742,7 @@ resource "aws_sfn_state_machine" "reddit_post" {
     States = {
       Parallelize = {
         Type = "Parallel"
-        Next = "NewMaxCreatedUTC?"
+        Next = "GetEvents"
         ResultSelector = {
           "MAX_CREATED_UTC.$" = "$[0]"
           "POST.$"            = "$[1]"
@@ -795,56 +795,41 @@ resource "aws_sfn_state_machine" "reddit_post" {
           }
         ]
       }
-      "NewMaxCreatedUTC?" = {
-        Type    = "Choice"
-        Default = "GetEvents"
-        Choices = [{
-          Next               = "UpdateMaxCreatedUTC"
-          Variable           = "$.MAX_CREATED_UTC"
-          StringLessThanPath = "$.POST.CREATED_UTC"
-        }]
-      }
-      UpdateMaxCreatedUTC = {
-        Type      = "Task"
-        Resource  = "arn:aws:states:::aws-sdk:dynamodb:updateItem"
-        Next      = "GetEvents"
-        InputPath = "$.POST"
-        Parameters = {
-          TableName                = aws_dynamodb_table.brutalismbot.name
-          UpdateExpression         = "SET CREATED_UTC = :CREATED_UTC, #NAME = :NAME"
-          ExpressionAttributeNames = { "#NAME" = "NAME" }
-          ExpressionAttributeValues = {
-            ":CREATED_UTC" = { "S.$" = "$.CREATED_UTC" }
-            ":NAME"        = { "S.$" = "$.NAME" }
-          }
-          Key = {
-            GUID = { S = "STATS/MAX" }
-            SORT = { S = "REDDIT/POST" }
-          }
-        }
-      }
       GetEvents = {
-        Type           = "Parallel"
-        Next           = "PutEvents"
-        ResultSelector = { "Entries.$" = "$" }
+        Type = "Parallel"
+        Next = "PutEvents"
+        ResultSelector = {
+          Entries = [
+            {
+              EventBusName = aws_cloudwatch_event_bus.brutalismbot.name
+              Source       = "reddit"
+              DetailType   = "post/slack"
+              Detail = {
+                "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$" = "$$.Execution.Id"
+                "POST.$"                                       = "$[0].POST"
+              }
+            },
+            {
+              EventBusName = aws_cloudwatch_event_bus.brutalismbot.name
+              Source       = "reddit"
+              DetailType   = "post/twitter"
+              Detail = {
+                "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$" = "$$.Execution.Id"
+                "POST.$"                                       = "$[1].POST"
+              }
+            }
+          ]
+        }
         Branches = [
           {
             StartAt = "GetSlack"
             States = {
               GetSlack = {
-                Type      = "Task"
-                Resource  = aws_lambda_function.slack_transform.arn
-                End       = true
-                InputPath = "$.POST.DATA"
-                ResultSelector = {
-                  EventBusName = aws_cloudwatch_event_bus.brutalismbot.name
-                  Source       = "reddit"
-                  DetailType   = "post/slack"
-                  Detail = {
-                    "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$" = "$$.Execution.Id"
-                    "POST.$"                                       = "$"
-                  }
-                }
+                Type       = "Task"
+                Resource   = aws_lambda_function.slack_transform.arn
+                End        = true
+                InputPath  = "$.POST.DATA"
+                ResultPath = "$.POST.DATA"
                 Retry = [{
                   BackoffRate     = 2
                   IntervalSeconds = 3
@@ -862,19 +847,11 @@ resource "aws_sfn_state_machine" "reddit_post" {
             StartAt = "GetTwitter"
             States = {
               GetTwitter = {
-                Type      = "Task"
-                Resource  = aws_lambda_function.twitter_transform.arn
-                End       = true
-                InputPath = "$.POST.DATA"
-                ResultSelector = {
-                  EventBusName = aws_cloudwatch_event_bus.brutalismbot.name
-                  Source       = "reddit"
-                  DetailType   = "post/twitter"
-                  Detail = {
-                    "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$" = "$$.Execution.Id"
-                    "POST.$"                                       = "$"
-                  }
-                }
+                Type       = "Task"
+                Resource   = aws_lambda_function.twitter_transform.arn
+                End        = true
+                InputPath  = "$.POST.DATA"
+                ResultPath = "$.POST.DATA"
                 Retry = [{
                   BackoffRate     = 2
                   IntervalSeconds = 3
@@ -885,6 +862,40 @@ resource "aws_sfn_state_machine" "reddit_post" {
                     "Lambda.ServiceException",
                   ]
                 }]
+              }
+            }
+          },
+          {
+            StartAt = "NewMaxCreatedUTC?"
+            States = {
+              "NewMaxCreatedUTC?" = {
+                Type    = "Choice"
+                Default = "Finish"
+                Choices = [{
+                  Next               = "UpdateMaxCreatedUTC"
+                  Variable           = "$.MAX_CREATED_UTC"
+                  StringLessThanPath = "$.POST.CREATED_UTC"
+                }]
+              }
+              Finish = { Type = "Succeed" }
+              UpdateMaxCreatedUTC = {
+                Type      = "Task"
+                Resource  = "arn:aws:states:::aws-sdk:dynamodb:updateItem"
+                End       = true
+                InputPath = "$.POST"
+                Parameters = {
+                  TableName                = aws_dynamodb_table.brutalismbot.name
+                  UpdateExpression         = "SET CREATED_UTC = :CREATED_UTC, #NAME = :NAME"
+                  ExpressionAttributeNames = { "#NAME" = "NAME" }
+                  ExpressionAttributeValues = {
+                    ":CREATED_UTC" = { "S.$" = "$.CREATED_UTC" }
+                    ":NAME"        = { "S.$" = "$.NAME" }
+                  }
+                  Key = {
+                    GUID = { S = "STATS/MAX" }
+                    SORT = { S = "REDDIT/POST" }
+                  }
+                }
               }
             }
           }
@@ -915,7 +926,7 @@ resource "aws_sfn_state_machine" "slack_install" {
         ResultSelector = {
           EventBusName = aws_cloudwatch_event_bus.brutalismbot.name
           Source       = "reddit"
-          DetailType   = "post-slack"
+          DetailType   = "post/slack/channel"
           Detail = {
             "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$" = "$$.Execution.Id"
             "POST.$"                                       = "$[0]"
@@ -1291,7 +1302,7 @@ resource "aws_sfn_state_machine" "slack_post" {
               Parameters = {
                 EventBusName = aws_cloudwatch_event_bus.brutalismbot.name
                 Source       = "reddit"
-                DetailType   = "post-slack"
+                DetailType   = "post/slack/channel"
                 Detail = {
                   "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$" = "$$.Execution.Id"
                   "POST.$"                                       = "$.POST"
