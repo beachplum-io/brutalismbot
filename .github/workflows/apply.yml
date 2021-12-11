@@ -1,11 +1,13 @@
-name: plan
+name: apply
 on:
   push:
     tags:
       - "*"
 jobs:
-  plan:
+  apply:
     runs-on: ubuntu-latest
+    env:
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
     steps:
       - uses: actions/checkout@v2
       - uses: ruby/setup-ruby@v1
@@ -18,5 +20,3 @@ jobs:
       - run: gem install bundler
       - run: bundle install --jobs 4 --retry 3
       - run: bundle exec rake spec apply:auto
-        env:
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
