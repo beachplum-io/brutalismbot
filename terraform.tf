@@ -198,7 +198,6 @@ resource "aws_cloudwatch_event_target" "reddit_post_slack" {
   rule           = aws_cloudwatch_event_rule.reddit_post_slack.name
 }
 
-
 # EVENTBRIDGE :: SLACK POST AUTH
 
 resource "aws_cloudwatch_event_rule" "reddit_post_slack_channel" {
