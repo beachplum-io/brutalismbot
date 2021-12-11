@@ -220,6 +220,52 @@ resource "aws_cloudwatch_event_target" "reddit_post_slack_channel" {
   rule           = aws_cloudwatch_event_rule.reddit_post_slack_channel.name
 }
 
+# EVENTBRIDGE :: SLACK BETA APP HOME OPENED
+
+resource "aws_cloudwatch_event_rule" "slack_beta_app_home_opened" {
+  description    = "Slack Beta app home opened events"
+  event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
+  is_enabled     = true
+  name           = "slack-beta-app-home-opened"
+
+  event_pattern = jsonencode({
+    source      = ["slack/beta"]
+    detail-type = ["event"]
+    detail      = { event = { type = ["app_home_opened"] } }
+  })
+}
+
+resource "aws_cloudwatch_event_target" "slack_beta_app_home_opened" {
+  arn            = aws_sfn_state_machine.slack_beta_app_home_opened.id
+  event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
+  input_path     = "$.detail"
+  role_arn       = aws_iam_role.events.arn
+  rule           = aws_cloudwatch_event_rule.slack_beta_app_home_opened.name
+}
+
+# EVENTBRIDGE :: SLACK BETA ENABLE/DISABLE
+
+resource "aws_cloudwatch_event_rule" "slack_beta_enable_disable" {
+  description    = "Slack Beta app home opened events"
+  event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
+  is_enabled     = true
+  name           = "slack-beta-enable-disable"
+
+  event_pattern = jsonencode({
+    source      = ["slack/beta"]
+    detail-type = ["callback"]
+    detail      = { view = { callback_id = ["enable_disable"] } }
+  })
+}
+
+resource "aws_cloudwatch_event_target" "slack_beta_enable_disable" {
+  arn            = aws_sfn_state_machine.slack_beta_enable_disable.id
+  event_bus_name = aws_cloudwatch_event_bus.brutalismbot.name
+  input_path     = "$.detail"
+  role_arn       = aws_iam_role.events.arn
+  rule           = aws_cloudwatch_event_rule.slack_beta_enable_disable.name
+}
+
 # EVENTBRIDGE :: SLACK INSTALL
 
 resource "aws_cloudwatch_event_rule" "slack_install" {
@@ -310,6 +356,8 @@ data "aws_iam_policy_document" "access_events" {
     resources = [
       aws_sfn_state_machine.reddit_dequeue.arn,
       aws_sfn_state_machine.reddit_post.arn,
+      aws_sfn_state_machine.slack_beta_app_home_opened.arn,
+      aws_sfn_state_machine.slack_beta_enable_disable.arn,
       aws_sfn_state_machine.slack_install.arn,
       aws_sfn_state_machine.slack_post.arn,
       aws_sfn_state_machine.slack_post_channel.arn,
@@ -422,8 +470,19 @@ data "aws_iam_policy_document" "access_states" {
 
   statement {
     sid       = "EventBridge"
-    actions   = ["events:PutEvents"]
     resources = [aws_cloudwatch_event_bus.brutalismbot.arn]
+    actions   = ["events:PutEvents"]
+  }
+
+  statement {
+    sid       = "EventBridgeToggle"
+    resources = [aws_cloudwatch_event_rule.reddit_dequeue.arn]
+
+    actions = [
+      "events:DescribeRule",
+      "events:DisableRule",
+      "events:EnableRule",
+    ]
   }
 
   statement {
@@ -911,6 +970,199 @@ resource "aws_sfn_state_machine" "reddit_post" {
 }
 
 # STATE MACHINES :: SLACK
+
+resource "aws_sfn_state_machine" "slack_beta_app_home_opened" {
+  name     = "brutalismbot-slack-beta-app-home-opened"
+  role_arn = aws_iam_role.states.arn
+
+  definition = jsonencode({
+    StartAt = "GetView"
+    States = {
+      GetView = {
+        Type = "Parallel"
+        Next = "EncodeView"
+        ResultSelector = {
+          url = "https://slack.com/api/views.publish"
+          headers = {
+            "authorization.$" = "States.Format('Bearer {}', $[1].Items[0].ACCESS_TOKEN.S)"
+            "content-type"    = "application/json; charset=utf8"
+          }
+          body = {
+            "user_id.$" = "$[1].Items[0].USER_ID.S"
+            view = {
+              callback_id = "enable_disable"
+              type        = "home"
+              title = {
+                type  = "plain_text"
+                text  = "Brutalismbot Beta"
+                emoji = true
+              }
+              blocks = [{
+                type         = "actions"
+                "elements.$" = "States.Array($[0])"
+              }]
+            }
+          }
+        }
+        Branches = [
+          {
+            StartAt = "GetState"
+            States = {
+              GetState = {
+                Type       = "Task"
+                Resource   = "arn:aws:states:::aws-sdk:eventbridge:describeRule"
+                Next       = "Enabled?"
+                Parameters = { Name = aws_cloudwatch_event_rule.reddit_dequeue.name }
+              }
+              "Enabled?" = {
+                Type    = "Choice"
+                Default = "GetDisableButton"
+                Choices = [{
+                  Next         = "GetEnableButton"
+                  Variable     = "$.State"
+                  StringEquals = "DISABLED"
+                }]
+              }
+              GetDisableButton = {
+                Type = "Pass"
+                End  = true
+                Result = {
+                  style = "danger"
+                  type  = "button"
+                  value = "disable"
+                  text = {
+                    emoji = true
+                    text  = "Disable"
+                    type  = "plain_text"
+                  }
+                }
+              }
+              GetEnableButton = {
+                Type = "Pass"
+                End  = true
+                Result = {
+                  style = "primary"
+                  type  = "button"
+                  value = "enable"
+                  text = {
+                    emoji = true
+                    text  = "Enable"
+                    type  = "plain_text"
+                  }
+                }
+              }
+            }
+          },
+          {
+            StartAt = "GetRequest"
+            States = {
+              GetRequest = {
+                Type     = "Task"
+                Resource = "arn:aws:states:::aws-sdk:dynamodb:query"
+                End      = true
+                Parameters = {
+                  TableName                = aws_dynamodb_table.brutalismbot.name
+                  IndexName                = "Chrono"
+                  KeyConditionExpression   = "#SORT = :SORT"
+                  FilterExpression         = "APP_ID = :APP_ID AND TEAM_ID = :TEAM_ID AND USER_ID = :USER_ID"
+                  ProjectionExpression     = "ACCESS_TOKEN,USER_ID"
+                  ExpressionAttributeNames = { "#SORT" = "SORT" }
+                  ExpressionAttributeValues = {
+                    ":SORT"    = { S = "SLACK/AUTH" }
+                    ":APP_ID"  = { "S.$" = "$.api_app_id" }
+                    ":TEAM_ID" = { "S.$" = "$.team_id" }
+                    ":USER_ID" = { "S.$" = "$.event.user" }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+      EncodeView = {
+        Type = "Pass"
+        Next = "SendRequest"
+        Parameters = {
+          "url.$"     = "$.url"
+          "headers.$" = "$.headers"
+          body = {
+            "user_id.$" = "$.body.user_id"
+            "view.$"    = "States.JsonToString($.body.view)"
+          }
+        }
+      }
+      SendRequest = {
+        Type     = "Task"
+        Resource = aws_lambda_function.http_post.arn
+        End      = true
+        ResultSelector = {
+          "statusCode.$" = "$.statusCode"
+          "headers.$"    = "$.headers"
+          "body.$"       = "States.StringToJson($.body)"
+        }
+        Parameters = {
+          "url.$"     = "$.url"
+          "headers.$" = "$.headers"
+          "body.$"    = "States.JsonToString($.body)"
+        }
+      }
+    }
+  })
+}
+
+resource "aws_sfn_state_machine" "slack_beta_enable_disable" {
+  name     = "brutalismbot-slack-beta-enable-disable"
+  role_arn = aws_iam_role.states.arn
+
+  definition = jsonencode({
+    StartAt = "Disable?"
+    States = {
+      "Disable?" = {
+        Type    = "Choice"
+        Default = "Enable"
+        Choices = [{
+          Next         = "Disable"
+          Variable     = "$.actions[0].value"
+          StringEquals = "disable"
+        }]
+      }
+      Disable = {
+        Type       = "Task"
+        Resource   = "arn:aws:states:::aws-sdk:eventbridge:disableRule"
+        Next       = "UpdateHome"
+        ResultPath = "$.state"
+        Parameters = { Name = aws_cloudwatch_event_rule.reddit_dequeue.name }
+      }
+      Enable = {
+        Type       = "Task"
+        Resource   = "arn:aws:states:::aws-sdk:eventbridge:enableRule"
+        Next       = "UpdateHome"
+        ResultPath = "$.state"
+        Parameters = { Name = aws_cloudwatch_event_rule.reddit_dequeue.name }
+      }
+      UpdateHome = {
+        Type     = "Task"
+        Resource = "arn:aws:states:::events:putEvents"
+        End      = true
+        Parameters = {
+          Entries = [{
+            EventBusName = aws_cloudwatch_event_bus.brutalismbot.name
+            Source       = "slack/beta"
+            DetailType   = "event"
+            Detail = {
+              "team_id.$"    = "$.user.team_id"
+              "api_app_id.$" = "$.api_app_id"
+              event = {
+                type     = "app_home_opened"
+                "user.$" = "$.user.id"
+              }
+            }
+          }]
+        }
+      }
+    }
+  })
+}
 
 resource "aws_sfn_state_machine" "slack_install" {
   name     = "brutalismbot-slack-install"
