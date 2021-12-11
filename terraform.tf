@@ -617,19 +617,15 @@ resource "aws_sfn_state_machine" "reddit_dequeue" {
         ResultSelector = {
           CLOUDWATCH = {
             Namespace = "Brutalismbot"
-            MetricData = [
-              {
-                MetricName = "QueueSize"
-                Unit       = "Count"
-                "Value.$"  = "$.QueueSize"
-                Dimensions = [
-                  {
-                    Name  = "QueueName"
-                    Value = "/r/brutalism"
-                  }
-                ]
-              }
-            ]
+            MetricData = [{
+              MetricName = "QueueSize"
+              Unit       = "Count"
+              "Value.$"  = "$.QueueSize"
+              Dimensions = [{
+                Name  = "QueueName"
+                Value = "/r/brutalism"
+              }]
+            }]
           }
           EVENTBRIDGE = {
             EventBusName = aws_cloudwatch_event_bus.brutalismbot.name
@@ -641,19 +637,17 @@ resource "aws_sfn_state_machine" "reddit_dequeue" {
             }
           }
         }
-        Retry = [
-          {
-            BackoffRate     = 2
-            IntervalSeconds = 60
-            MaxAttempts     = 3
-            ErrorEquals = [
-              "Lambda.AWSLambdaException",
-              "Lambda.SdkClientException",
-              "Lambda.ServiceException",
-              "Lambda.Unknown",
-            ]
-          }
-        ]
+        Retry = [{
+          BackoffRate     = 2
+          IntervalSeconds = 60
+          MaxAttempts     = 3
+          ErrorEquals = [
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.ServiceException",
+            "Lambda.Unknown",
+          ]
+        }]
       }
       PutEventsAndMetrics = {
         Type       = "Parallel"
@@ -693,7 +687,13 @@ resource "aws_sfn_state_machine" "reddit_dequeue" {
                 Parameters = {
                   "Namespace.$"  = "$.Namespace"
                   "MetricData.$" = "$.MetricData"
-                }
+                },
+                "Retry" : [{
+                  BackoffRate     = 2
+                  ErrorEquals     = ["CloudWatch.SdkClientException"]
+                  IntervalSeconds = 60
+                  MaxAttempts     = 3
+                }]
               }
             }
           }
