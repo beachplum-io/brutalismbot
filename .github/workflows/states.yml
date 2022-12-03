@@ -1,4 +1,4 @@
-name: plan
+name: states
 on:
   pull_request:
     paths:
@@ -7,7 +7,7 @@ on:
     paths:
       - states/**
 jobs:
-  states-plan:
+  plan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3

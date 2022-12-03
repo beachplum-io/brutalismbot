@@ -1,4 +1,4 @@
-name: plan
+name: apis
 on:
   pull_request:
     paths:
@@ -7,7 +7,7 @@ on:
     paths:
       - apis/**
 jobs:
-  apis-plan:
+  plan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3

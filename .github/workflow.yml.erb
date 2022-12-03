@@ -1,4 +1,4 @@
-name: plan
+name: <%= workspace %>
 on:
   pull_request:
     paths:
@@ -7,7 +7,7 @@ on:
     paths:
       - <%= workspace %>/**
 jobs:
-  <%= workspace %>-plan:
+  plan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3

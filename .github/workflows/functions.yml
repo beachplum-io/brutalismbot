@@ -1,4 +1,4 @@
-name: plan
+name: functions
 on:
   pull_request:
     paths:
@@ -7,7 +7,7 @@ on:
     paths:
       - functions/**
 jobs:
-  functions-plan:
+  plan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
