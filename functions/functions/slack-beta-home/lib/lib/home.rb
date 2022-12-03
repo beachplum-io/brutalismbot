@@ -116,12 +116,16 @@ class Home
   private
 
   def blocks_errors(method, header)
-    flawless = -> (_,v)    { v.zero? }
-    fieldify = -> (k,v)    { "#{v} — #{k}".mrkdwn }
-    blockify = -> (fields) { Slack::Block.section(fields: fields) }
-    errors = send(method).reject(&flawless).map(&fieldify).each_slice(2).map(&blockify)
+    flawless = -> (_,v) { v.zero? }
+    blockify = -> (k,v) { Slack::Block.section(fields: [k.bold.mrkdwn, v.to_s.mrkdwn]) }
+    deprefix = -> (key) { key.delete_prefix('brutalismbot-') }
+
+    errors = send(method).reject(&flawless).sort.to_h.transform_keys(&deprefix)
     if errors.any?
-      [ Slack::Block.header(text: header.plain_text), *errors ]
+      [
+        Slack::Block.header(text: header.plain_text),
+        *errors.reject(&flawless).map(&blockify)
+      ]
     else
       []
     end
