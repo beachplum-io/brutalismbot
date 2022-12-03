@@ -20,33 +20,3 @@ New image posts that haven't been seen before are saved, transformed into Slack 
 Example post:
 
 <img alt="post" src="https://brutalismbot.com/docs/post.png" width="500"/>
-
-## Architecture
-
-The app consists of 3 parts: install/uninstall, caching new posts, and mirroring posts to installed workspaces.
-
-### Install/Uninstall
-
-<img alt="install-uninstall" src="https://brutalismbot.com/docs/arch-install-uninstall.png"/>
-
-When the app is installed, The Brutalismbot REST API sends a `POST` request to Slack's [oauth.access](https://api.slack.com/methods/oauth.access) REST endpoint. The resulting OAuth payload (with incoming webhook URL) is published to an SNS topic that triggers a Lambda that persists the payload to S3 and sends the current top bost on /r/brutalism to the new workspace using the webhook URL.
-
-When the app is uninstalled, Slack sends a `POST` request of the uninstall event to the Brutalismbot REST API. The event is published to an SNS topic that triggers a Lambda to remove the OAuth from S3.
-
-### Cache
-
-<img alt="cache" src="https://brutalismbot.com/docs/arch-cache.png" width="500"/>
-
-Every hour (ish) a CloudWatch event triggers a Lambda to get new posts from the /r/brutalism REST API and persists the JSON representation of the post to S3.
-
-### Mirror
-
-<img alt="mirror" src="https://brutalismbot.com/docs/arch-mirror.png" width="500"/>
-
-When a new post is persisted to S3, an S3 bucket notification triggers a Lambda to convert the post to a Slack message and post to every installed workspace.
-
-### See Also
-
-- [Brutalismbot API](https://github.com/brutalismbot/api)
-- [Brutalismbot Gem](https://github.com/brutalismbot/gem)
-- [Brutalismbot Monitoring](https://github.com/brutalismbot/monitoring)
