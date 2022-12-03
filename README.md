@@ -1,4 +1,4 @@
-<img alt="brutalismbot" src="https://brutalismbot.com/banner.png"/>
+<img alt="brutalismbot" src="https://brutalismbot.com/docs/banner.png"/>
 
 [![rspec](https://img.shields.io/github/workflow/status/brutalismbot/brutalismbot/plan?logo=github&style=flat-square)](https://github.com/brutalismbot/brutalismbot/actions)
 
