@@ -1,0 +1,60 @@
+---
+StartAt: GetHome
+States:
+  GetHome:
+    Type: Parallel
+    Next: PublishView
+    Branches:
+      - StartAt: GetView
+        States:
+          GetView:
+            Type: Task
+            Resource: ${slack_beta_home_function_arn}
+            End: true
+      - StartAt: GetAuth
+        States:
+          GetAuth:
+            Type: Task
+            Resource: arn:aws:states:::aws-sdk:dynamodb:query
+            End: true
+            Parameters:
+              TableName: ${table_name}
+              IndexName: Chrono
+              KeyConditionExpression: "#SORT = :SORT"
+              FilterExpression: APP_ID = :APP_ID AND TEAM_ID = :TEAM_ID AND USER_ID = :USER_ID
+              ProjectionExpression: ACCESS_TOKEN,USER_ID
+              ExpressionAttributeNames:
+                "#SORT": SORT
+              ExpressionAttributeValues:
+                ":SORT":
+                  S: SLACK/AUTH
+                ":APP_ID":
+                  S.$: $.api_app_id
+                ":TEAM_ID":
+                  S.$: $.team.id
+                ":USER_ID":
+                  S.$: $.user.id
+            ResultSelector:
+              ACCESS_TOKEN.$: $.Items[0].ACCESS_TOKEN.S
+              USER_ID.$: $.Items[0].USER_ID.S
+    ResultSelector:
+      url: https://slack.com/api/views.publish
+      headers:
+        authorization.$: States.Format('Bearer {}', $[1].ACCESS_TOKEN)
+        content-type: application/json; charset=utf8
+      body:
+        user_id.$: $[1].USER_ID
+        view.$: States.JsonToString($[0])
+  PublishView:
+    Type: Task
+    Resource: ${http_function_arn}
+    End: true
+    Parameters:
+      method: POST
+      url.$: $.url
+      headers.$: $.headers
+      body.$: States.JsonToString($.body)
+    ResultSelector:
+      statusCode.$: $.statusCode
+      headers.$: $.headers
+      body.$: States.StringToJson($.body)

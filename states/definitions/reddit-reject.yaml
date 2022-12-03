@@ -1,0 +1,37 @@
+---
+StartAt: Parallelize
+States:
+  Parallelize:
+    Type: Parallel
+    End: true
+    Branches:
+      - StartAt: StopExecution
+        States:
+          StopExecution:
+            Type: Task
+            Resource: arn:aws:states:::aws-sdk:sfn:stopExecution
+            End: true
+            Parameters:
+              ExecutionArn.$: $.actions[0].value
+      - StartAt: ReplaceMessage
+        States:
+          ReplaceMessage:
+            Type: Task
+            Resource: ${http_function_arn}
+            End: true
+            Parameters:
+              url.$: $.response_url
+              method: POST
+              body: >-
+                {"delete_original":true}
+              headers:
+                content-type: application/json; charset=utf-8
+            Retry:
+              - BackoffRate: 2
+                IntervalSeconds: 3
+                MaxAttempts: 4
+                ErrorEquals:
+                  - Lambda.AWSLambdaException
+                  - Lambda.SdkClientException
+                  - Lambda.ServiceException
+                  - Lambda.Unknown

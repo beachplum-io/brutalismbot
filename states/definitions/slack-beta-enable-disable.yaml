@@ -1,0 +1,126 @@
+---
+StartAt: GetRule
+States:
+  GetRule:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:eventbridge:describeRule
+    Next: Disabled?
+    ResultPath: $.state
+    Parameters:
+      Name: ${reddit_dequeue_rule_name}
+    ResultSelector:
+      State.$: $.State
+  Disabled?:
+    Type: Choice
+    Default: Enable
+    Choices:
+      - Next: Disable
+        And:
+          - Variable: $.state.State
+            IsPresent: true
+          - Variable: $.state.State
+            StringEquals: ENABLED
+  Disable:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:eventbridge:disableRule
+    Next: GetView
+    ResultPath: $.state
+    Parameters:
+      Name: ${reddit_dequeue_rule_name}
+    ResultSelector:
+      type: button
+      style: primary
+      value: primary
+      text:
+        type: plain_text
+        text: Enable
+  Enable:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:eventbridge:enableRule
+    Next: GetView
+    ResultPath: $.state
+    Parameters:
+      Name: ${reddit_dequeue_rule_name}
+    ResultSelector:
+      type: button
+      style: danger
+      value: disable
+      text:
+        type: plain_text
+        text: Disable
+  GetView:
+    Type: Parallel
+    Next: EncodeView
+    Branches:
+      - StartAt: GetBlocks
+        States:
+          GetBlocks:
+            Type: Pass
+            End: true
+            Parameters:
+              blocks:
+                - block_id: enable_disable
+                  type: actions
+                  elements.$: States.Array($.state)
+      - StartAt: GetParams
+        States:
+          GetParams:
+            Type: Task
+            Resource: arn:aws:states:::aws-sdk:dynamodb:query
+            End: true
+            Parameters:
+              TableName: ${table_name}
+              IndexName: Chrono
+              KeyConditionExpression: "#SORT = :SORT"
+              FilterExpression: APP_ID = :APP_ID AND TEAM_ID = :TEAM_ID AND USER_ID = :USER_ID
+              ProjectionExpression: ACCESS_TOKEN,USER_ID
+              ExpressionAttributeNames:
+                "#SORT": SORT
+              ExpressionAttributeValues:
+                ":SORT":
+                  S: SLACK/AUTH
+                ":APP_ID":
+                  S.$: $.api_app_id
+                ":TEAM_ID":
+                  S.$: $.team.id
+                ":USER_ID":
+                  S.$: $.user.id
+            ResultSelector:
+              ACCESS_TOKEN.$: $.Items[0].ACCESS_TOKEN.S
+              USER_ID.$: $.Items[0].USER_ID.S
+    ResultSelector:
+      url: https://slack.com/api/views.publish
+      headers:
+        authorization.$: States.Format('Bearer {}', $[1].ACCESS_TOKEN)
+        content-type: application/json; charset=utf8
+      body:
+        user_id.$: $[1].USER_ID
+        view:
+          callback_id: enable_disable
+          type: home
+          title:
+            type: plain_text
+            text: Brutalismbot Beta
+          blocks.$: $[0].blocks
+  EncodeView:
+    Type: Pass
+    Next: SendRequest
+    Parameters:
+      url.$: $.url
+      headers.$: $.headers
+      body:
+        user_id.$: $.body.user_id
+        view.$: States.JsonToString($.body.view)
+  SendRequest:
+    Type: Task
+    Resource: ${http_function_arn}
+    End: true
+    ResultSelector:
+      statusCode.$: $.statusCode
+      headers.$: $.headers
+      body.$: States.StringToJson($.body)
+    Parameters:
+      method: POST
+      url.$: $.url
+      headers.$: $.headers
+      body.$: States.JsonToString($.body)

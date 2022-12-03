@@ -1,0 +1,119 @@
+---
+StartAt: GetQuery?
+States:
+  GetQuery?:
+    Type: Choice
+    Default: GetQuery
+    Choices:
+      - Next: ListAuths
+        Variable: $.QUERY
+        IsPresent: true
+  GetQuery:
+    Type: Pass
+    Next: ListAuths
+    ResultPath: $.QUERY
+    Parameters:
+      TableName: ${table_name}
+      IndexName: Chrono
+      Limit: 10
+      KeyConditionExpression: SORT = :SORT
+      FilterExpression: >-
+        #ENABLED = :ENABLED AND APP_ID <> :APP_ID
+      ProjectionExpression: ACCESS_TOKEN,APP_ID,CHANNEL_ID,CHANNEL_NAME,#SCOPE,TEAM_ID,TEAM_NAME,USER_ID,WEBHOOK_URL
+      ExpressionAttributeNames:
+        "#ENABLED": ENABLED
+        "#SCOPE": SCOPE
+      ExclusiveStartKey: null
+      ExpressionAttributeValues:
+        ":APP_ID":
+          S: A020594EPJQ
+        ":ENABLED":
+          Bool: true
+        ":SORT":
+          S: SLACK/AUTH
+  ListAuths:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:query
+    Next: NextPage?
+    InputPath: $.QUERY
+    ResultPath: $.RESULT
+    Parameters:
+      TableName.$: $.TableName
+      IndexName.$: $.IndexName
+      KeyConditionExpression.$: $.KeyConditionExpression
+      FilterExpression.$: $.FilterExpression
+      Limit.$: $.Limit
+      ProjectionExpression.$: $.ProjectionExpression
+      ExpressionAttributeNames.$: $.ExpressionAttributeNames
+      ExpressionAttributeValues.$: $.ExpressionAttributeValues
+      ExclusiveStartKey.$: $.ExclusiveStartKey
+  NextPage?:
+    Type: Choice
+    Default: GetEvents
+    Choices:
+      - Next: NextPage
+        Variable: $.RESULT.LastEvaluatedKey
+        IsPresent: true
+      - Next: Finish
+        Variable: $.RESULT.Count
+        NumericEquals: 0
+  NextPage:
+    Type: Task
+    Resource: arn:aws:states:::states:startExecution
+    Next: GetEvents
+    ResultPath: $.STATES
+    Parameters:
+      StateMachineArn.$: $$.StateMachine.Id
+      Input:
+        AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$: $$.Execution.Id
+        POST.$: $.POST
+        QUERY:
+          TableName.$: $.QUERY.TableName
+          IndexName.$: $.QUERY.IndexName
+          KeyConditionExpression.$: $.QUERY.KeyConditionExpression
+          FilterExpression.$: $.QUERY.FilterExpression
+          Limit.$: $.QUERY.Limit
+          ProjectionExpression.$: $.QUERY.ProjectionExpression
+          ExpressionAttributeNames.$: $.QUERY.ExpressionAttributeNames
+          ExpressionAttributeValues.$: $.QUERY.ExpressionAttributeValues
+          ExclusiveStartKey.$: $.RESULT.LastEvaluatedKey
+  Finish:
+    Type: Succeed
+  GetEvents:
+    Type: Map
+    Next: PublishEvents
+    ItemsPath: $.RESULT.Items
+    ResultSelector:
+      Entries.$: $
+    Parameters:
+      POST.$: $.POST
+      SLACK:
+        ACCESS_TOKEN.$: $$.Map.Item.Value.ACCESS_TOKEN.S
+        APP_ID.$: $$.Map.Item.Value.APP_ID.S
+        CHANNEL_ID.$: $$.Map.Item.Value.CHANNEL_ID.S
+        CHANNEL_NAME.$: $$.Map.Item.Value.CHANNEL_NAME.S
+        SCOPE.$: $$.Map.Item.Value.SCOPE.S
+        TEAM_ID.$: $$.Map.Item.Value.TEAM_ID.S
+        TEAM_NAME.$: $$.Map.Item.Value.TEAM_NAME.S
+        USER_ID.$: $$.Map.Item.Value.USER_ID.S
+        WEBHOOK_URL.$: $$.Map.Item.Value.WEBHOOK_URL.S
+    Iterator:
+      StartAt: GetEvent
+      States:
+        GetEvent:
+          Type: Pass
+          End: true
+          Parameters:
+            EventBusName: ${event_bus_name}
+            Source: reddit
+            DetailType: post/slack/channel
+            Detail:
+              AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$: $$.Execution.Id
+              POST.$: $.POST
+              SLACK.$: $.SLACK
+  PublishEvents:
+    Type: Task
+    Resource: arn:aws:states:::events:putEvents
+    End: true
+    Parameters:
+      Entries.$: $.Entries
