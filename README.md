@@ -1,7 +1,5 @@
 <img alt="brutalismbot" src="https://brutalismbot.com/docs/banner.png"/>
 
-[![rspec](https://img.shields.io/github/workflow/status/brutalismbot/brutalismbot/plan?logo=github&style=flat-square)](https://github.com/brutalismbot/brutalismbot/actions)
-
 A [Slack app](https://slack.com/apps/AH0KW28C9-brutalismbot) that mirrors posts from
 [/r/brutalism](https://www.reddit.com/r/brutalism/new)
 to a #channel of your choosing using
