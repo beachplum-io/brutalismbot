@@ -399,6 +399,12 @@ data "aws_iam_policy_document" "slack_beta_refresh_home" {
   }
 
   statement {
+    sid       = "EventBridge"
+    actions   = ["events:PutEvents"]
+    resources = [data.terraform_remote_state.events.outputs.event_bus.arn]
+  }
+
+  statement {
     sid     = "Lambda"
     actions = ["lambda:InvokeFunction"]
 
@@ -418,6 +424,7 @@ module "slack_beta_refresh_home" {
   variables = {
     slack_beta_home_function_arn = data.terraform_remote_state.functions.outputs.functions.slack_beta_home.arn
     http_function_arn            = data.terraform_remote_state.functions.outputs.functions.http.arn
+    event_bus_name               = data.terraform_remote_state.events.outputs.event_bus.name
     table_name                   = aws_dynamodb_table.table.name
   }
 }
