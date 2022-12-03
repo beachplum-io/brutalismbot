@@ -1,4 +1,4 @@
-PROJECTS = $(shell find * -name terraform.tf -depth 1 | xargs dirname | xargs)
+PROJECTS = $(shell ls */terraform.tf | xargs dirname | xargs)
 
 all: $(PROJECTS)
 
