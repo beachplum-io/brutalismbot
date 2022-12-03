@@ -1,0 +1,108 @@
+a {
+  color: #F58D8C;
+}
+
+a:hover {
+  color: #C94A4A;
+}
+
+body {
+  color: #DDD;
+  font-family: "Quicksand";
+  font-weight: 300;
+}
+
+h1 {
+  color: #EEE;
+  font-family: "Asset";
+  font-size: 5em;
+}
+
+h2, h3, h4 {
+  font-family: "Righteous";
+}
+
+html {
+  background-color: #40364D;
+}
+
+.parallax::before {
+  content: ' ';
+  display: block;
+  background-image: url("./background.png");
+  background-position: center;
+  background-size: cover;
+  height: 90vh;
+  width: 100vw;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  position: fixed;
+  z-index: 0;
+}
+
+.title {
+  margin: 64px 0 0 32px;
+  position: fixed;
+  z-index: 10;
+}
+
+.parallax {
+  min-height: 520px;
+}
+
+.main {
+  background: #40364D;
+  font-size: 20px;
+  min-height: 50vh;
+  padding: 24px;
+  position: relative;
+  z-index: 20;
+}
+
+.main::after {
+  padding: 128px;
+}
+
+.fineprint {
+  font-size: 0.8em;
+}
+
+@media only screen and (max-width: 768px) {
+  h1 {
+    font-size: 4.1em;
+  }
+
+  .title {
+    word-wrap: break-word;
+    width: 90vw;
+    margin: 12px;
+  }
+
+  .parallax {
+    min-height: 400px;
+  }
+
+  .parallax::before {
+    height: 70vh;
+  }
+}
+
+@media only screen and (max-width: 960px) {
+  h1 {
+    font-size: 3em;
+  }
+}
+
+@media only screen and (max-width: 1024px) {
+  h1 {
+    font-size: 3em;
+  }
+}
+
+@media only screen and (max-width: 1112px) {
+  h1 {
+    font-size: 4em;
+  }
+}
