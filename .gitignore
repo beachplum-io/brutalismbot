@@ -8,11 +8,14 @@
 # .tfvars files
 *.tfvars
 
-**/.terraform/
-**/pkg/
+# .env
 *.env
-*.swp
-*.tfplan
+*.env.*
+
+# packages
+**/vendor/
 *.zip
+
+# Ruby
 .rspec_status
 coverage
