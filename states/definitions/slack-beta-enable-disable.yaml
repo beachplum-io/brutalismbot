@@ -23,17 +23,28 @@ States:
   Disable:
     Type: Task
     Resource: arn:aws:states:::aws-sdk:eventbridge:disableRule
-    Next: RefreshHome
+    Next: GetDetail
     ResultPath: $.state
     Parameters:
       Name: ${reddit_dequeue_rule_name}
   Enable:
     Type: Task
     Resource: arn:aws:states:::aws-sdk:eventbridge:enableRule
-    Next: RefreshHome
+    Next: GetDetail
     ResultPath: $.state
     Parameters:
       Name: ${reddit_dequeue_rule_name}
+  GetDetail:
+    Type: Pass
+    Next: RefreshHome
+    Parameters:
+      api_app_id.$: $.api_app_id
+      team.$: $.team
+      user.$: $.user
+      action_ids:
+        - refresh
+      view:
+        callback_id: home
   RefreshHome:
     Type: Task
     Resource: arn:aws:states:::aws-sdk:eventbridge:putEvents
@@ -43,8 +54,4 @@ States:
         - EventBusName: ${event_bus_name}
           Source: slack/beta
           DetailType: POST /callbacks
-          Detail: |-
-            {
-              "action_ids": ["refresh"],
-              "view": { "callback_id": "home" }
-            }
+          Detail.$: States.JsonToString($)
