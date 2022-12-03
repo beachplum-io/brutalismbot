@@ -1,0 +1,18 @@
+name: plan
+on:
+  pull_request:
+    paths:
+      - website/**
+  push:
+    paths:
+      - website/**
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-ruby@v1
+      - uses: hashicorp/setup-terraform@v2
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+      - run: make website
