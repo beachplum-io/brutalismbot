@@ -85,7 +85,7 @@ States:
     ItemsPath: $.RESULT.Items
     ResultSelector:
       Entries.$: $
-    Parameters:
+    ItemSelector:
       POST.$: $.POST
       SLACK:
         ACCESS_TOKEN.$: $$.Map.Item.Value.ACCESS_TOKEN.S
@@ -97,7 +97,7 @@ States:
         TEAM_NAME.$: $$.Map.Item.Value.TEAM_NAME.S
         USER_ID.$: $$.Map.Item.Value.USER_ID.S
         WEBHOOK_URL.$: $$.Map.Item.Value.WEBHOOK_URL.S
-    Iterator:
+    ItemProcessor:
       StartAt: GetEvent
       States:
         GetEvent:

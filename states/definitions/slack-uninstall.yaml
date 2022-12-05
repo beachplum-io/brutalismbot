@@ -89,7 +89,7 @@ States:
             ResultSelector:
               RequestItems:
                 ${table_name}.$: $
-            Iterator:
+            ItemProcessor:
               StartAt: GetRequestItem
               States:
                 GetRequestItem:
