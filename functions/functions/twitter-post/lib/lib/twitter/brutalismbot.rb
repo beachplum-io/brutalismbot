@@ -50,7 +50,7 @@ module Twitter
       )
       logger.info "POST #{ File.join twitter_upload_client.consumer.options[:site], options.path }"
       result = twitter_upload_client.perform_request_from_options options
-      JSON.parse result.read_body
+      JSON.parse result.read_body rescue nil
     end
 
     def post(updates:nil, count:nil, **data)
@@ -58,12 +58,12 @@ module Twitter
         logger.info "PUSH twitter://@brutalismbot [#{i + 1}/#{count}]"
 
         # Upload media for tweet
-        media     = update[:media].map { |url| upload url }
+        media     = update[:media].map { |url| upload url }.compact
         media_ids = media.map { |x| x['media_id_string'] }
 
         # Send tweet
-        text = update[:status] || ""
-        data.update 'text' => text, 'media' => { 'media_ids' => media_ids }
+        data['text']  = update[:status] || ""
+        data['media'] = { 'media_ids' => media_ids } unless media_ids.empty?
         result = tweet(**data)
 
         # Initialize data for next reply
