@@ -27,7 +27,7 @@ class Home
   def blocks
     blocks_queue_size +
     blocks_errors(:state_machine_errors, 'State Machine Errors') +
-    blocks_errors(:lambda_errors, 'Lambda Headers') +
+    blocks_errors(:lambda_errors, 'Lambda Errors') +
     blocks_actions
   end
 
