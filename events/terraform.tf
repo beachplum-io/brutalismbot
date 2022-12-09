@@ -170,30 +170,6 @@ module "reddit_screen" {
   }
 }
 
-#####################################
-#   SLACK :: BETA APP HOME OPENED   #
-#####################################
-
-# data "aws_sfn_state_machine" "slack_beta_app_home_opened" {
-#   name = "brutalismbot-slack-beta-app-home-opened"
-# }
-
-# module "slack_beta_app_home_opened" {
-#   source = "./eventbridge"
-
-#   description       = "Handle Slack beta app home opened events"
-#   event_bus_name    = aws_cloudwatch_event_bus.bus.name
-#   identifier        = "slack-beta-app-home-opened"
-#   is_enabled        = local.is_enabled.slack.beta_app_home_opened
-#   state_machine_arn = data.aws_sfn_state_machine.slack_beta_app_home_opened.arn
-
-#   pattern = {
-#     source      = ["slack/beta"]
-#     detail-type = ["event", "POST /events"]
-#     detail      = { event = { type = ["app_home_opened"] } }
-#   }
-# }
-
 ####################################
 #   SLACK :: BETA ENABLE/DISABLE   #
 ####################################
