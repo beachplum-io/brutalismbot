@@ -1,7 +1,9 @@
 <img alt="brutalismbot" src="https://brutalismbot.com/docs/banner.png"/>
 
-A [Slack app](https://slack.com/apps/AH0KW28C9-brutalismbot) and [Twitter bot](https://twitter.com/brutalismbot) that mirrors posts from
-[/r/brutalism](https://www.reddit.com/r/brutalism/new).
+[![Install](https://img.shields.io/badge/Slack-install-purple?logo=slack&style=for-the-badge)](https://slack.com/apps/AH0KW28C9-brutalismbot)
+[![Follow](https://img.shields.io/badge/Twitter-follow-blue?logo=twitter&style=for-the-badge)](https://twitter.com/brutalismbot)
+
+A Slack app and Twitter bot that mirrors posts from [/r/brutalism](https://www.reddit.com/r/brutalism/new).
 
 Example Slack message:
 
