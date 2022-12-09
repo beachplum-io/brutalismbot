@@ -17,6 +17,6 @@ reset:
 
 .PHONY: init plan apply clean reset
 
-.terraform:
+.terraform: terraform.tf
 	terraform init
 	touch $@

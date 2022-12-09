@@ -11,6 +11,6 @@ clean:
 
 .PHONY: init plan apply clean
 
-.terraform:
+.terraform: terraform.tf
 	terraform init
 	touch $@
