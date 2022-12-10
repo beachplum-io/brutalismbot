@@ -4,7 +4,7 @@ States:
   GetSlack:
     Type: Task
     Resource: arn:aws:states:::dynamodb:getItem
-    Next: AppendChannel
+    Next: AppendControls
     ResultPath: $.SLACK
     ResultSelector:
       ACCESS_TOKEN.$: $.Item.ACCESS_TOKEN.S
@@ -17,25 +17,20 @@ States:
           S: ${app_id}/${team_id}/${conversation_id}
         SORT:
           S: SLACK/AUTH
-  AppendChannel:
-    Type: Pass
-    Next: AppendControls
-    InputPath: $.SLACK.CHANNEL_ID
-    ResultPath: $.POST.DATA.channel
   AppendControls:
     Type: Task
     Resource: ${array_function_arn}
-    Next: SendChat
+    Next: Attachmentify
     ResultPath: $.POST.DATA.blocks
     Parameters:
       array.$: $.POST.DATA.blocks
       push:
-        block_id: reject
         type: actions
+        block_id: reject
         elements:
-          - action_id: reject
+          - type: button
+            action_id: reject
             style: danger
-            type: button
             value.$: $.AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID
             confirm:
               style: danger
@@ -64,6 +59,15 @@ States:
           - Lambda.SdkClientException
           - Lambda.ServiceException
           - Lambda.Unknown
+  Attachmentify:
+    Type: Pass
+    Next: SendChat
+    ResultPath: $.POST.DATA
+    Parameters:
+      channel.$: $.SLACK.CHANNEL_ID
+      attachments:
+        - color: "#D55D6A"
+          blocks.$: $.POST.DATA.blocks
   SendChat:
     Type: Task
     Resource: ${http_function_arn}
