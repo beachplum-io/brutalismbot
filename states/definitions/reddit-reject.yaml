@@ -13,9 +13,9 @@ States:
             End: true
             Parameters:
               ExecutionArn.$: $.actions[0].value
-      - StartAt: ReplaceMessage
+      - StartAt: DeleteMessage
         States:
-          ReplaceMessage:
+          DeleteMessage:
             Type: Task
             Resource: ${http_function_arn}
             End: true
