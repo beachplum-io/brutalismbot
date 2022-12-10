@@ -590,15 +590,17 @@ module "slack_uninstall" {
 #   STATE MACHINE ERRORS   #
 ############################
 
-data "aws_secretsmanager_secret" "secret" {
-  name = "brutalismbot/beta"
-}
-
 data "aws_iam_policy_document" "state_machine_errors" {
   statement {
-    sid       = "States"
-    actions   = ["secretsmanager:GetSecretValue"]
-    resources = [data.aws_secretsmanager_secret.secret.arn]
+    sid       = "DynamoDB"
+    actions   = ["dynamodb:GetItem"]
+    resources = [aws_dynamodb_table.table.arn]
+  }
+
+  statement {
+    sid       = "Lambda"
+    actions   = ["lambda:InvokeFunction"]
+    resources = [data.terraform_remote_state.functions.outputs.functions.http.arn]
   }
 }
 
@@ -609,7 +611,11 @@ module "state_machine_errors" {
   policy = data.aws_iam_policy_document.state_machine_errors.json
 
   variables = {
-    secret_id = data.aws_secretsmanager_secret.secret.id
+    app_id            = local.apps.beta
+    team_id           = local.team_id
+    conversation_id   = local.conversations.brutalism
+    http_function_arn = data.terraform_remote_state.functions.outputs.functions.http.arn
+    table_name        = aws_dynamodb_table.table.name
   }
 }
 
