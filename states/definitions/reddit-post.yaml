@@ -89,7 +89,7 @@ States:
           GetSlack:
             Type: Task
             Resource: ${slack_transform_function_arn}
-            Next: SendVerify
+            Next: SendScreener
             InputPath: $.POST.DATA
             ResultPath: $.POST.DATA
             OutputPath: $.POST
@@ -102,7 +102,7 @@ States:
                   - Lambda.SdkClientException
                   - Lambda.ServiceException
                   - Lambda.Unknown
-          SendVerify:
+          SendScreener:
             Type: Task
             Resource: arn:aws:states:::events:putEvents
             End: true
