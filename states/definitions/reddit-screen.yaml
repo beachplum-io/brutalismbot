@@ -8,10 +8,10 @@ States:
     ResultPath: $.SLACK
     ResultSelector:
       ACCESS_TOKEN.$: $.Item.ACCESS_TOKEN.S
-      USER_ID.$: $.Item.USER_ID.S
+      CHANNEL_ID.$: $.Item.CHANNEL_ID.S
     Parameters:
       TableName: ${table_name}
-      ProjectionExpression: ACCESS_TOKEN,USER_ID
+      ProjectionExpression: ACCESS_TOKEN,CHANNEL_ID
       Key:
         GUID:
           S: ${app_id}/${team_id}/${conversation_id}
@@ -20,7 +20,7 @@ States:
   AppendChannel:
     Type: Pass
     Next: AppendControls
-    InputPath: $.SLACK.USER_ID
+    InputPath: $.SLACK.CHANNEL_ID
     ResultPath: $.POST.DATA.channel
   AppendControls:
     Type: Task
