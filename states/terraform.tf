@@ -61,6 +61,18 @@ variable "wait_time_seconds" { default = 14400 }
 ##############
 
 locals {
+  team_id = "THAQ99JLW"
+
+  apps = {
+    beta = "A020594EPJQ"
+    prod = "AH0KW28C9"
+  }
+
+  conversations = {
+    messages  = "DH6UK5Q0Y"
+    brutalism = "CH0KP5789"
+  }
+
   tags = {
     "terraform:organization" = "brutalismbot"
     "terraform:workspace"    = "states"
@@ -294,10 +306,13 @@ module "reddit_screen" {
   policy = data.aws_iam_policy_document.reddit_screen.json
 
   variables = {
+    app_id             = local.apps.beta
+    team_id            = local.team_id
+    conversation_id    = local.conversations.brutalism
+    wait_time_seconds  = var.wait_time_seconds
     array_function_arn = data.terraform_remote_state.functions.outputs.functions.array.arn
     http_function_arn  = data.terraform_remote_state.functions.outputs.functions.http.arn
     table_name         = aws_dynamodb_table.table.name
-    wait_time_seconds  = var.wait_time_seconds
   }
 }
 
@@ -501,6 +516,7 @@ module "slack_post" {
   policy = data.aws_iam_policy_document.slack_post.json
 
   variables = {
+    app_id                       = local.apps.prod
     event_bus_name               = data.terraform_remote_state.events.outputs.event_bus.name
     slack_transform_function_arn = data.terraform_remote_state.functions.outputs.functions.slack_transform.arn
     table_name                   = aws_dynamodb_table.table.name

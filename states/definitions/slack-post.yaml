@@ -18,15 +18,16 @@ States:
       Limit: 10
       KeyConditionExpression: SORT = :SORT
       FilterExpression: >-
-        #ENABLED = :ENABLED AND APP_ID <> :APP_ID
-      ProjectionExpression: ACCESS_TOKEN,APP_ID,CHANNEL_ID,CHANNEL_NAME,#SCOPE,TEAM_ID,TEAM_NAME,USER_ID,WEBHOOK_URL
+        APP_ID = :APP_ID AND #ENABLED = :ENABLED
+      ProjectionExpression: >-
+        ACCESS_TOKEN,APP_ID,CHANNEL_ID,CHANNEL_NAME,#SCOPE,TEAM_ID,TEAM_NAME,USER_ID,WEBHOOK_URL
       ExpressionAttributeNames:
         "#ENABLED": ENABLED
         "#SCOPE": SCOPE
       ExclusiveStartKey: null
       ExpressionAttributeValues:
         ":APP_ID":
-          S: A020594EPJQ
+          S: ${app_id}
         ":ENABLED":
           Bool: true
         ":SORT":

@@ -14,7 +14,7 @@ States:
       ProjectionExpression: ACCESS_TOKEN,USER_ID
       Key:
         GUID:
-          S: A020594EPJQ/THAQ99JLW/DH6UK5Q0Y
+          S: ${app_id}/${team_id}/${conversation_id}
         SORT:
           S: SLACK/AUTH
   AppendChannel:
@@ -91,48 +91,21 @@ States:
           - Lambda.Unknown
   Wait:
     Type: Wait
-    Next: StripControls
+    Next: DeleteScreener
     Seconds: ${wait_time_seconds}
-  StripControls:
+  DeleteScreener:
     Type: Task
-    Resource: ${array_function_arn}
-    Next: GetUpdate
-    InputPath: $.POST.DATA.blocks
-    ResultPath: $.POST.DATA.blocks
+    Resource: ${http_function_arn}
+    End: true
     Parameters:
-      array.$: $
-      pop: 1
-    Retry:
-      - BackoffRate: 2
-        IntervalSeconds: 3
-        MaxAttempts: 4
-        ErrorEquals:
-          - Lambda.AWSLambdaException
-          - Lambda.SdkClientException
-          - Lambda.ServiceException
-          - Lambda.Unknown
-  GetUpdate:
-    Type: Pass
-    Next: SendUpdate
-    Parameters:
-      url: https://slack.com/api/chat.update
+      url: https://slack.com/api/chat.delete
       method: POST
       headers:
         authorization.$: States.Format('Bearer {}', $.SLACK.ACCESS_TOKEN)
         content-type: application/json; charset=utf-8
       body:
         channel.$: $.HTTP.body.channel
-        blocks.$: $.POST.DATA.blocks
         ts.$: $.HTTP.body.ts
-  SendUpdate:
-    Type: Task
-    Resource: ${http_function_arn}
-    End: true
-    Parameters:
-      url.$: $.url
-      method.$: $.method
-      headers.$: $.headers
-      body.$: States.JsonToString($.body)
     Retry:
       - BackoffRate: 2
         IntervalSeconds: 3

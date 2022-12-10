@@ -29,11 +29,10 @@ States:
             Parameters:
               TableName: ${table_name}
               IndexName: Chrono
+              ScanIndexForward: false
               KeyConditionExpression: SORT = :SORT
               FilterExpression: "#STATE = :STATE AND attribute_exists(#JSON)"
               ProjectionExpression: CREATED_UTC,JSON,#NAME,PERMALINK,TITLE,#TTL
-              ScanIndexForward: false
-              Limit: 2
               ExpressionAttributeNames:
                 "#JSON": JSON
                 "#NAME": NAME
