@@ -586,6 +586,33 @@ module "slack_uninstall" {
   }
 }
 
+############################
+#   STATE MACHINE ERRORS   #
+############################
+
+data "aws_secretsmanager_secret" "secret" {
+  name = "brutalismbot/beta"
+}
+
+data "aws_iam_policy_document" "state_machine_errors" {
+  statement {
+    sid       = "States"
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = [data.aws_secretsmanager_secret.secret.arn]
+  }
+}
+
+module "state_machine_errors" {
+  source = "./state-machine"
+
+  name   = "state-machine-errors"
+  policy = data.aws_iam_policy_document.state_machine_errors.json
+
+  variables = {
+    secret_id = data.aws_secretsmanager_secret.secret.id
+  }
+}
+
 ####################
 #   TWITTER POST   #
 ####################
@@ -633,6 +660,7 @@ output "state_machines" {
     slack_post                = module.slack_post.state_machine
     slack_post_channel        = module.slack_post_channel.state_machine
     slack_uninstall           = module.slack_uninstall.state_machine
+    state_machine_errors      = module.state_machine_errors.state_machine
     twitter_post              = module.twitter_post.state_machine
   }
 }

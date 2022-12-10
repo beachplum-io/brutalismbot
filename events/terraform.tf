@@ -343,6 +343,33 @@ module "slack_uninstall" {
   }
 }
 
+############################
+#   STATE MACHINE ERRORS   #
+############################
+
+data "aws_sfn_state_machine" "state_machine_errors" {
+  name = "brutalismbot-state-machine-errors"
+}
+
+module "state_machine_errors" {
+  source = "./eventbridge"
+
+  description       = "Handle state machine errors"
+  event_bus_name    = "default"
+  identifier        = "state-machine-errors"
+  is_enabled        = local.is_enabled.slack.uninstall
+  state_machine_arn = data.aws_sfn_state_machine.state_machine_errors.arn
+
+  pattern = {
+    source      = ["aws.states"]
+    detail-type = ["Step Functions Execution Status Change"]
+    detail = {
+      stateMachineArn = [{ anything-but = data.aws_sfn_state_machine.state_machine_errors.arn }]
+      status          = ["FAILED", "TIMED_OUT"]
+    }
+  }
+}
+
 #######################
 #   TWITTER :: POST   #
 #######################
