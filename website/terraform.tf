@@ -309,8 +309,8 @@ resource "aws_s3_object" "objects" {
   bucket       = aws_s3_bucket.website.id
   key          = each.key
   content_type = each.value
-  etag         = filemd5("${path.module}/www/${each.key}")
   source       = "${path.module}/www/${each.key}"
+  source_hash  = filemd5("${path.module}/www/${each.key}")
 }
 
 ###############
