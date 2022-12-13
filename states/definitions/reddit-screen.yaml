@@ -65,6 +65,7 @@ States:
     ResultPath: $.POST.DATA
     Parameters:
       channel.$: $.SLACK.CHANNEL_ID
+      text.$: $.POST.DATA.text
       attachments:
         - color: "#D55D6A"
           blocks.$: $.POST.DATA.blocks
