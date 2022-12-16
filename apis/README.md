@@ -1,5 +1,5 @@
 ![banner](https://brutalismbot.com/banner.png)
-[![plan](https://img.shields.io/github/workflow/status/brutalismbot/apis/plan?logo=github&style=flat-square)](https://github.com/brutalismbot/apis/actions)
+[![plan](https://img.shields.io/github/workflow/status/beachplum-io/apis/plan?logo=github&style=flat-square)](https://github.com/beachplum-io/apis/actions)
 
 Brutalismbot APIs.
 
