@@ -7,7 +7,7 @@ on:
     paths:
       - mail/**
 jobs:
-  plan:
+  plan-mail:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -15,4 +15,4 @@ jobs:
       - uses: hashicorp/setup-terraform@v2
         with:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
-      - run: make mail
+      - run: make -C mail plan

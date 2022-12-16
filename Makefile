@@ -1,6 +1,7 @@
-PROJECTS = $(shell ls */terraform.tf | xargs dirname | xargs)
+PROJECTS  = $(shell ls */terraform.tf | xargs dirname | xargs)
+WORKFLOWS = $(shell ls .github/workflows/* | xargs)
 
-all: $(PROJECTS)
+all: $(WORKFLOWS)
 
 .PHONY: all $(PROJECTS)
 
