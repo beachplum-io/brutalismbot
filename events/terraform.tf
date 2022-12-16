@@ -189,7 +189,7 @@ module "slack_beta_enable_disable" {
 
   pattern = {
     source      = ["slack/beta"]
-    detail-type = ["callback", "POST /callbacks"]
+    detail-type = ["callback", "POST /callbacks", "block_actions"]
 
     detail = {
       action_ids = ["enable_disable"]
@@ -211,13 +211,13 @@ module "slack_beta_refresh_home" {
 
   description       = "Handle Slack beta refresh callbacks"
   event_bus_name    = aws_cloudwatch_event_bus.bus.name
-  identifier        = "slack-beta-refres-home"
+  identifier        = "slack-beta-refresh-home"
   is_enabled        = local.is_enabled.slack.beta_refresh_home
   state_machine_arn = data.aws_sfn_state_machine.slack_beta_refresh_home.arn
 
   pattern = {
     source      = ["slack/beta"]
-    detail-type = ["callback", "POST /callbacks"]
+    detail-type = ["callback", "POST /callbacks", "block_actions"]
 
     detail = {
       action_ids = ["refresh"]
@@ -245,7 +245,7 @@ module "slack_beta_link_shared" {
 
   pattern = {
     source      = ["slack/beta"]
-    detail-type = ["event", "POST /events"]
+    detail-type = ["event", "POST /events", "event_callback"]
     detail      = { event = { type = ["link_shared"] } }
   }
 }
@@ -338,7 +338,7 @@ module "slack_uninstall" {
 
   pattern = {
     source      = ["slack", "slack/beta"]
-    detail-type = ["event", "POST /events"]
+    detail-type = ["event", "POST /events", "event_callback"]
     detail      = { event = { type = ["app_uninstalled"] } }
   }
 }
