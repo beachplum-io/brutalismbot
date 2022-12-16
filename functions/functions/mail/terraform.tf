@@ -85,8 +85,6 @@ resource "aws_lambda_function" "function" {
   source_code_hash = data.archive_file.package.output_base64sha256
   timeout          = 15
 
-  tags = { Repo = "https://github.com/brutalismbot/mail" }
-
   environment {
     variables = {
       MAIL_TO           = var.MAIL_TO

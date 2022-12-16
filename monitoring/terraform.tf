@@ -63,7 +63,7 @@ locals {
   tags = {
     "terraform:organization" = "brutalismbot"
     "terraform:workspace"    = "monitoring"
-    "git:repo"               = "brutalismbot/monitoring"
+    "git:repo"               = "beachplum-io/brutalismbot"
   }
 }
 
