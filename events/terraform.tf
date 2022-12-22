@@ -217,9 +217,10 @@ module "slack_beta_refresh_home" {
 
   pattern = {
     source      = ["slack/beta"]
-    detail-type = ["callback", "POST /callbacks", "block_actions"]
+    detail-type = ["POST /callbacks"]
 
     detail = {
+      type    = ["block_actions"]
       actions = { action_id = ["refresh"] }
       view    = { callback_id = ["home"] }
     }
@@ -245,8 +246,12 @@ module "slack_beta_link_shared" {
 
   pattern = {
     source      = ["slack/beta"]
-    detail-type = ["event", "POST /events", "event_callback"]
-    detail      = { event = { type = ["link_shared"] } }
+    detail-type = ["POST /events"]
+
+    detail = {
+      type  = ["event_callback"]
+      event = { type = ["link_shared"] }
+    }
   }
 }
 
@@ -269,7 +274,7 @@ module "slack_install" {
 
   pattern = {
     source      = ["slack", "slack/beta"]
-    detail-type = ["oauth", "GET /oauth/v2"]
+    detail-type = ["GET /oauth/v2"]
   }
 }
 
@@ -338,8 +343,12 @@ module "slack_uninstall" {
 
   pattern = {
     source      = ["slack", "slack/beta"]
-    detail-type = ["event", "POST /events", "event_callback"]
-    detail      = { event = { type = ["app_uninstalled"] } }
+    detail-type = ["POST /events"]
+
+    detail = {
+      type  = ["event_callback"]
+      event = { type = ["app_uninstalled"] }
+    }
   }
 }
 
@@ -364,6 +373,7 @@ module "state_machine_errors" {
   pattern = {
     source      = ["aws.states"]
     detail-type = ["Step Functions Execution Status Change"]
+
     detail = {
       stateMachineArn = [{ anything-but = data.aws_sfn_state_machine.state_machine_errors.arn }]
       status          = ["FAILED", "TIMED_OUT"]
