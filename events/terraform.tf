@@ -141,8 +141,8 @@ module "reddit_reject" {
     source      = ["slack/beta"]
     detail-type = ["callback", "POST /callbacks"]
     detail = {
-      type       = ["block_actions"]
-      action_ids = ["reject"]
+      type    = ["block_actions"]
+      actions = { action_id = ["reject"] }
     }
   }
 }
@@ -192,8 +192,8 @@ module "slack_beta_enable_disable" {
     detail-type = ["callback", "POST /callbacks", "block_actions"]
 
     detail = {
-      action_ids = ["enable_disable"]
-      view       = { callback_id = ["home"] }
+      actions = { action_id = ["enable_disable"] }
+      view    = { callback_id = ["home"] }
     }
   }
 }
@@ -220,8 +220,8 @@ module "slack_beta_refresh_home" {
     detail-type = ["callback", "POST /callbacks", "block_actions"]
 
     detail = {
-      action_ids = ["refresh"]
-      view       = { callback_id = ["home"] }
+      actions = { action_id = ["refresh"] }
+      view    = { callback_id = ["home"] }
     }
   }
 }

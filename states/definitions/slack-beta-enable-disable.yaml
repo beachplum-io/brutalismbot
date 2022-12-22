@@ -41,8 +41,8 @@ States:
       api_app_id.$: $.api_app_id
       team.$: $.team
       user.$: $.user
-      action_ids:
-        - refresh
+      actions:
+        - action_id: refresh
       view:
         callback_id: home
   RefreshHome:
