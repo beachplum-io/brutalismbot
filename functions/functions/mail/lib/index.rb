@@ -20,23 +20,25 @@ handler :mail do |event|
     bucket  = message.dig 'receipt', 'action', 'bucketName'
     key     = message.dig 'receipt', 'action', 'objectKey'
     object  = S3.get_object bucket: bucket, key: key
+    body    = object.body.read.force_encoding('ISO-8859-1').encode('UTF-8', replace: nil)
 
     # Massage message for SES
-    mail             = Mail.read_from_string object.body.read
+    mail             = Mail.new body
     mail.to          = MAIL_TO
     mail.reply_to    = mail.from
     mail.from        = MAIL_FROM
     mail.return_path = MAIL_RETURN_PATH
 
     # Start Execution
+    input = {
+      Content:          { Raw: { Data: mail.to_s } },
+      Destination:      { ToAddresses: mail.to },
+      FromEmailAddress: mail.from.first,
+      ReplyToAddresses: mail.reply_to
+    }
     STATES.start_execution(
       state_machine_arn: STATE_MACHINE_ARN,
-      input: {
-        Content:          { Raw: { Data: mail.to_s } },
-        Destination:      { ToAddresses: mail.to },
-        FromEmailAddress: mail.from.first,
-        ReplyToAddresses: mail.reply_to
-      }.to_json
+      input:             input.to_json
     )
   end
 end
