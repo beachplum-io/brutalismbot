@@ -6,9 +6,9 @@ terraform {
   required_version = "~> 1.0"
 
   cloud {
-    organization = "brutalismbot"
+    organization = "beachplum"
 
-    workspaces { name = "mail" }
+    workspaces { name = "brutalismbot-mail" }
   }
 
   required_providers {
@@ -23,9 +23,9 @@ data "terraform_remote_state" "functions" {
   backend = "remote"
 
   config = {
-    organization = "brutalismbot"
+    organization = "beachplum"
 
-    workspaces = { name = "functions" }
+    workspaces = { name = "brutalismbot-functions" }
   }
 }
 
@@ -62,8 +62,8 @@ locals {
   s3_bucket_object_arn_glob = "arn:aws:s3:::${local.s3_bucket_name}/*"
 
   tags = {
-    "terraform:organization" = "brutalismbot"
-    "terraform:workspace"    = "mail"
+    "terraform:organization" = "beachplum"
+    "terraform:workspace"    = "brutalismbot-mail"
     "git:repo"               = "beachplum-io/brutalismbot"
   }
 }

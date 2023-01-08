@@ -89,9 +89,9 @@ data "terraform_remote_state" "functions" {
   backend = "remote"
 
   config = {
-    organization = "brutalismbot"
+    organization = "beachplum"
 
-    workspaces = { name = "functions" }
+    workspaces = { name = "brutalismbot-functions" }
   }
 }
 

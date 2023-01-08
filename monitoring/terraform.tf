@@ -6,9 +6,9 @@ terraform {
   required_version = "~> 1.0"
 
   cloud {
-    organization = "brutalismbot"
+    organization = "beachplum"
 
-    workspaces { name = "monitoring" }
+    workspaces { name = "brutalismbot-monitoring" }
   }
 
   required_providers {
@@ -23,9 +23,9 @@ data "terraform_remote_state" "functions" {
   backend = "remote"
 
   config = {
-    organization = "brutalismbot"
+    organization = "beachplum"
 
-    workspaces = { name = "functions" }
+    workspaces = { name = "brutalismbot-functions" }
   }
 }
 
@@ -33,9 +33,9 @@ data "terraform_remote_state" "states" {
   backend = "remote"
 
   config = {
-    organization = "brutalismbot"
+    organization = "beachplum"
 
-    workspaces = { name = "states" }
+    workspaces = { name = "brutalismbot-states" }
   }
 }
 
@@ -61,8 +61,8 @@ variable "AWS_ROLE_ARN" {}
 
 locals {
   tags = {
-    "terraform:organization" = "brutalismbot"
-    "terraform:workspace"    = "monitoring"
+    "terraform:organization" = "beachplum"
+    "terraform:workspace"    = "brutalismbot-monitoring"
     "git:repo"               = "beachplum-io/brutalismbot"
   }
 }

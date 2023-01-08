@@ -6,9 +6,9 @@ terraform {
   required_version = "~> 1.0"
 
   cloud {
-    organization = "brutalismbot"
+    organization = "beachplum"
 
-    workspaces { name = "events" }
+    workspaces { name = "brutalismbot-events" }
   }
 
   required_providers {
@@ -65,8 +65,8 @@ locals {
   }
 
   tags = {
-    "terraform:organization" = "brutalismbot"
-    "terraform:workspace"    = "events"
+    "terraform:organization" = "beachplum"
+    "terraform:workspace"    = "brutalismbot-events"
     "git:repo"               = "beachplum-io/brutalismbot"
   }
 }
