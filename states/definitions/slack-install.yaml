@@ -18,10 +18,10 @@ States:
           GetLastPost:
             Type: Task
             Resource: arn:aws:states:::aws-sdk:dynamodb:query
-            Next: TransformPost
+            End: true
             ResultSelector:
-              DATA.$: States.StringToJson($.Items[0].JSON.S)
               CREATED_UTC.$: $.Items[0].CREATED_UTC.S
+              DATA.$: States.StringToJson($.Items[0].JSON.S)
               NAME.$: $.Items[0].NAME.S
               PERMALINK.$: $.Items[0].PERMALINK.S
               TITLE.$: $.Items[0].TITLE.S
@@ -29,35 +29,14 @@ States:
             Parameters:
               TableName: ${table_name}
               IndexName: Chrono
+              Limit: 1
               ScanIndexForward: false
-              KeyConditionExpression: SORT = :SORT
-              FilterExpression: "#STATE = :STATE AND attribute_exists(#JSON)"
+              KeyConditionExpression: "#SORT=:SORT"
               ProjectionExpression: CREATED_UTC,JSON,#NAME,PERMALINK,TITLE,#TTL
               ExpressionAttributeNames:
-                "#JSON": JSON
                 "#NAME": NAME
-                "#STATE": STATE
+                "#SORT": SORT
                 "#TTL": TTL
-              ExpressionAttributeValues:
-                ":SORT":
-                  S: REDDIT/POST
-                ":STATE":
-                  S: POSTED
-          TransformPost:
-            Type: Task
-            Resource: ${slack_transform_function_arn}
-            End: true
-            InputPath: $.DATA
-            ResultPath: $.DATA
-            Retry:
-              - BackoffRate: 2
-                IntervalSeconds: 3
-                MaxAttempts: 4
-                ErrorEquals:
-                  - Lambda.AWSLambdaException
-                  - Lambda.SdkClientException
-                  - Lambda.ServiceException
-                  - Lambda.Unknown
       - StartAt: GetSlack
         States:
           GetSlack:
@@ -73,9 +52,9 @@ States:
               TEAM_NAME.$: $.team.name
               USER_ID.$: $.authed_user.id
               WEBHOOK_URL.$: $.incoming_webhook.url
-      - StartAt: PutDynamoDBItem
+      - StartAt: PutAuth
         States:
-          PutDynamoDBItem:
+          PutAuth:
             Type: Task
             Resource: arn:aws:states:::aws-sdk:dynamodb:putItem
             End: true
