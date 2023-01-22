@@ -1,0 +1,4 @@
+StartAt: End
+States:
+  End:
+    Type: Succeed

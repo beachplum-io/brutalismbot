@@ -656,6 +656,39 @@ module "twitter_post" {
   }
 }
 
+#############
+#   QUERY   #
+#############
+
+data "aws_iam_policy_document" "query" {
+  statement {
+    sid     = "DynamoDB"
+    actions = ["dynamodb:Query"]
+    resources = [
+      aws_dynamodb_table.table.arn,
+      "${aws_dynamodb_table.table.arn}/index/Chrono",
+    ]
+  }
+
+  statement {
+    sid       = "StepFunctions"
+    actions   = ["states:StartExecution"]
+    resources = ["*"]
+  }
+}
+
+module "query" {
+  source = "./state-machine"
+  name   = "query"
+  policy = data.aws_iam_policy_document.query.json
+}
+
+module "callback" {
+  source = "./state-machine"
+  name   = "callback"
+  policy = "{}"
+}
+
 ###############
 #   OUTPUTS   #
 ###############
