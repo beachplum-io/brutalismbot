@@ -1,30 +1,24 @@
 require 'open-uri'
-require 'time'
 
 require 'yake/logger'
 require 'yake/support'
 
 require_relative 'post'
-require_relative 'table'
 
 module Reddit
   class Brutalism
     include Enumerable
     include Yake::Logger
 
-    attr_reader :headers, :table
-
-    USER_AGENT = ENV['REDDIT_USER_AGENT'] || 'Brutalismbot'
-
-    def initialize(resource = :new, table = nil, **headers)
-      @uri     = URI "https://www.reddit.com/r/brutalism/#{ resource }.json?raw_json=1"
-      @table   = table || Reddit::Table.new
-      @headers = { 'user-agent' => USER_AGENT, **headers }
+    def initialize(resource = :new, user_agent = nil)
+      @resource   = resource
+      @user_agent = user_agent || ENV['REDDIT_USER_AGENT'] || 'Brutalismbot'
     end
 
     def each
-      logger.info("GET #{ @uri }")
-      URI.open(@uri, **@headers) do |stream|
+      uri = URI "https://www.reddit.com/r/brutalism/#{ @resource }.json?raw_json=1"
+      logger.info("GET #{ uri }")
+      URI.open(uri, 'user-agent' => @user_agent) do |stream|
         stream.read.to_h_from_json.symbolize_names.dig(:data, :children).each do |child|
           yield Post.new child[:data]
         end
@@ -35,13 +29,7 @@ module Reddit
       to_a
     end
 
-    def latest
-      params = {
-        key: { GUID: 'STATS/MAX', SORT: 'REDDIT/POST' },
-        projection_expression: 'CREATED_UTC'
-      }
-      item  = @table.get_item(**params).item || {}
-      start = Time.parse item.fetch 'CREATED_UTC', '1970-01-01T00:00:00Z'
+    def latest(start)
       after(start).reject(&:is_self?).sort_by(&:created_utc)
     end
 
@@ -58,12 +46,12 @@ module Reddit
     end
 
     class << self
-      def hot(table = nil, **headers)
-        new(:hot, table, **headers)
+      def hot(**headers)
+        new(:hot, **headers)
       end
 
-      def top(table = nil, **headers)
-        new(:top, table, **headers)
+      def top(**headers)
+        new(:top, **headers)
       end
     end
   end

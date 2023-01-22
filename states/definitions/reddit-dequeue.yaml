@@ -1,6 +1,20 @@
 ---
-StartAt: DequeueNext
+StartAt: GetMaxCreatedUTC
 States:
+  GetMaxCreatedUTC:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:getItem
+    Next: DequeueNext
+    Parameters:
+      TableName: ${table_name}
+      ProjectionExpression: CREATED_UTC
+      Key:
+        GUID:
+          S: STATS/MAX
+        SORT:
+          S: REDDIT/POST
+    ResultSelector:
+      ExclusiveStartTime.$: $.Item.CREATED_UTC.S
   DequeueNext:
     Type: Task
     Resource: ${reddit_dequeue_arn}

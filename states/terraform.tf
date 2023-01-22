@@ -180,6 +180,12 @@ data "aws_iam_policy_document" "reddit_dequeue" {
   }
 
   statement {
+    sid       = "DynamoDB"
+    actions   = ["dynamodb:GetItem"]
+    resources = [aws_dynamodb_table.table.arn]
+  }
+
+  statement {
     sid       = "EventBridge"
     actions   = ["events:PutEvents"]
     resources = [data.terraform_remote_state.events.outputs.event_bus.arn]
@@ -202,6 +208,7 @@ module "reddit_dequeue" {
     cloudwatch_namespace = "Brutalismbot"
     event_bus_name       = data.terraform_remote_state.events.outputs.event_bus.name
     reddit_dequeue_arn   = data.terraform_remote_state.functions.outputs.functions.reddit_dequeue.arn
+    table_name           = aws_dynamodb_table.table.name
   }
 }
 

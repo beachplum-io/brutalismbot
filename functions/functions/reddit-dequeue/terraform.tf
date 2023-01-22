@@ -36,12 +36,6 @@ data "aws_iam_policy_document" "trust" {
 
 data "aws_iam_policy_document" "access" {
   statement {
-    sid       = "DynamoDB"
-    actions   = ["dynamodb:GetItem"]
-    resources = [data.aws_dynamodb_table.table.arn]
-  }
-
-  statement {
     sid       = "Logs"
     actions   = ["logs:*"]
     resources = ["*"]
