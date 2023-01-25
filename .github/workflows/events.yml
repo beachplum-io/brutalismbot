@@ -11,8 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-ruby@v1
-      - uses: hashicorp/setup-terraform@v2
+      - uses: ./.github/actions/plan
         with:
-          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
-      - run: make -C events plan
+          name: events
+          token: ${{ secrets.TF_API_TOKEN }}

@@ -1,0 +1,20 @@
+name: Terraform Plan
+description: Run terraform plan
+inputs:
+  name:
+    description: Project name
+    required: true
+  token:
+    description: Terraform Cloud API token
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: "2.7"
+    - uses: hashicorp/setup-terraform@v2
+      with:
+        cli_config_credentials_token: ${{ inputs.token }}
+    - run: make -C ${{ inputs.name }} plan
+      shell: bash
