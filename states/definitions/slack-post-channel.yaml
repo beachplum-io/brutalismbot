@@ -183,7 +183,7 @@ States:
         IntervalSeconds: 3
         MaxAttempts: 4
         ErrorEquals:
-          - DynamoDD.InternalServerErrorException
+          - DynamoDB.InternalServerErrorException
   OK?:
     Type: Choice
     Default: Fail
