@@ -40,17 +40,26 @@ module Twitter
 
     def upload(url)
       logger.info "GET #{ url }"
-      options = Twurl::Options.new(
-        request_method:  'post',
-        host:            'upload.twitter.com',
-        path:            '/1.1/media/upload.json',
-        headers:         {},
-        data:            {},
-        upload:          { 'file' => [ URI.open(url).path ], 'filefield' => 'media' },
-      )
-      logger.info "POST #{ File.join twitter_upload_client.consumer.options[:site], options.path }"
-      result = twitter_upload_client.perform_request_from_options options
-      JSON.parse result.read_body rescue nil
+      URI.open(url) do |stream|
+        Tempfile.open do |tempfile|
+          tempfile.write(stream.read)
+          tempfile.rewind
+
+          options = Twurl::Options.new(
+            request_method:  'post',
+            host:            'upload.twitter.com',
+            path:            '/1.1/media/upload.json',
+            headers:         {},
+            data:            {},
+            upload:          { 'file' => [ tempfile.path ], 'filefield' => 'media' },
+          )
+          logger.info "POST #{ File.join twitter_upload_client.consumer.options[:site], options.path }"
+          result = twitter_upload_client.perform_request_from_options options
+          JSON.parse result.read_body
+        end
+      end
+    rescue
+      logger.error("COULD NOT UPLOAD MEDIA")
     end
 
     def post(updates:nil, count:nil, **data)
