@@ -19,21 +19,18 @@ terraform {
 
 data "aws_region" "current" {}
 
-data "aws_iam_policy_document" "trust" {
-  statement {
-    sid     = "AssumeEvents"
-    actions = ["sts:AssumeRole"]
-
-    principals {
-      type        = "Service"
-      identifiers = ["states.amazonaws.com"]
-    }
-  }
-}
-
 resource "aws_iam_role" "role" {
-  assume_role_policy = data.aws_iam_policy_document.trust.json
-  name               = "brutalismbot-${data.aws_region.current.name}-states-${var.name}"
+  name = "brutalismbot-${data.aws_region.current.name}-states-${var.name}"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = {
+      Sid       = "AssumeStates"
+      Effect    = "Allow"
+      Action    = "sts:AssumeRole"
+      Principal = { Service = "states.amazonaws.com" }
+    }
+  })
 
   inline_policy {
     name   = "access"

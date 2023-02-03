@@ -153,56 +153,57 @@ resource "aws_dynamodb_table" "table" {
 #   MAIL   #
 ############
 
-data "aws_iam_policy_document" "mail" {
-  statement {
-    sid       = "SendEmail"
-    actions   = ["ses:SendRawEmail"]
-    resources = ["*"]
-  }
-}
-
 module "mail" {
   source = "./state-machine"
-
   name   = "mail"
-  policy = data.aws_iam_policy_document.mail.json
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = {
+      Sid      = "SendEmail"
+      Effect   = "Allow"
+      Action   = "ses:SendRawEmail"
+      Resource = "*"
+    }
+  })
 }
 
 ######################
 #   REDDIT DEQUEUE   #
 ######################
 
-data "aws_iam_policy_document" "reddit_dequeue" {
-  statement {
-    sid       = "CloudWatch"
-    actions   = ["cloudwatch:PutMetricData"]
-    resources = ["*"]
-  }
-
-  statement {
-    sid       = "DynamoDB"
-    actions   = ["dynamodb:GetItem"]
-    resources = [aws_dynamodb_table.table.arn]
-  }
-
-  statement {
-    sid       = "EventBridge"
-    actions   = ["events:PutEvents"]
-    resources = [data.terraform_remote_state.events.outputs.event_bus.arn]
-  }
-
-  statement {
-    sid       = "Lambda"
-    actions   = ["lambda:InvokeFunction"]
-    resources = [data.terraform_remote_state.functions.outputs.functions.reddit_dequeue.arn]
-  }
-}
-
 module "reddit_dequeue" {
   source = "./state-machine"
-
   name   = "reddit-dequeue"
-  policy = data.aws_iam_policy_document.reddit_dequeue.json
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "CloudWatch"
+        Effect   = "Allow"
+        Action   = "cloudwatch:PutMetricData"
+        Resource = "*"
+      },
+      {
+        Sid      = "DynamoDB"
+        Effect   = "Allow"
+        Action   = "dynamodb:GetItem"
+        Resource = aws_dynamodb_table.table.arn
+      },
+      {
+        Sid      = "EventBridge"
+        Effect   = "Allow"
+        Action   = "events:PutEvents"
+        Resource = data.terraform_remote_state.events.outputs.event_bus.arn
+      },
+      {
+        Sid      = "Lambda"
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
+        Resource = data.terraform_remote_state.functions.outputs.functions.reddit_dequeue.arn
+      }
+    ]
+  })
 
   variables = {
     cloudwatch_namespace = "Brutalismbot"
@@ -216,35 +217,36 @@ module "reddit_dequeue" {
 #   REDDIT POST   #
 ###################
 
-data "aws_iam_policy_document" "reddit_post" {
-  statement {
-    sid       = "DynamoDB"
-    actions   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem"]
-    resources = [aws_dynamodb_table.table.arn]
-  }
-
-  statement {
-    sid       = "EventBridge"
-    actions   = ["events:PutEvents"]
-    resources = [data.terraform_remote_state.events.outputs.event_bus.arn]
-  }
-
-  statement {
-    sid     = "Lambda"
-    actions = ["lambda:InvokeFunction"]
-
-    resources = [
-      data.terraform_remote_state.functions.outputs.functions.slack_transform.arn,
-      data.terraform_remote_state.functions.outputs.functions.twitter_transform.arn,
-    ]
-  }
-}
-
 module "reddit_post" {
   source = "./state-machine"
-
   name   = "reddit-post"
-  policy = data.aws_iam_policy_document.reddit_post.json
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "DynamoDB"
+        Effect   = "Allow"
+        Action   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem"]
+        Resource = aws_dynamodb_table.table.arn
+      },
+      {
+        Sid      = "EventBridge"
+        Effect   = "Allow"
+        Action   = "events:PutEvents"
+        Resource = data.terraform_remote_state.events.outputs.event_bus.arn
+      },
+      {
+        Sid    = "Lambda"
+        Effect = "Allow"
+        Action = "lambda:InvokeFunction"
+        Resource = [
+          data.terraform_remote_state.functions.outputs.functions.slack_transform.arn,
+          data.terraform_remote_state.functions.outputs.functions.twitter_transform.arn,
+        ]
+      }
+    ]
+  })
 
   variables = {
     event_bus_name                 = data.terraform_remote_state.events.outputs.event_bus.name
@@ -259,25 +261,27 @@ module "reddit_post" {
 #   REDDIT REJECT   #
 #####################
 
-data "aws_iam_policy_document" "reddit_reject" {
-  statement {
-    sid       = "Lambda"
-    actions   = ["lambda:InvokeFunction"]
-    resources = [data.terraform_remote_state.functions.outputs.functions.http.arn]
-  }
-
-  statement {
-    sid       = "States"
-    actions   = ["states:StopExecution"]
-    resources = ["*"]
-  }
-}
-
 module "reddit_reject" {
   source = "./state-machine"
-
   name   = "reddit-reject"
-  policy = data.aws_iam_policy_document.reddit_reject.json
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "Lambda"
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
+        Resource = data.terraform_remote_state.functions.outputs.functions.http.arn
+      },
+      {
+        Sid      = "States"
+        Effect   = "Allow"
+        Action   = "states:StopExecution"
+        Resource = "*"
+      }
+    ]
+  })
 
   variables = {
     http_function_arn = data.terraform_remote_state.functions.outputs.functions.http.arn
@@ -288,29 +292,30 @@ module "reddit_reject" {
 #   REDDIT SCREEN   #
 #####################
 
-data "aws_iam_policy_document" "reddit_screen" {
-  statement {
-    sid       = "DynamoDB"
-    actions   = ["dynamodb:GetItem", "dynamodb:PutItem"]
-    resources = [aws_dynamodb_table.table.arn]
-  }
-
-  statement {
-    sid     = "Lambda"
-    actions = ["lambda:InvokeFunction"]
-
-    resources = [
-      data.terraform_remote_state.functions.outputs.functions.array.arn,
-      data.terraform_remote_state.functions.outputs.functions.http.arn,
-    ]
-  }
-}
-
 module "reddit_screen" {
   source = "./state-machine"
-
   name   = "reddit-screen"
-  policy = data.aws_iam_policy_document.reddit_screen.json
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "DynamoDB"
+        Effect   = "Allow"
+        Action   = ["dynamodb:GetItem", "dynamodb:PutItem"]
+        Resource = aws_dynamodb_table.table.arn
+      },
+      {
+        Sid    = "Lambda"
+        Effect = "Allow"
+        Action = "lambda:InvokeFunction"
+        Resource = [
+          data.terraform_remote_state.functions.outputs.functions.array.arn,
+          data.terraform_remote_state.functions.outputs.functions.http.arn,
+        ]
+      }
+    ]
+  })
 
   variables = {
     app_id             = local.apps.beta
@@ -327,41 +332,41 @@ module "reddit_screen" {
 #   SLACK BETA ENABLE DISABLE   #
 #################################
 
-data "aws_iam_policy_document" "slack_beta_enable_disable" {
-  statement {
-    sid       = "DynamoDB"
-    actions   = ["dynamodb:Query"]
-    resources = ["${aws_dynamodb_table.table.arn}/index/Chrono"]
-  }
-
-  statement {
-    sid = "EventBridge"
-
-    actions = [
-      "events:DescribeRule",
-      "events:DisableRule",
-      "events:EnableRule",
-      "events:PutEvents",
-    ]
-
-    resources = [
-      data.terraform_remote_state.events.outputs.event_bus.arn,
-      data.terraform_remote_state.events.outputs.rules.reddit_dequeue.arn,
-    ]
-  }
-
-  statement {
-    sid       = "Lambda"
-    actions   = ["lambda:InvokeFunction"]
-    resources = [data.terraform_remote_state.functions.outputs.functions.http.arn]
-  }
-}
-
 module "slack_beta_enable_disable" {
   source = "./state-machine"
-
   name   = "slack-beta-enable-disable"
-  policy = data.aws_iam_policy_document.slack_beta_enable_disable.json
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "DynamoDB"
+        Effect   = "Allow"
+        Action   = "dynamodb:Query"
+        Resource = "${aws_dynamodb_table.table.arn}/index/Chrono"
+      },
+      {
+        Sid    = "EventBridge"
+        Effect = "Allow"
+        Action = [
+          "events:DescribeRule",
+          "events:DisableRule",
+          "events:EnableRule",
+          "events:PutEvents",
+        ]
+        Resource = [
+          data.terraform_remote_state.events.outputs.event_bus.arn,
+          data.terraform_remote_state.events.outputs.rules.reddit_dequeue.arn,
+        ]
+      },
+      {
+        Sid      = "Lambda"
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
+        Resource = data.terraform_remote_state.functions.outputs.functions.http.arn
+      }
+    ]
+  })
 
   variables = {
     event_bus_name           = data.terraform_remote_state.events.outputs.event_bus.name
@@ -375,32 +380,33 @@ module "slack_beta_enable_disable" {
 #   SLACK BETA LINK SHARED   #
 ##############################
 
-data "aws_iam_policy_document" "slack_beta_link_shared" {
-  statement {
-    sid     = "DynamoDB"
-    actions = ["dynamodb:Query"]
-
-    resources = [
-      aws_dynamodb_table.table.arn,
-      "${aws_dynamodb_table.table.arn}/index/Chrono",
-    ]
-  }
-
-  statement {
-    sid     = "Lambda"
-    actions = ["lambda:InvokeFunction"]
-    resources = [
-      data.terraform_remote_state.functions.outputs.functions.http.arn,
-      data.terraform_remote_state.functions.outputs.functions.slack_link_unfurl.arn,
-    ]
-  }
-}
-
 module "slack_beta_link_shared" {
   source = "./state-machine"
-
   name   = "slack-beta-link-shared"
-  policy = data.aws_iam_policy_document.slack_beta_link_shared.json
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "DynamoDB"
+        Effect = "Allow"
+        Action = "dynamodb:Query"
+        Resource = [
+          aws_dynamodb_table.table.arn,
+          "${aws_dynamodb_table.table.arn}/index/Chrono",
+        ]
+      },
+      {
+        Sid    = "Lambda"
+        Effect = "Allow"
+        Action = "lambda:InvokeFunction"
+        Resource = [
+          data.terraform_remote_state.functions.outputs.functions.http.arn,
+          data.terraform_remote_state.functions.outputs.functions.slack_link_unfurl.arn,
+        ]
+      }
+    ]
+  })
 
   variables = {
     http_function_arn     = data.terraform_remote_state.functions.outputs.functions.http.arn
@@ -413,35 +419,36 @@ module "slack_beta_link_shared" {
 #   SLACK BETA REFRESH   #
 ##########################
 
-data "aws_iam_policy_document" "slack_beta_refresh_home" {
-  statement {
-    sid       = "DynamoDB"
-    actions   = ["dynamodb:Query"]
-    resources = ["${aws_dynamodb_table.table.arn}/index/Chrono"]
-  }
-
-  statement {
-    sid       = "EventBridge"
-    actions   = ["events:PutEvents"]
-    resources = [data.terraform_remote_state.events.outputs.event_bus.arn]
-  }
-
-  statement {
-    sid     = "Lambda"
-    actions = ["lambda:InvokeFunction"]
-
-    resources = [
-      data.terraform_remote_state.functions.outputs.functions.http.arn,
-      data.terraform_remote_state.functions.outputs.functions.slack_beta_home.arn,
-    ]
-  }
-}
-
 module "slack_beta_refresh_home" {
   source = "./state-machine"
-
   name   = "slack-beta-refresh-home"
-  policy = data.aws_iam_policy_document.slack_beta_refresh_home.json
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "DynamoDB"
+        Effect   = "Allow"
+        Action   = "dynamodb:Query"
+        Resource = "${aws_dynamodb_table.table.arn}/index/Chrono"
+      },
+      {
+        Sid      = "EventBridge"
+        Effect   = "Allow"
+        Action   = "events:PutEvents"
+        Resource = data.terraform_remote_state.events.outputs.event_bus.arn
+      },
+      {
+        Sid    = "Lambda"
+        Effect = "Allow"
+        Action = "lambda:InvokeFunction"
+        Resource = [
+          data.terraform_remote_state.functions.outputs.functions.http.arn,
+          data.terraform_remote_state.functions.outputs.functions.slack_beta_home.arn,
+        ]
+      }
+    ]
+  })
 
   variables = {
     slack_beta_home_function_arn = data.terraform_remote_state.functions.outputs.functions.slack_beta_home.arn
@@ -455,35 +462,36 @@ module "slack_beta_refresh_home" {
 #   SLACK INSTALL   #
 #####################
 
-data "aws_iam_policy_document" "slack_install" {
-  statement {
-    sid     = "DynamoDB"
-    actions = ["dynamodb:PutItem", "dynamodb:Query"]
-
-    resources = [
-      aws_dynamodb_table.table.arn,
-      "${aws_dynamodb_table.table.arn}/index/Chrono",
-    ]
-  }
-
-  statement {
-    sid       = "Lambda"
-    actions   = ["lambda:InvokeFunction"]
-    resources = [data.terraform_remote_state.functions.outputs.functions.slack_transform.arn]
-  }
-
-  statement {
-    sid       = "EventBridge"
-    actions   = ["events:PutEvents"]
-    resources = [data.terraform_remote_state.events.outputs.event_bus.arn]
-  }
-}
-
 module "slack_install" {
   source = "./state-machine"
-
   name   = "slack-install"
-  policy = data.aws_iam_policy_document.slack_install.json
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "DynamoDB"
+        Effect = "Allow"
+        Action = ["dynamodb:PutItem", "dynamodb:Query"]
+        Resource = [
+          aws_dynamodb_table.table.arn,
+          "${aws_dynamodb_table.table.arn}/index/Chrono",
+        ]
+      },
+      {
+        Sid      = "Lambda"
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
+        Resource = data.terraform_remote_state.functions.outputs.functions.slack_transform.arn
+      },
+      {
+        Sid      = "EventBridge"
+        Effect   = "Allow"
+        Action   = "events:PutEvents"
+        Resource = data.terraform_remote_state.events.outputs.event_bus.arn
+      }
+    ]
+  })
 
   variables = {
     event_bus_name               = data.terraform_remote_state.events.outputs.event_bus.name
@@ -496,31 +504,33 @@ module "slack_install" {
 #   SLACK POST   #
 ##################
 
-data "aws_iam_policy_document" "slack_post" {
-  statement {
-    sid       = "DynamoDB"
-    actions   = ["dynamodb:Query"]
-    resources = ["${aws_dynamodb_table.table.arn}/index/Chrono"]
-  }
-
-  statement {
-    sid       = "EventBridge"
-    actions   = ["events:PutEvents"]
-    resources = [data.terraform_remote_state.events.outputs.event_bus.arn]
-  }
-
-  statement {
-    sid       = "States"
-    actions   = ["states:StartExecution"]
-    resources = ["*"]
-  }
-}
-
 module "slack_post" {
   source = "./state-machine"
-
   name   = "slack-post"
-  policy = data.aws_iam_policy_document.slack_post.json
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "DynamoDB"
+        Effect   = "Allow"
+        Action   = "dynamodb:Query"
+        Resource = "${aws_dynamodb_table.table.arn}/index/Chrono"
+      },
+      {
+        Sid      = "EventBridge"
+        Effect   = "Allow"
+        Action   = "events:PutEvents"
+        Resource = data.terraform_remote_state.events.outputs.event_bus.arn
+      },
+      {
+        Sid      = "States"
+        Effect   = "Allow"
+        Action   = "states:StartExecution"
+        Resource = "*"
+      }
+    ]
+  })
 
   variables = {
     app_id                       = local.apps.prod
@@ -534,25 +544,27 @@ module "slack_post" {
 #   SLACK POST CHANNEL   #
 ##########################
 
-data "aws_iam_policy_document" "slack_post_channel" {
-  statement {
-    sid       = "DynamoDB"
-    actions   = ["dynamodb:PutItem", "dynamodb:UpdateItem"]
-    resources = [aws_dynamodb_table.table.arn]
-  }
-
-  statement {
-    sid       = "Lambda"
-    actions   = ["lambda:InvokeFunction"]
-    resources = [data.terraform_remote_state.functions.outputs.functions.http.arn]
-  }
-}
-
 module "slack_post_channel" {
   source = "./state-machine"
-
   name   = "slack-post-channel"
-  policy = data.aws_iam_policy_document.slack_post_channel.json
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "DynamoDB"
+        Effect   = "Allow"
+        Action   = ["dynamodb:PutItem", "dynamodb:UpdateItem"]
+        Resource = aws_dynamodb_table.table.arn
+      },
+      {
+        Sid      = "Lambda"
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
+        Resource = data.terraform_remote_state.functions.outputs.functions.http.arn
+      }
+    ]
+  })
 
   variables = {
     http_function_arn = data.terraform_remote_state.functions.outputs.functions.http.arn
@@ -564,29 +576,30 @@ module "slack_post_channel" {
 #   SLACK UNINSTALL   #
 #######################
 
-data "aws_iam_policy_document" "slack_uninstall" {
-  statement {
-    sid     = "DynamoDB"
-    actions = ["dynamodb:BatchWriteItem", "dynamodb:Query"]
-
-    resources = [
-      aws_dynamodb_table.table.arn,
-      "${aws_dynamodb_table.table.arn}/index/SlackTeam"
-    ]
-  }
-
-  statement {
-    sid       = "States"
-    actions   = ["states:StartExecution"]
-    resources = ["*"]
-  }
-}
-
 module "slack_uninstall" {
   source = "./state-machine"
-
   name   = "slack-uninstall"
-  policy = data.aws_iam_policy_document.slack_uninstall.json
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "DynamoDB"
+        Effect = "Allow"
+        Action = ["dynamodb:BatchWriteItem", "dynamodb:Query", ]
+        Resource = [
+          "${aws_dynamodb_table.table.arn}",
+          "${aws_dynamodb_table.table.arn}/index/SlackTeam",
+        ]
+      },
+      {
+        Sid      = "States"
+        Effect   = "Allow"
+        Action   = "states:StartExecution"
+        Resource = "*"
+      }
+    ]
+  })
 
   variables = {
     table_name = aws_dynamodb_table.table.name
@@ -597,25 +610,27 @@ module "slack_uninstall" {
 #   STATE MACHINE ERRORS   #
 ############################
 
-data "aws_iam_policy_document" "state_machine_errors" {
-  statement {
-    sid       = "DynamoDB"
-    actions   = ["dynamodb:GetItem"]
-    resources = [aws_dynamodb_table.table.arn]
-  }
-
-  statement {
-    sid       = "Lambda"
-    actions   = ["lambda:InvokeFunction"]
-    resources = [data.terraform_remote_state.functions.outputs.functions.http.arn]
-  }
-}
-
 module "state_machine_errors" {
   source = "./state-machine"
-
   name   = "state-machine-errors"
-  policy = data.aws_iam_policy_document.state_machine_errors.json
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "DynamoDB"
+        Effect   = "Allow"
+        Action   = "dynamodb:GetItem"
+        Resource = aws_dynamodb_table.table.arn
+      },
+      {
+        Sid      = "Lambda"
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
+        Resource = data.terraform_remote_state.functions.outputs.functions.http.arn
+      }
+    ]
+  })
 
   variables = {
     app_id            = local.apps.beta
@@ -630,25 +645,27 @@ module "state_machine_errors" {
 #   TWITTER POST   #
 ####################
 
-data "aws_iam_policy_document" "twitter_post" {
-  statement {
-    sid       = "DynamoDB"
-    actions   = ["dynamodb:PutItem", "dynamodb:UpdateItem"]
-    resources = [aws_dynamodb_table.table.arn]
-  }
-
-  statement {
-    sid       = "Lambda"
-    actions   = ["lambda:InvokeFunction"]
-    resources = [data.terraform_remote_state.functions.outputs.functions.twitter_post.arn]
-  }
-}
-
 module "twitter_post" {
   source = "./state-machine"
-
   name   = "twitter-post"
-  policy = data.aws_iam_policy_document.twitter_post.json
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "DynamoDB"
+        Effect   = "Allow"
+        Action   = ["dynamodb:PutItem", "dynamodb:UpdateItem"]
+        Resource = aws_dynamodb_table.table.arn
+      },
+      {
+        Sid      = "Lambda"
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
+        Resource = data.terraform_remote_state.functions.outputs.functions.twitter_post.arn
+      }
+    ]
+  })
 
   variables = {
     table_name                = aws_dynamodb_table.table.name
@@ -660,33 +677,36 @@ module "twitter_post" {
 #   QUERY   #
 #############
 
-data "aws_iam_policy_document" "query" {
-  statement {
-    sid     = "DynamoDB"
-    actions = ["dynamodb:Query"]
-    resources = [
-      aws_dynamodb_table.table.arn,
-      "${aws_dynamodb_table.table.arn}/index/Chrono",
-    ]
-  }
-
-  statement {
-    sid       = "StepFunctions"
-    actions   = ["states:StartExecution"]
-    resources = ["*"]
-  }
-}
-
 module "query" {
   source = "./state-machine"
   name   = "query"
-  policy = data.aws_iam_policy_document.query.json
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "DynamoDB"
+        Effect = "Allow"
+        Action = "dynamodb:Query"
+        Resource = [
+          "${aws_dynamodb_table.table.arn}",
+          "${aws_dynamodb_table.table.arn}/index/Chrono",
+        ]
+      },
+      {
+        Sid      = "StepFunctions"
+        Effect   = "Allow"
+        Action   = "states:StartExecution"
+        Resource = "*"
+      }
+    ]
+  })
 }
 
 module "callback" {
   source = "./state-machine"
   name   = "callback"
-  policy = "{}"
+  policy = jsonencode({})
 }
 
 ###############
