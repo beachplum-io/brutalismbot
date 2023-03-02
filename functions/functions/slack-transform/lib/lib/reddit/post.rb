@@ -102,8 +102,8 @@ module Reddit
     # Get media URLs from gallery
     def media_gallery
       media_metadata.values.map do |m|
-        (m[:p] + [ m[:s] ]).sort_by { |i| i[:x] * i[:y] }
-      end
+        [m[:p], m[:s]].flatten.compact.sort_by { |i| i[:x] * i[:y] }
+      end.reject(&:empty?)
     end
 
     ##
