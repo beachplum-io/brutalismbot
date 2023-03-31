@@ -41,7 +41,7 @@ States:
         IntervalSeconds: 60
         MaxAttempts: 3
         ErrorEquals:
-          - Function<OpenURI::HTTPError>
+          - States.ALL
   PutEventsAndMetrics:
     Type: Parallel
     End: true
