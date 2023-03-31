@@ -9,9 +9,10 @@ States:
     ResultSelector:
       ACCESS_TOKEN.$: $.Item.ACCESS_TOKEN.S
       CHANNEL_ID.$: $.Item.CHANNEL_ID.S
+      USER_ID.$: $.Item.USER_ID.S
     Parameters:
       TableName: ${table_name}
-      ProjectionExpression: ACCESS_TOKEN,CHANNEL_ID
+      ProjectionExpression: ACCESS_TOKEN,CHANNEL_ID,USER_ID
       Key:
         GUID:
           S: ${app_id}/${team_id}/${conversation_id}
@@ -64,7 +65,7 @@ States:
     Next: SendChat
     ResultPath: $.POST.DATA
     Parameters:
-      channel.$: $.SLACK.CHANNEL_ID
+      channel.$: $.SLACK.USER_ID
       text.$: $.POST.DATA.text
       attachments:
         - color: "#D55D6A"
