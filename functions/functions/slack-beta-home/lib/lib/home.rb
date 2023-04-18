@@ -79,7 +79,8 @@ class Home
       unit:           'Count',
     }
     logger.info("cloudwatch:GetMetricStatistics #{params.to_json}")
-    @cloudwatch.get_metric_statistics(**params).datapoints.max_by(&:timestamp).maximum.to_i
+    datapoints = @cloudwatch.get_metric_statistics(**params).datapoints
+    datapoints.max_by(&:timestamp).maximum.to_i rescue 0
   end
 
   def state_machine_errors
