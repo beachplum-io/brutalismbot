@@ -635,7 +635,7 @@ module "state_machine_errors" {
   variables = {
     app_id            = local.apps.beta
     team_id           = local.team_id
-    conversation_id   = local.conversations.brutalism
+    conversation_id   = local.conversations.messages
     http_function_arn = data.terraform_remote_state.functions.outputs.functions.http.arn
     table_name        = aws_dynamodb_table.table.name
   }
