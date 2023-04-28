@@ -57,6 +57,27 @@ States:
     Type: Parallel
     Next: Wait
     ResultSelector:
+      Latest:
+        TableName: ${table_name}
+        Item:
+          GUID:
+            S: LATEST
+          SORT:
+            S: REDDIT/POST
+          CREATED_UTC:
+            S.$: $[0].CREATED_UTC
+          JSON:
+            S.$: $[0].DATA
+          NAME:
+            S.$: $[0].NAME
+          PERMALINK:
+            S.$: $[0].PERMALINK
+          STATE:
+            S: POSTED
+          TITLE:
+            S.$: $[0].TITLE
+          TTL:
+            N.$: States.JsonToString($[0].TTL)
       Update:
         TableName: ${table_name}
         UpdateExpression: "SET #STATE = :STATE"
@@ -173,6 +194,16 @@ States:
     Type: Parallel
     End: true
     Branches:
+      - StartAt: PutLatest
+        States:
+          PutLatest:
+            Type: Task
+            Resource: arn:aws:states:::aws-sdk:dynamodb:putItem
+            End: true
+            InputPath: $.Latest
+            Parameters:
+              TableName.$: $.TableName
+              Item.$: $.Item
       - StartAt: MarkScreened
         States:
           MarkScreened:

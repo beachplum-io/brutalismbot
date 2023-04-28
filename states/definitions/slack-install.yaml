@@ -17,44 +17,26 @@ States:
         States:
           GetLastPost:
             Type: Task
-            Resource: arn:aws:states:::aws-sdk:dynamodb:query
+            Resource: arn:aws:states:::aws-sdk:dynamodb:getItem
             Next: TransformPost
             Parameters:
               TableName: ${table_name}
-              IndexName: Chrono
-              Limit: 1
-              ScanIndexForward: false
-              KeyConditionExpression: "#SORT=:SORT"
-              FilterExpression: "#STATE=:STATE AND attribute_exists(#JSON)"
-              ProjectionExpression: "#CREATED_UTC,#JSON,#NAME,#PERMALINK,#TITLE,#TTL"
-              ExpressionAttributeNames:
-                "#CREATED_UTC": CREATED_UTC
-                "#JSON": JSON
-                "#NAME": NAME
-                "#PERMALINK": PERMALINK
-                "#SORT": SORT
-                "#STATE": STATE
-                "#TITLE": TITLE
-                "#TTL": TTL
-              ExpressionAttributeValues:
-                ":SORT":
-                  S: REDDIT/POST
-                ":STATE":
-                  S: POSTED
-              ExclusiveStartKey:
+              Key:
                 GUID:
-                  S: STATS/MAX
+                  S: LATEST
                 SORT:
                   S: REDDIT/POST
-                CREATED_UTC:
-                  S: "9999"
+              ProjectionExpression: "CREATED_UTC,JSON,#NAME,PERMALINK,TITLE,#TTL"
+              ExpressionAttributeNames:
+                "#NAME": NAME
+                "#TTL": TTL
             ResultSelector:
-              CREATED_UTC.$: "$.Items[0].CREATED_UTC.S"
-              DATA.$: States.StringToJson($.Items[0].JSON.S)
-              NAME.$: "$.Items[0].NAME.S"
-              PERMALINK.$: "$.Items[0].PERMALINK.S"
-              TITLE.$: "$.Items[0].TITLE.S"
-              TTL.$: States.StringToJson($.Items[0].TTL.N)
+              CREATED_UTC.$: "$.Item.CREATED_UTC.S"
+              DATA.$: States.StringToJson($.Item.JSON.S)
+              NAME.$: "$.Item.NAME.S"
+              PERMALINK.$: "$.Item.PERMALINK.S"
+              TITLE.$: "$.Item.TITLE.S"
+              TTL.$: States.StringToJson($.Item.TTL.N)
           TransformPost:
             Type: Task
             Resource: arn:aws:lambda:us-west-2:556954866954:function:brutalismbot-slack-transform
