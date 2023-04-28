@@ -1,7 +1,6 @@
-PROJECTS  = $(shell ls */terraform.tf | xargs dirname | xargs)
-WORKFLOWS = $(shell ls .github/workflows/* | xargs)
+PROJECTS = $(shell ls */terraform.tf | xargs dirname | xargs)
 
-all: $(WORKFLOWS)
+all:
 
 logs:
 	aws logs describe-log-groups \
@@ -10,10 +9,7 @@ logs:
 	| fzf --no-info --reverse \
 	| xargs aws logs tail --follow
 
-$(PROJECTS): %: .github/workflows/%.yml
+$(PROJECTS):
 	make -C $@ apply
 
 .PHONY: all logs $(PROJECTS)
-
-.github/workflows/%.yml: .github/workflow.yml.erb
-	erb workspace=$* .github/workflow.yml.erb > $@
