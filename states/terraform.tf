@@ -715,18 +715,20 @@ module "callback" {
 
 output "state_machines" {
   value = {
-    reddit_dequeue            = module.reddit_dequeue.state_machine
-    reddit_post               = module.reddit_post.state_machine
-    reddit_reject             = module.reddit_reject.state_machine
-    reddit_screen             = module.reddit_screen.state_machine
-    slack_beta_enable_disable = module.slack_beta_enable_disable.state_machine
-    slack_beta_link_shared    = module.slack_beta_link_shared.state_machine
-    slack_beta_refresh_home   = module.slack_beta_refresh_home.state_machine
-    slack_install             = module.slack_install.state_machine
-    slack_post                = module.slack_post.state_machine
-    slack_post_channel        = module.slack_post_channel.state_machine
-    slack_uninstall           = module.slack_uninstall.state_machine
-    state_machine_errors      = module.state_machine_errors.state_machine
-    twitter_post              = module.twitter_post.state_machine
+    for key, val in {
+      reddit_dequeue            = module.reddit_dequeue.state_machine
+      reddit_post               = module.reddit_post.state_machine
+      reddit_reject             = module.reddit_reject.state_machine
+      reddit_screen             = module.reddit_screen.state_machine
+      slack_beta_enable_disable = module.slack_beta_enable_disable.state_machine
+      slack_beta_link_shared    = module.slack_beta_link_shared.state_machine
+      slack_beta_refresh_home   = module.slack_beta_refresh_home.state_machine
+      slack_install             = module.slack_install.state_machine
+      slack_post                = module.slack_post.state_machine
+      slack_post_channel        = module.slack_post_channel.state_machine
+      slack_uninstall           = module.slack_uninstall.state_machine
+      state_machine_errors      = module.state_machine_errors.state_machine
+      twitter_post              = module.twitter_post.state_machine
+    } : key => { arn : val.arn, name : val.name }
   }
 }

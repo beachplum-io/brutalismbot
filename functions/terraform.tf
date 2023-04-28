@@ -147,54 +147,17 @@ output "functions" {
 
 output "roles" {
   value = {
-    api_slack = {
-      arn  = module.api_slack.iam_role.arn
-      name = module.api_slack.iam_role.name
-    }
-
-    api_slack_beta = {
-      arn  = module.api_slack_beta.iam_role.arn
-      name = module.api_slack_beta.iam_role.name
-    }
-
-    array = {
-      arn  = module.array.iam_role.arn
-      name = module.array.iam_role.name
-    }
-
-    http = {
-      arn  = module.http.iam_role.arn
-      name = module.http.iam_role.name
-    }
-
-    mail = {
-      arn  = module.mail.iam_role.arn
-      name = module.mail.iam_role.name
-    }
-
-    reddit_dequeue = {
-      arn  = module.reddit_dequeue.iam_role.arn
-      name = module.reddit_dequeue.iam_role.name
-    }
-
-    slack_link_unfurl = {
-      arn  = module.slack_link_unfurl.iam_role.arn
-      name = module.slack_link_unfurl.iam_role.name
-    }
-
-    slack_transform = {
-      arn  = module.slack_transform.iam_role.arn
-      name = module.slack_transform.iam_role.name
-    }
-
-    twitter_post = {
-      arn  = module.twitter_post.iam_role.arn
-      name = module.twitter_post.iam_role.name
-    }
-
-    twitter_transform = {
-      arn  = module.twitter_transform.iam_role.arn
-      name = module.twitter_transform.iam_role.name
-    }
+    for key, val in {
+      api_slack         = module.api_slack.iam_role
+      api_slack_beta    = module.api_slack_beta.iam_role
+      array             = module.array.iam_role
+      http              = module.http.iam_role
+      mail              = module.mail.iam_role
+      reddit_dequeue    = module.reddit_dequeue.iam_role
+      slack_link_unfurl = module.slack_link_unfurl.iam_role
+      slack_transform   = module.slack_transform.iam_role
+      twitter_post      = module.twitter_post.iam_role
+      twitter_transform = module.twitter_transform.iam_role
+    } : key => { arn : val.arn, name : val.name }
   }
 }

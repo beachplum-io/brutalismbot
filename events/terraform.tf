@@ -461,44 +461,15 @@ output "roles" {
 
 output "rules" {
   value = {
-    reddit_dequeue = {
-      arn  = module.reddit_dequeue.rule.arn
-      name = module.reddit_dequeue.rule.name
-    }
-
-    reddit_post = {
-      arn  = module.reddit_post.rule.arn
-      name = module.reddit_post.rule.name
-    }
-
-    reddit_reject = {
-      arn  = module.reddit_reject.rule.arn
-      name = module.reddit_reject.rule.name
-    }
-
-    reddit_screen = {
-      arn  = module.reddit_screen.rule.arn
-      name = module.reddit_screen.rule.name
-    }
-
-    slack_post = {
-      arn  = module.slack_post.rule.arn
-      name = module.slack_post.rule.name
-    }
-
-    slack_post_channel = {
-      arn  = module.slack_post_channel.rule.arn
-      name = module.slack_post_channel.rule.name
-    }
-
-    slack_uninstall = {
-      arn  = module.slack_uninstall.rule.arn
-      name = module.slack_uninstall.rule.name
-    }
-
-    twitter_post = {
-      arn  = module.twitter_post.rule.arn
-      name = module.twitter_post.rule.name
-    }
+    for key, val in {
+      reddit_dequeue     = module.reddit_dequeue.rule
+      reddit_post        = module.reddit_post.rule
+      reddit_reject      = module.reddit_reject.rule
+      reddit_screen      = module.reddit_screen.rule
+      slack_post         = module.slack_post.rule
+      slack_post_channel = module.slack_post_channel.rule
+      slack_uninstall    = module.slack_uninstall.rule
+      twitter_post       = module.twitter_post.rule
+    } : key => { arn : val.arn, name : val.name }
   }
 }
