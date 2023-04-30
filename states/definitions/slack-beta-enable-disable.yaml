@@ -41,6 +41,7 @@ States:
       api_app_id.$: $.api_app_id
       team.$: $.team
       user.$: $.user
+      type: block_actions
       actions:
         - action_id: refresh
       view:
