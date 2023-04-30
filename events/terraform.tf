@@ -79,13 +79,32 @@ resource "aws_cloudwatch_event_bus" "bus" {
   name = "brutalismbot"
 }
 
+######################
+#   STATE MACHINES   #
+######################
+
+data "aws_sfn_state_machine" "state_machines" {
+  for_each = {
+    reddit-dequeue            = "brutalismbot-reddit-dequeue"
+    reddit-post               = "brutalismbot-reddit-post"
+    reddit-reject             = "brutalismbot-reddit-reject"
+    reddit-screen             = "brutalismbot-reddit-screen"
+    slack-beta-enable-disable = "brutalismbot-slack-beta-enable-disable"
+    slack-beta-refresh-home   = "brutalismbot-slack-beta-refresh-home"
+    slack-beta-link-shared    = "brutalismbot-slack-beta-link-shared"
+    slack-install             = "brutalismbot-slack-install"
+    slack-post                = "brutalismbot-slack-post"
+    slack-post-channel        = "brutalismbot-slack-post-channel"
+    slack-uninstall           = "brutalismbot-slack-uninstall"
+    state-machine-errors      = "brutalismbot-state-machine-errors"
+    twitter-post              = "brutalismbot-twitter-post"
+  }
+  name = each.value
+}
+
 #########################
 #   REDDIT :: DEQUEUE   #
 #########################
-
-data "aws_sfn_state_machine" "reddit_dequeue" {
-  name = "brutalismbot-reddit-dequeue"
-}
 
 module "reddit_dequeue" {
   source = "./schedule"
@@ -94,16 +113,12 @@ module "reddit_dequeue" {
   identifier          = "reddit-dequeue"
   is_enabled          = local.is_enabled.reddit.dequeue
   schedule_expression = "rate(1 hour)"
-  state_machine_arn   = data.aws_sfn_state_machine.reddit_dequeue.arn
+  state_machine_arn   = data.aws_sfn_state_machine.state_machines["reddit-dequeue"].arn
 }
 
 ######################
 #   REDDIT :: POST   #
 ######################
-
-data "aws_sfn_state_machine" "reddit_post" {
-  name = "brutalismbot-reddit-post"
-}
 
 module "reddit_post" {
   source = "./eventbridge"
@@ -112,7 +127,7 @@ module "reddit_post" {
   event_bus_name    = aws_cloudwatch_event_bus.bus.name
   identifier        = "reddit-post"
   is_enabled        = local.is_enabled.reddit.post
-  state_machine_arn = data.aws_sfn_state_machine.reddit_post.arn
+  state_machine_arn = data.aws_sfn_state_machine.state_machines["reddit-post"].arn
 
   pattern = {
     source      = ["reddit"]
@@ -124,10 +139,6 @@ module "reddit_post" {
 #   REDDIT :: REJECT   #
 ########################
 
-data "aws_sfn_state_machine" "reddit_reject" {
-  name = "brutalismbot-reddit-reject"
-}
-
 module "reddit_reject" {
   source = "./eventbridge"
 
@@ -135,7 +146,7 @@ module "reddit_reject" {
   event_bus_name    = aws_cloudwatch_event_bus.bus.name
   identifier        = "reddit-post-reject"
   is_enabled        = local.is_enabled.reddit.reject
-  state_machine_arn = data.aws_sfn_state_machine.reddit_reject.arn
+  state_machine_arn = data.aws_sfn_state_machine.state_machines["reddit-reject"].arn
 
   pattern = {
     source      = ["slack/beta"]
@@ -151,10 +162,6 @@ module "reddit_reject" {
 #   REDDITY :: VERIFY   #
 #########################
 
-data "aws_sfn_state_machine" "reddit_screen" {
-  name = "brutalismbot-reddit-screen"
-}
-
 module "reddit_screen" {
   source = "./eventbridge"
 
@@ -162,7 +169,7 @@ module "reddit_screen" {
   event_bus_name    = aws_cloudwatch_event_bus.bus.name
   identifier        = "reddit-post-screen"
   is_enabled        = local.is_enabled.reddit.screen
-  state_machine_arn = data.aws_sfn_state_machine.reddit_screen.arn
+  state_machine_arn = data.aws_sfn_state_machine.state_machines["reddit-screen"].arn
 
   pattern = {
     source      = ["reddit"]
@@ -174,10 +181,6 @@ module "reddit_screen" {
 #   SLACK :: BETA ENABLE/DISABLE   #
 ####################################
 
-data "aws_sfn_state_machine" "slack_beta_enable_disable" {
-  name = "brutalismbot-slack-beta-enable-disable"
-}
-
 module "slack_beta_enable_disable" {
   source = "./eventbridge"
 
@@ -185,7 +188,7 @@ module "slack_beta_enable_disable" {
   event_bus_name    = aws_cloudwatch_event_bus.bus.name
   identifier        = "slack-beta-enable-disable"
   is_enabled        = local.is_enabled.slack.beta_enable_disable
-  state_machine_arn = data.aws_sfn_state_machine.slack_beta_enable_disable.arn
+  state_machine_arn = data.aws_sfn_state_machine.state_machines["slack-beta-enable-disable"].arn
 
   pattern = {
     source      = ["slack/beta"]
@@ -202,10 +205,6 @@ module "slack_beta_enable_disable" {
 #   SLACK :: BETA REFRESH HOME   #
 ##################################
 
-data "aws_sfn_state_machine" "slack_beta_refresh_home" {
-  name = "brutalismbot-slack-beta-refresh-home"
-}
-
 module "slack_beta_refresh_home" {
   source = "./eventbridge"
 
@@ -213,7 +212,7 @@ module "slack_beta_refresh_home" {
   event_bus_name    = aws_cloudwatch_event_bus.bus.name
   identifier        = "slack-beta-refresh-home"
   is_enabled        = local.is_enabled.slack.beta_refresh_home
-  state_machine_arn = data.aws_sfn_state_machine.slack_beta_refresh_home.arn
+  state_machine_arn = data.aws_sfn_state_machine.state_machines["slack-beta-refresh-home"].arn
 
   pattern = {
     source      = ["slack/beta"]
@@ -231,10 +230,6 @@ module "slack_beta_refresh_home" {
 #   SLACK :: LINK SHARED   #
 ############################
 
-data "aws_sfn_state_machine" "slack_beta_link_shared" {
-  name = "brutalismbot-slack-beta-link-shared"
-}
-
 module "slack_beta_link_shared" {
   source = "./eventbridge"
 
@@ -242,7 +237,7 @@ module "slack_beta_link_shared" {
   event_bus_name    = aws_cloudwatch_event_bus.bus.name
   identifier        = "slack-beta-link-shared"
   is_enabled        = local.is_enabled.slack.beta_link_shared
-  state_machine_arn = data.aws_sfn_state_machine.slack_beta_link_shared.arn
+  state_machine_arn = data.aws_sfn_state_machine.state_machines["slack-beta-link-shared"].arn
 
   pattern = {
     source      = ["slack/beta"]
@@ -259,10 +254,6 @@ module "slack_beta_link_shared" {
 #   SLACK :: INSTALL   #
 ########################
 
-data "aws_sfn_state_machine" "slack_install" {
-  name = "brutalismbot-slack-install"
-}
-
 module "slack_install" {
   source = "./eventbridge"
 
@@ -270,7 +261,7 @@ module "slack_install" {
   event_bus_name    = aws_cloudwatch_event_bus.bus.name
   identifier        = "slack-install"
   is_enabled        = local.is_enabled.slack.install
-  state_machine_arn = data.aws_sfn_state_machine.slack_install.arn
+  state_machine_arn = data.aws_sfn_state_machine.state_machines["slack-install"].arn
 
   pattern = {
     source      = ["slack", "slack/beta"]
@@ -282,10 +273,6 @@ module "slack_install" {
 #   SLACK :: POST   #
 #####################
 
-data "aws_sfn_state_machine" "slack_post" {
-  name = "brutalismbot-slack-post"
-}
-
 module "slack_post" {
   source = "./eventbridge"
 
@@ -293,7 +280,7 @@ module "slack_post" {
   event_bus_name    = aws_cloudwatch_event_bus.bus.name
   identifier        = "slack-post"
   is_enabled        = local.is_enabled.slack.post
-  state_machine_arn = data.aws_sfn_state_machine.slack_post.arn
+  state_machine_arn = data.aws_sfn_state_machine.state_machines["slack-post"].arn
 
   pattern = {
     source      = ["reddit"]
@@ -305,10 +292,6 @@ module "slack_post" {
 #   SLACK :: POST CHANNEL   #
 #############################
 
-data "aws_sfn_state_machine" "slack_post_channel" {
-  name = "brutalismbot-slack-post-channel"
-}
-
 module "slack_post_channel" {
   source = "./eventbridge"
 
@@ -316,7 +299,7 @@ module "slack_post_channel" {
   event_bus_name    = aws_cloudwatch_event_bus.bus.name
   identifier        = "slack-post-channel"
   is_enabled        = local.is_enabled.slack.post_channel
-  state_machine_arn = data.aws_sfn_state_machine.slack_post_channel.arn
+  state_machine_arn = data.aws_sfn_state_machine.state_machines["slack-post-channel"].arn
 
   pattern = {
     source      = ["reddit"]
@@ -328,10 +311,6 @@ module "slack_post_channel" {
 #   SLACK :: UNINSTALL   #
 ##########################
 
-data "aws_sfn_state_machine" "slack_uninstall" {
-  name = "brutalismbot-slack-uninstall"
-}
-
 module "slack_uninstall" {
   source = "./eventbridge"
 
@@ -339,7 +318,7 @@ module "slack_uninstall" {
   event_bus_name    = aws_cloudwatch_event_bus.bus.name
   identifier        = "slack-uninstall"
   is_enabled        = local.is_enabled.slack.uninstall
-  state_machine_arn = data.aws_sfn_state_machine.slack_uninstall.arn
+  state_machine_arn = data.aws_sfn_state_machine.state_machines["slack-uninstall"].arn
 
   pattern = {
     source      = ["slack", "slack/beta"]
@@ -356,10 +335,6 @@ module "slack_uninstall" {
 #   STATE MACHINE ERRORS   #
 ############################
 
-data "aws_sfn_state_machine" "state_machine_errors" {
-  name = "brutalismbot-state-machine-errors"
-}
-
 module "state_machine_errors" {
   source = "./eventbridge"
 
@@ -368,14 +343,14 @@ module "state_machine_errors" {
   identifier        = "state-machine-errors"
   input_path        = null
   is_enabled        = local.is_enabled.slack.uninstall
-  state_machine_arn = data.aws_sfn_state_machine.state_machine_errors.arn
+  state_machine_arn = data.aws_sfn_state_machine.state_machines["state-machine-errors"].arn
 
   pattern = {
     source      = ["aws.states"]
     detail-type = ["Step Functions Execution Status Change"]
 
     detail = {
-      stateMachineArn = [{ anything-but = data.aws_sfn_state_machine.state_machine_errors.arn }]
+      stateMachineArn = [{ anything-but = data.aws_sfn_state_machine.state_machines["state-machine-errors"].arn }]
       status          = ["FAILED", "TIMED_OUT"]
     }
   }
@@ -385,10 +360,6 @@ module "state_machine_errors" {
 #   TWITTER :: POST   #
 #######################
 
-data "aws_sfn_state_machine" "twitter_post" {
-  name = "brutalismbot-twitter-post"
-}
-
 module "twitter_post" {
   source = "./eventbridge"
 
@@ -396,7 +367,7 @@ module "twitter_post" {
   event_bus_name    = aws_cloudwatch_event_bus.bus.name
   identifier        = "twitter-post"
   is_enabled        = local.is_enabled.twitter.post
-  state_machine_arn = data.aws_sfn_state_machine.twitter_post.arn
+  state_machine_arn = data.aws_sfn_state_machine.state_machines["twitter-post"].arn
 
   pattern = {
     source      = ["reddit"]
