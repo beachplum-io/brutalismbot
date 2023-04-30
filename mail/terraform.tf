@@ -100,7 +100,7 @@ resource "aws_route53_record" "mail_from_mx" {
 resource "aws_route53_record" "mail_to_mx" {
   name    = data.aws_route53_zone.zone.name
   records = ["10 inbound-smtp.${data.aws_region.current.name}.amazonaws.com"]
-  ttl     = 300
+  ttl     = "300"
   type    = "MX"
   zone_id = data.aws_route53_zone.zone.id
 }
@@ -113,16 +113,16 @@ resource "aws_ses_domain_identity" "brutalismbot" {
   domain = data.aws_route53_zone.zone.name
 }
 
-resource "aws_ses_email_identity" "destination" {
-  email = var.MAIL_TO
-}
-
-resource "aws_ses_email_identity" "help" {
-  email = "help@brutalismbot.com"
-}
-
-resource "aws_ses_email_identity" "no_reply" {
-  email = "no-reply@brutalismbot.com"
+resource "aws_ses_email_identity" "identities" {
+  for_each = {
+    bluesky     = "bluesky@brutalismbot.com"
+    destination = var.MAIL_TO
+    help        = "help@brutalismbot.com"
+    no-reply    = "no-reply@brutalismbot.com"
+    slack       = "slack@brutalismbot.com"
+    twitter     = "twitter@brutalismbot.com"
+  }
+  email = each.value
 }
 
 #####################
