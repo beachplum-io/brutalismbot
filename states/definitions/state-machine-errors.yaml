@@ -8,9 +8,10 @@ States:
     ResultSelector:
       ACCESS_TOKEN.$: $.Item.ACCESS_TOKEN.S
       CHANNEL_ID.$: $.Item.CHANNEL_ID.S
+      USER_ID.$: $.Item.USER_ID.S
     Parameters:
       TableName: ${table_name}
-      ProjectionExpression: ACCESS_TOKEN,CHANNEL_ID
+      ProjectionExpression: ACCESS_TOKEN,CHANNEL_ID,USER_ID
       Key:
         GUID:
           S: ${app_id}/${team_id}/${conversation_id}
@@ -26,7 +27,7 @@ States:
         authorization.$: States.Format('Bearer {}', $.SLACK.ACCESS_TOKEN)
         content-type: application/json; charset=utf-8
       body:
-        channel.$: $.SLACK.CHANNEL_ID
+        channel.$: $.SLACK.USER_ID
         text.$: States.Format('State machine {}', $.detail.status)
         blocks:
           - type: section
