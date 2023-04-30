@@ -161,7 +161,7 @@ module "mail" {
     Statement = {
       Sid      = "SendEmail"
       Effect   = "Allow"
-      Action   = "ses:SendRawEmail"
+      Action   = "ses:SendEmail"
       Resource = "*"
     }
   })

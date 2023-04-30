@@ -31,10 +31,16 @@ handler :mail do |event|
 
     # Start Execution
     input = {
-      Content:          { Raw: { Data: mail.to_s } },
-      Destination:      { ToAddresses: mail.to },
+      ToAddresses: mail.to,
       FromEmailAddress: mail.from.first,
-      ReplyToAddresses: mail.reply_to
+      ReplyToAddresses: mail.reply_to,
+      Destination: { ToAddresses: mail.to },
+      Content: {
+        Simple: {
+          Subject: { Data: mail.subject, Charset: 'UTF-8'},
+          Body: { Text: { Data: mail.body.to_s, Charset: 'UTF-8' } },
+        }
+      }
     }
     STATES.start_execution(
       state_machine_arn: STATE_MACHINE_ARN,
