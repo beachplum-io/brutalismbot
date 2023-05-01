@@ -470,13 +470,10 @@ module "slack_install" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "DynamoDB"
-        Effect = "Allow"
-        Action = ["dynamodb:PutItem", "dynamodb:Query"]
-        Resource = [
-          aws_dynamodb_table.table.arn,
-          "${aws_dynamodb_table.table.arn}/index/Chrono",
-        ]
+        Sid      = "DynamoDB"
+        Effect   = "Allow"
+        Action   = ["dynamodb:GetItem", "dynamodb:PutItem"]
+        Resource = aws_dynamodb_table.table.arn
       },
       {
         Sid      = "Lambda"
