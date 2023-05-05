@@ -250,6 +250,14 @@ resource "aws_route53_record" "www_aaaa" {
   }
 }
 
+resource "aws_route53_record" "bluesky" {
+  name    = "_atproto.brutalismbot.com"
+  records = ["did=did:plc:ss234xtabshxpidtaa5kbnt2"]
+  ttl     = 300
+  type    = "TXT"
+  zone_id = aws_route53_zone.zone.id
+}
+
 resource "aws_route53_record" "github" {
   name    = "_github-challenge-brutalismbot.brutalismbot.com"
   records = ["0981d41914"]
