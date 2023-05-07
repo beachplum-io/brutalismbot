@@ -31,7 +31,6 @@ handler :mail do |event|
 
     # Start Execution
     input = {
-      ToAddresses: mail.to,
       FromEmailAddress: mail.from.first,
       ReplyToAddresses: mail.reply_to,
       Destination: { ToAddresses: mail.to },
