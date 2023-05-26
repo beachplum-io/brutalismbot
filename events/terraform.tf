@@ -41,6 +41,8 @@ variable "AWS_ROLE_ARN" {}
 
 locals {
   is_enabled = {
+    state_machine_errors = false
+
     reddit = {
       dequeue = true
       post    = true
@@ -342,7 +344,7 @@ module "state_machine_errors" {
   event_bus_name    = "default"
   identifier        = "state-machine-errors"
   input_path        = null
-  is_enabled        = local.is_enabled.slack.uninstall
+  is_enabled        = local.is_enabled.state_machine_errors
   state_machine_arn = data.aws_sfn_state_machine.state_machines["state-machine-errors"].arn
 
   pattern = {
