@@ -1,11 +1,7 @@
-#  Local .terraform directories
-**/.terraform/
-
-# .tfstate files
+# terraform
+.terraform/
 *.tfstate
 *.tfstate.*
-
-# .tfvars files
 *.tfvars
 
 # .env
@@ -13,9 +9,9 @@
 *.env.*
 
 # packages
-**/vendor/
 *.zip
 
-# Ruby
+# ruby
+vendor/
 .rspec_status
-coverage
+*.json

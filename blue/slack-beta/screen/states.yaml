@@ -1,0 +1,76 @@
+---
+StartAt: GetSecret
+States:
+  GetSecret:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:secretsmanager:getSecretValue
+    ResultPath: $.Secret
+    Next: SendScreener
+    Parameters:
+      SecretId: ${secret_id}
+    ResultSelector:
+      SecretValue.$: States.StringToJson($.SecretString)
+  SendScreener:
+    Type: Task
+    Resource: ${screen_arn}
+    Next: Wait
+    ResultPath: $.Response
+    Parameters:
+      ExecutionId.$: $$.Execution.Id
+      AccessToken.$: $.Secret.SecretValue.SLACK_API_TOKEN
+      Channel: ${channel_id}
+      Title.$: $.Title
+      Media.$: States.StringToJson($.Media)
+      Permalink.$: $.Permalink
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 3
+        MaxAttempts: 4
+        ErrorEquals:
+          - Lambda.AWSLambdaException
+          - Lambda.SdkClientException
+          - Lambda.ServiceException
+          - Lambda.Unknown
+  Wait:
+    Type: Wait
+    Next: UpdateItem
+    Seconds: ${wait_time_seconds}
+  UpdateItem:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:updateItem
+    Next: DeleteScreener
+    ResultPath: $.Update
+    Parameters:
+      TableName: ${table_name}
+      Key.$: $.Key
+      UpdateExpression: >-
+        SET #Status=:Status, ExecutionId=:ExecutionId
+      ExpressionAttributeNames:
+        "#Status": Status
+      ExpressionAttributeValues:
+        :ExecutionId:
+          S.$: $$.Execution.Id
+        :Status:
+          S: Approved
+  DeleteScreener:
+    Type: Task
+    Resource: ${http_function_arn}
+    End: true
+    Parameters:
+      url: https://slack.com/api/chat.delete
+      method: POST
+      headers:
+        authorization.$: States.Format('Bearer {}', $.Secret.SecretValue.SLACK_API_TOKEN)
+        content-type: application/json; charset=utf-8
+      body:
+        channel.$: $.Response.channel
+        ts.$: $.Response.ts
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 3
+        MaxAttempts: 4
+        ErrorEquals:
+          - Lambda.AWSLambdaException
+          - Lambda.SdkClientException
+          - Lambda.ServiceException
+          - Lambda.Unknown

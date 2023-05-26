@@ -1,0 +1,56 @@
+---
+StartAt: SendPost
+States:
+  SendPost:
+    Type: Task
+    Resource: ${send_post_arn}
+    # Type: Pass # Remove this
+    Next: EachPost
+    Parameters:
+      Media.$: States.StringToJson($.Media)
+      Name.$: $.Name
+      Permalink.$: $.Permalink
+      TTL.$: $.TTL
+      Title.$: $.Title
+      # Posts: [] # Remove this
+  EachPost:
+    Type: Map
+    End: true
+    ItemsPath: $.Posts
+    ItemSelector:
+      TableName: ${table_name}
+      Item:
+        Id:
+          S.$: $$.Map.Item.Value.ref.uri
+        Kind:
+          S: bluesky/post
+        ExecutionId:
+          S.$: $$.Execution.Id
+        Json:
+          S.$: $$.Map.Item.Value
+        LastUpdate:
+          S.$: $.LastUpdate
+        Media:
+          S.$: $.Media
+        Name:
+          S.$: $.Name
+        Permalink:
+          S.$: $.Permalink
+        Title:
+          S.$: $.Title
+        TTL:
+          N.$: $.TTL
+    ItemProcessor:
+      StartAt: PutPost
+      States:
+        PutPost:
+          Type: Task
+          Resource: arn:aws:states:::aws-sdk:dynamodb:putItem
+          ResultPath: $.Result
+          OutputPath: $.Item.Json.S
+          End: true
+          Parameters:
+            TableName.$: $.TableName
+            Item.$: $.Item
+    ResultSelector:
+      Posts.$: $

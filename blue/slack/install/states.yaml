@@ -1,0 +1,40 @@
+---
+StartAt: PutItem
+States:
+  PutItem:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:putItem
+    End: true
+    Parameters:
+      TableName: ${table_name}
+      Item:
+        Id:
+          S.$: States.Format('{}/{}/{}', $.detail.app_id, $.detail.team.id, $.detail.incoming_webhook.channel_id)
+        Kind:
+          S: slack/token
+        Enabled:
+          Bool: true
+        ExecutionId:
+          S.$: $$.Execution.Id
+        Json:
+          S.$: $.detail
+        LastUpdate:
+          S.$: $.time
+        AccessToken:
+          S.$: $.detail.access_token
+        AppId:
+          S.$: $.detail.app_id
+        ChannelId:
+          S.$: $.detail.incoming_webhook.channel_id
+        ChannelName:
+          S.$: $.detail.incoming_webhook.channel
+        Scope:
+          S.$: $.detail.scope
+        TeamId:
+          S.$: $.detail.team.id
+        TeamName:
+          S.$: $.detail.team.name
+        UserId:
+          S.$: $.detail.authed_user.id
+        WebhookUrl:
+          S.$: $.detail.incoming_webhook.url

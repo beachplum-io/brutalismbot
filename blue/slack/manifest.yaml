@@ -1,0 +1,30 @@
+display_information:
+  name: Brutalismbot
+  description: Mirror posts from /r/brutalism
+  background_color: "#2a2254"
+  long_description: "Brutalismbot mirrors posts from the /r/brutalism subreddit to a #channel of your choosing using incoming webhooks. Post frequency depends on the volume of new submissions to /r/brutalism. Typical volume is ~6 posts per day."
+features:
+  app_home:
+    home_tab_enabled: false
+    messages_tab_enabled: true
+    messages_tab_read_only_enabled: true
+  bot_user:
+    display_name: Brutalismbot
+    always_online: true
+oauth_config:
+  redirect_urls:
+    - https://api.brutalismbot.com/slack/oauth/v2
+  scopes:
+    bot:
+      - chat:write
+      - chat:write.public
+      - incoming-webhook
+settings:
+  event_subscriptions:
+    request_url: https://api.brutalismbot.com/slack/events
+    bot_events:
+      - app_uninstalled
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false
+

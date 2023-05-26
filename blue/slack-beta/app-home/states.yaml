@@ -1,0 +1,175 @@
+---
+StartAt: GetSecret
+States:
+  GetSecret:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:secretsmanager:getSecretValue
+    Next: EachSchedule
+    Parameters:
+      SecretId: ${secret_id}
+    ResultSelector:
+      SecretValue.$: States.StringToJson($.SecretString)
+      Schedules:
+        - GroupName: brutalismbot-${env}
+          Name: brutalismbot-${env}-reddit-pop
+      Rules:
+        - EventBusName: brutalismbot-${env}
+          Name: brutalismbot-${env}-bluesky-send-post
+        - EventBusName: brutalismbot-${env}
+          Name: brutalismbot-${env}-slack-send-post
+        - EventBusName: brutalismbot-${env}
+          Name: brutalismbot-${env}-twitter-send-tweet
+  EachSchedule:
+    Type: Map
+    Next: EachRule
+    ItemsPath: $.Schedules
+    ResultPath: $.Schedules
+    ItemProcessor:
+      StartAt: GetSchedule
+      States:
+        GetSchedule:
+          Type: Task
+          Resource: arn:aws:states:::aws-sdk:scheduler:getSchedule
+          Next: ScheduleEnabled?
+          Parameters:
+            GroupName.$: $.GroupName
+            Name.$: $.Name
+        ScheduleEnabled?:
+          Type: Choice
+          Default: ScheduleDisabled
+          Choices:
+            - Next: ScheduleEnabled
+              Variable: $.State
+              StringEquals: ENABLED
+        ScheduleDisabled:
+          Type: Pass
+          End: true
+          Parameters:
+            type: button
+            action_id: enable_schedule
+            style: danger
+            value.$: $.Name
+            text:
+              type: plain_text
+              text: Disabled
+        ScheduleEnabled:
+          Type: Pass
+          End: true
+          Parameters:
+            type: button
+            action_id: disable_schedule
+            value.$: $.Name
+            text:
+              type: plain_text
+              text: Enabled
+  EachRule:
+    Type: Map
+    Next: GetView
+    ItemsPath: $.Rules
+    ResultPath: $.Rules
+    ItemProcessor:
+      StartAt: GetRule
+      States:
+        GetRule:
+          Type: Task
+          Resource: arn:aws:states:::aws-sdk:eventbridge:describeRule
+          Next: RuleEnabled?
+          Parameters:
+            EventBusName.$: $.EventBusName
+            Name.$: $.Name
+        RuleEnabled?:
+          Type: Choice
+          Default: RuleDisabled
+          Choices:
+            - Next: RuleEnabled
+              Variable: $.State
+              StringEquals: ENABLED
+        RuleDisabled:
+          Type: Pass
+          End: true
+          Parameters:
+            type: button
+            action_id: enable_rule
+            style: danger
+            value.$: $.Name
+            text:
+              type: plain_text
+              text: Disabled
+        RuleEnabled:
+          Type: Pass
+          End: true
+          Parameters:
+            type: button
+            action_id: disable_rule
+            value.$: $.Name
+            text:
+              type: plain_text
+              text: Enabled
+  GetView:
+    Type: Pass
+    Next: SendView
+    Parameters:
+      method: POST
+      url: https://slack.com/api/views.publish
+      headers:
+        authorization.$: States.Format('Bearer {}', $.SecretValue.SLACK_API_TOKEN)
+        content-type: application/json; charset=utf-8
+      body:
+        user_id: ${user_id}
+        view:
+          type: home
+          blocks:
+            - type: header
+              text:
+                type: plain_text
+                text: Queues
+            - type: section
+              text:
+                type: plain_text
+                text: /r/brutalism 🟪
+              accessory:
+                type: button
+                action_id: pop
+                value: /r/brutalism
+                text:
+                  type: plain_text
+                  text: Pop
+            - type: header
+              text:
+                type: plain_text
+                text: Schedules
+            - type: section
+              text:
+                type: plain_text
+                text: /r/brutalism
+              accessory.$: $.Schedules[0]
+            - type: header
+              text:
+                type: plain_text
+                text: Triggers
+            - type: section
+              text:
+                type: plain_text
+                text: Bluesky
+              accessory.$: $.Rules[0]
+            - type: section
+              text:
+                type: plain_text
+                text: Slack
+              accessory.$: $.Rules[1]
+            - type: section
+              text:
+                type: plain_text
+                text: Twitter
+              accessory.$: $.Rules[2]
+  SendView:
+    Type: Task
+    Resource: ${http_function_arn}
+    End: true
+    Parameters:
+      method.$: $.method
+      url.$: $.url
+      headers.$: $.headers
+      body:
+        user_id.$: $.body.user_id
+        view.$: States.JsonToString($.body.view)

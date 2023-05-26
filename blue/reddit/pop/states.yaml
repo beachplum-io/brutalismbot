@@ -1,0 +1,133 @@
+---
+StartAt: GetCursor
+States:
+  GetCursor:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:getItem
+    Next: DequeueNext
+    Parameters:
+      TableName: ${table_name}
+      Key:
+        Id:
+          S: /r/brutalism
+        Kind:
+          S: cursor
+      ProjectionExpression: LastUpdate
+    ResultSelector:
+      ExclusiveStartTime.$: $.Item.LastUpdate.S
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 60
+        MaxAttempts: 3
+        ErrorEquals:
+          - States.ALL
+  DequeueNext:
+    Type: Task
+    Resource: ${reddit_pop_arn}
+    Next: SendMetrics
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 60
+        MaxAttempts: 3
+        ErrorEquals:
+          - States.ALL
+  SendMetrics:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:cloudwatch:putMetricData
+    Next: NewItem?
+    ResultPath: $.MetricData
+    Parameters:
+      Namespace: ${cloudwatch_namespace}
+      MetricData:
+        - MetricName: QueueSize
+          Unit: Count
+          Value.$: $.QueueSize
+          Dimensions:
+            - Name: QueueName
+              Value: /r/brutalism
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 60
+        MaxAttempts: 3
+        ErrorEquals:
+          - CloudWatch.SdkClientException
+  NewItem?:
+    Type: Choice
+    Default: Finish
+    Choices:
+      - Next: PutPost
+        Variable: $.NextPost
+        IsPresent: true
+  Finish:
+    Type: Succeed
+  PutPost:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:putItem
+    Next: UpdateCursor
+    InputPath: $.NextPost
+    ResultPath: $.PutItem
+    Parameters:
+      TableName: ${table_name}
+      Item:
+        Id:
+          S.$: $.Id
+        Kind:
+          S.$: $.Kind
+        ExecutionId:
+          S.$: $$.Execution.Id
+        Json:
+          S.$: $.Json
+        LastUpdate:
+          S.$: $.LastUpdate
+        Media:
+          S.$: $.Media
+        Name:
+          S.$: $.Name
+        Permalink:
+          S.$: $.Permalink
+        Status:
+          S.$: $.Status
+        Title:
+          S.$: $.Title
+        TTL:
+          N.$: $.TTL
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 60
+        MaxAttempts: 3
+        ErrorEquals:
+          - States.ALL
+  UpdateCursor:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:updateItem
+    End: true
+    InputPath: $.NextPost
+    ResultPath: $.UpdateItem
+    Parameters:
+      TableName: ${table_name}
+      Key:
+        Id:
+          S: /r/brutalism
+        Kind:
+          S: cursor
+      UpdateExpression: >-
+        SET ExecutionId=:ExecutionId, Json=:Json, LastUpdate=:LastUpdate, #Name=:Name, Title=:Title
+      ExpressionAttributeNames:
+        "#Name": Name
+      ExpressionAttributeValues:
+        :ExecutionId:
+          S.$: $$.Execution.Id
+        :Json:
+          S.$: $.Json
+        :LastUpdate:
+          S.$: $.LastUpdate
+        :Name:
+          S.$: $.Name
+        :Title:
+          S.$: $.Title
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 60
+        MaxAttempts: 3
+        ErrorEquals:
+          - States.ALL

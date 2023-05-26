@@ -1,0 +1,7 @@
+---
+http:
+  description: Make generic HTTP request
+  handler: index.http
+  memory_size: 512
+  runtime: ruby2.7
+  timeout: 30

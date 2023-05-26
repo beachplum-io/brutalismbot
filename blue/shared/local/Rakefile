@@ -1,0 +1,195 @@
+require 'json'
+
+require 'aws-sdk-dynamodb'
+
+DYNAMODB       ||= Aws::DynamoDB::Client.new
+DYNAMODB_LOCAL ||= Aws::DynamoDB::Client.new(endpoint: 'http://localhost:8000')
+
+task :default => :load
+
+desc 'Open local DynamoDB'
+task :open do
+  sh %{open http://localhost:8001}
+end
+
+desc 'Load data into local Dynamodb'
+task :load => [:init, 'table.local.json'] do
+  data = JSON.parse File.read 'table.local.json'
+  data['Items'].each_slice(25).each_with_index do |page, i|
+    STDERR.write("\rdynamodb:BatchWriteItem [#{i + 1}] ")
+    put_items = page.map { |x| { put_request: { item: x } } }
+    DYNAMODB_LOCAL.batch_write_item(request_items: { 'Brutalismbot' => put_items })
+  end
+  STDERR.write("\n")
+end
+
+desc 'Setup local table'
+task :init => :up do
+  begin
+    params = { table_name: 'Brutalismbot' }
+    STDERR.write("dynamodb:DescribeTable #{params.to_json}\n")
+    DYNAMODB_LOCAL.describe_table(**params)
+  rescue Aws::DynamoDB::Errors::ResourceNotFoundException
+    params = {
+      attribute_definitions: [
+        { attribute_type: 'S', attribute_name: 'Id' },
+        { attribute_type: 'S', attribute_name: 'Kind' },
+      ],
+      key_schema: [
+        { key_type: 'HASH', attribute_name: 'Id' },
+        { key_type: 'RANGE', attribute_name: 'Kind' },
+      ],
+      global_secondary_indexes: [{
+        index_name: 'Kind',
+        key_schema: [
+          { key_type: 'HASH', attribute_name: 'Kind' },
+          { key_type: 'RANGE', attribute_name: 'Id' },
+        ],
+        projection: { projection_type: 'ALL' },
+        provisioned_throughput: {
+          read_capacity_units: 1,
+          write_capacity_units: 1,
+        }
+      }],
+      provisioned_throughput: {
+        read_capacity_units: 1,
+        write_capacity_units: 1,
+      },
+      table_name: 'Brutalismbot',
+    }
+    STDERR.write("dynamodb:CreateTable #{params.to_json}\n")
+    DYNAMODB_LOCAL.create_table(**params)
+  end
+end
+
+desc 'Start local services'
+task :up do
+  sh %{docker compose up -d}
+end
+
+file 'table.local.json' => 'table.json' do |f|
+  STDERR.write("Creating #{f.name}\n")
+  data = JSON.parse File.read 'table.json'
+  File.open(f.name, 'w') do |stream|
+    items = Enumerator.new do |enum|
+      data['Items'].each do |item|
+        case item['SORT']
+        when 'SLACK/AUTH'
+          enum.yield(
+            Id:          item['GUID'],
+            Kind:        'slack/token',
+            Enabled:     item['ENABLED'],
+            Team:        item['TEAM_NAME'],
+            Channel:     item['CHANNEL_NAME'],
+            AppId:       item['APP_ID'],
+            TeamId:      item['TEAM_ID'],
+            ChannelId:   item['CHANNEL_ID'],
+            UserId:      item['USER_ID'],
+            AccessToken: item['ACCESS_TOKEN'],
+            Scope:       item['SCOPE'],
+            WebhookUrl:  item['WEBHOOK_URL'],
+            JSON:        item['JSON'],
+          )
+        when 'REDDIT/POST'
+          case item['GUID']
+          when 'LATEST'
+            images = -> (x) { x['type'] == 'image' }
+            urls   = -> (x) { x['image_url'] }
+            blocks = JSON.parse(item['JSON'])['blocks']
+            enum.yield(
+              Id:         '/r/brutalism',
+              Kind:       'cursor/posts',
+              LastUpdate: item['CREATED_UTC'],
+              Title:      item['TITLE'],
+              MediaURLs:  blocks.select(&images).map(&urls),
+            )
+          when 'STATS/MAX'
+            enum.yield(
+              Id:         '/r/brutalism',
+              Kind:       'cursor/queue',
+              LastUpdate: item['CREATED_UTC'],
+              Name:       item['NAME'],
+            )
+          else
+            post = JSON.parse item['JSON']
+            urls = if post['is_self']
+              []
+            elsif post['is_gallery']
+              area = -> (x) {  x['x'] * x['y'] }
+              urls = -> (x) { post.dig('media_metadata', x['media_id'])['p'].max_by(&area)['u'] }
+              post.dig('gallery_data', 'items').map(&urls)
+            else
+              area = -> (x) { x['width'] * x['height'] }
+              urls = -> (x) { ([x['source']] + x['resolutions']).max_by(&area)['url'] }
+              post.dig('preview', 'images').map(&urls)
+            end
+            enum.yield(
+              Id:         "/r/brutalism/#{item['GUID']}",
+              Kind:       "reddit/post",
+              Status:     item['STATE'],
+              LastUpdate: item['CREATED_UTC'],
+              Title:      item['TITLE'],
+              MediaURLs:  urls,
+              JSON:       item['JSON'],
+              TTL:        item['TTL'].to_f.to_i,
+            )
+          end
+        when 'TWITTER/POST'
+          enum.yield(
+            Id:   item['GUID'],
+            Kind: 'twitter/post',
+          )
+        when 'SLACK/POST'
+          enum.yield(
+            Id:   item['GUID'],
+            Kind: 'slack/post',
+          )
+        end
+      end
+    end.to_a
+    stream.write JSON.pretty_generate(Items: items)
+  end
+end
+
+file 'table.json' do |f|
+  STDERR.write("Creating #{f.name}\n")
+  File.open(f.name, 'w') do |stream|
+    params = { table_name: 'Brutalismbot' }
+    STDERR.write("dynamodb:Scan #{params.to_json}\n")
+    items = DYNAMODB.scan(**params).map(&:items).flatten
+    stream.write JSON.pretty_generate(Items: items)
+  end
+end
+
+file 'tokens.json' do |f|
+  STDERR.write("Creating #{f.name}\n")
+  File.open(f.name, 'w') do |stream|
+    params = {
+      table_name: 'Brutalismbot',
+      index_name: 'Chrono',
+      key_condition_expression: '#SORT=:SORT',
+      expression_attribute_names: {"#SORT"=>'SORT'},
+      expression_attribute_values: {":SORT"=>'SLACK/AUTH'},
+    }
+    STDERR.write("dynamodb:Query #{params.to_json}\n")
+    items = DYNAMODB.query(**params).map(&:items).flatten.map do |item|
+      {
+        Id:          item['GUID'],
+        Kind:        'slack/token',
+        LastUpdate:  item['CREATED_UTC'],
+        Enabled:     item['ENABLED'],
+        Team:        item['TEAM_NAME'],
+        Channel:     item['CHANNEL_NAME'],
+        AppId:       item['APP_ID'],
+        TeamId:      item['TEAM_ID'],
+        ChannelId:   item['CHANNEL_ID'],
+        UserId:      item['USER_ID'],
+        AccessToken: item['ACCESS_TOKEN'],
+        Scope:       item['SCOPE'],
+        WebhookUrl:  item['WEBHOOK_URL'],
+        JSON:        item['JSON'],
+      }
+    end
+    stream.write JSON.pretty_generate(Items: items)
+  end
+end

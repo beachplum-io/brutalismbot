@@ -1,0 +1,71 @@
+---
+StartAt: GetItems
+States:
+  GetItems:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:query
+    Next: NextPage?
+    InputPath: $.Query
+    ResultPath: $.Result
+    Parameters:
+      TableName.$: $.TableName
+      IndexName.$: $.IndexName
+      KeyConditionExpression.$: $.KeyConditionExpression
+      ProjectionExpression.$: $.ProjectionExpression
+      ExpressionAttributeValues.$: $.ExpressionAttributeValues
+      ExclusiveStartKey.$: $.ExclusiveStartKey
+  NextPage?:
+    Type: Choice
+    Default: EachItem
+    Choices:
+      - Next: NextPage
+        Variable: $.Result.LastEvaluatedKey
+        IsPresent: true
+  NextPage:
+    Type: Task
+    Resource: arn:aws:states:::states:startExecution
+    Next: EachItem
+    ResultPath: $.NextPage
+    Parameters:
+      StateMachineArn.$: $$.StateMachine.Id
+      Input:
+        AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$: $$.Execution.Id
+        EventTime.$: $.EventTime
+        Query:
+          TableName.$: $.Query.TableName
+          IndexName.$: $.Query.IndexName
+          KeyConditionExpression.$: $.Query.KeyConditionExpression
+          ProjectionExpression.$: $.Query.ProjectionExpression
+          ExpressionAttributeValues.$: $.Query.ExpressionAttributeValues
+          ExclusiveStartKey.$: $.Result.LastEvaluatedKey
+  EachItem:
+    Type: Map
+    End: true
+    ItemsPath: $.Result.Items
+    ItemSelector:
+      TableName.$: $.Query.TableName
+      Key:
+        Id.$: $$.Map.Item.Value.Id
+        Kind.$: $$.Map.Item.Value.Kind
+      UpdateExpression: >-
+        SET Enabled=:Enabled, #TTL=:TTL
+      ExpressionAttributeNames:
+        "#TTL": TTL
+      ExpressionAttributeValues:
+        :Enabled:
+          Bool: false
+        :TTL:
+          N.$: States.JsonToString($.EventTime)
+    ItemProcessor:
+      StartAt: UpdateItem
+      States:
+        UpdateItem:
+          Type: Task
+          Resource: arn:aws:states:::aws-sdk:dynamodb:updateItem
+          End: true
+          Parameters:
+            TableName.$: $.TableName
+            Key.$: $.Key
+            UpdateExpression.$: $.UpdateExpression
+            ExpressionAttributeNames.$: $.ExpressionAttributeNames
+            ExpressionAttributeValues.$: $.ExpressionAttributeValues

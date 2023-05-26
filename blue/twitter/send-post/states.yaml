@@ -1,0 +1,52 @@
+---
+StartAt: SendTweet
+States:
+  SendTweet:
+    # Type: Task
+    # Resource: ${send_tweet_arn}
+    Type: Pass # Remove this
+    Next: EachTweet
+    Parameters:
+      Media.$: States.StringToJson($.Media)
+      Name.$: $.Name
+      Permalink.$: $.Permalink
+      Title.$: $.Title
+      TTL.$: $.TTL
+      Posts: [] # Remove this
+  EachTweet:
+    Type: Map
+    End: true
+    ItemsPath: $.Posts
+    ItemSelector:
+      TableName: ${table_name}
+      Item:
+        Id:
+          S.$: States.Format('@brutalismbot/{}', $$.Map.Item.Value.id)
+        Kind:
+          S: twitter/post
+        ExecutionId:
+          S.$: $$.Execution.Id
+        Json:
+          S.$: $$.Map.Item.Value
+        LastUpdate:
+          S.$: $.LastUpdate
+        Media:
+          S.$: $.Media
+        Name:
+          S.$: $.Name
+        Permalink:
+          S.$: $.Permalink
+        Title:
+          S.$: $.Title
+        TTL:
+          N.$: $.TTL
+    ItemProcessor:
+      StartAt: PutTweet
+      States:
+        PutTweet:
+          Type: Task
+          Resource: arn:aws:states:::aws-sdk:dynamodb:putItem
+          End: true
+          Parameters:
+            TableName.$: $.TableName
+            Item.$: $.Item
