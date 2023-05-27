@@ -55,11 +55,13 @@ module Twitter
           )
           logger.info "POST #{ File.join twitter_upload_client.consumer.options[:site], options.path }"
           result = twitter_upload_client.perform_request_from_options options
-          JSON.parse result.read_body
+          JSON.parse result.read_body rescue raise result.message
         end
       end
-    rescue
+    rescue => err
       logger.error("COULD NOT UPLOAD MEDIA")
+      logger.error(err)
+      nil
     end
 
     def post(updates:nil, count:nil, **data)
