@@ -18,14 +18,14 @@ States:
           GetLastPost:
             Type: Task
             Resource: arn:aws:states:::aws-sdk:dynamodb:getItem
-            Next: TransformPost
+            End: true
             Parameters:
               TableName: ${table_name}
               Key:
                 GUID:
                   S: LATEST
                 SORT:
-                  S: REDDIT/POST
+                  S: SLACK/POST
               ProjectionExpression: "CREATED_UTC,JSON,#NAME,PERMALINK,TITLE,#TTL"
               ExpressionAttributeNames:
                 "#NAME": NAME
@@ -37,21 +37,6 @@ States:
               PERMALINK.$: "$.Item.PERMALINK.S"
               TITLE.$: "$.Item.TITLE.S"
               TTL.$: States.StringToJson($.Item.TTL.N)
-          TransformPost:
-            Type: Task
-            Resource: arn:aws:lambda:us-west-2:556954866954:function:brutalismbot-slack-transform
-            End: true
-            InputPath: "$.DATA"
-            ResultPath: "$.DATA"
-            Retry:
-              - BackoffRate: 2
-                IntervalSeconds: 3
-                MaxAttempts: 4
-                ErrorEquals:
-                  - Lambda.AWSLambdaException
-                  - Lambda.SdkClientException
-                  - Lambda.ServiceException
-                  - Lambda.Unknown
       - StartAt: GetSlack
         States:
           GetSlack:

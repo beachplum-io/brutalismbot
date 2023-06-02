@@ -63,7 +63,7 @@ States:
           GUID:
             S: LATEST
           SORT:
-            S: REDDIT/POST
+            S: SLACK/POST
           CREATED_UTC:
             S.$: $[0].CREATED_UTC
           JSON:
