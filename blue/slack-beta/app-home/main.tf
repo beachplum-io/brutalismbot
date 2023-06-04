@@ -15,10 +15,9 @@ locals {
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-# data "aws_cloudwatch_event_bus" "bus" {
-#   # name = "brutalismbot-${var.env}"
-#   name = "brutalismbot"
-# }
+data "aws_cloudwatch_event_bus" "bus" {
+  name = "brutalismbot-${var.env}"
+}
 
 data "aws_lambda_function" "shared" {
   for_each      = toset(["http"])
@@ -85,6 +84,81 @@ data "aws_secretsmanager_secret" "secret" {
 #   target_id      = "state-machine"
 # }
 
+##############
+#   LAMBDA   #
+##############
+
+data "archive_file" "lambda" {
+  excludes    = ["package.zip"]
+  source_dir  = "${path.module}/lib"
+  output_path = "${path.module}/lib/package.zip"
+  type        = "zip"
+}
+
+resource "aws_cloudwatch_log_group" "lambda" {
+  name              = "/aws/lambda/${aws_lambda_function.lambda.function_name}"
+  retention_in_days = 14
+}
+
+resource "aws_iam_role" "lambda" {
+  name = "${local.region}-${local.name}-lambda"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = {
+      Sid       = "AssumeLambda"
+      Effect    = "Allow"
+      Action    = "sts:AssumeRole"
+      Principal = { Service = "lambda.amazonaws.com" }
+    }
+  })
+
+  inline_policy {
+    name = "access"
+    policy = jsonencode({
+      Version = "2012-10-17"
+      Statement = [
+        {
+          Sid      = "DescribeRule"
+          Effect   = "Allow"
+          Action   = "events:DescribeRule"
+          Resource = "arn:aws:events:${local.region}:${local.account}:rule/brutalismbot-${var.env}/*"
+        },
+        {
+          Sid      = "GetSchedule"
+          Effect   = "Allow"
+          Action   = "scheduler:GetSchedule"
+          Resource = "arn:aws:scheduler:${local.region}:${local.account}:schedule/brutalismbot-${var.env}/*"
+        },
+        {
+          Sid      = "GetMetrics"
+          Effect   = "Allow"
+          Action   = "cloudwatch:GetMetricStatistics"
+          Resource = "*"
+        },
+        {
+          Sid      = "Logs"
+          Effect   = "Allow"
+          Action   = "logs:*"
+          Resource = "*"
+        }
+      ]
+    })
+  }
+}
+
+resource "aws_lambda_function" "lambda" {
+  architectures    = ["arm64"]
+  description      = "Get Home view"
+  filename         = data.archive_file.lambda.output_path
+  function_name    = local.name
+  handler          = "index.home"
+  role             = aws_iam_role.lambda.arn
+  runtime          = "ruby2.7"
+  source_code_hash = data.archive_file.lambda.output_base64sha256
+  timeout          = 10
+}
+
 #####################
 #   STATE MACHINE   #
 #####################
@@ -108,28 +182,19 @@ resource "aws_iam_role" "states" {
       Version = "2012-10-17"
       Statement = [
         {
-          Sid      = "GetSecret"
+          Sid      = "GetSecretValue"
           Effect   = "Allow"
           Action   = "secretsmanager:GetSecretValue"
           Resource = data.aws_secretsmanager_secret.secret.arn
         },
         {
-          Sid      = "InvokeHttp"
-          Effect   = "Allow"
-          Action   = "lambda:InvokeFunction"
-          Resource = data.aws_lambda_function.shared["http"].arn
-        },
-        {
-          Sid      = "DescribeRule"
-          Effect   = "Allow"
-          Action   = "events:DescribeRule"
-          Resource = "arn:aws:events:${local.region}:${local.account}:rule/brutalismbot-${var.env}/*"
-        },
-        {
-          Sid      = "GetSchedule"
-          Effect   = "Allow"
-          Action   = "scheduler:GetSchedule"
-          Resource = "arn:aws:scheduler:${local.region}:${local.account}:schedule/brutalismbot-${var.env}/*"
+          Sid    = "InvokeFunction"
+          Effect = "Allow"
+          Action = "lambda:InvokeFunction"
+          Resource = [
+            aws_lambda_function.lambda.arn,
+            data.aws_lambda_function.shared["http"].arn,
+          ]
         }
       ]
     })
@@ -141,7 +206,7 @@ resource "aws_sfn_state_machine" "states" {
   role_arn = aws_iam_role.states.arn
 
   definition = jsonencode(yamldecode(templatefile("${path.module}/states.yaml", {
-    env               = var.env
+    home_view_arn     = aws_lambda_function.lambda.arn
     http_function_arn = data.aws_lambda_function.shared["http"].arn
     secret_id         = data.aws_secretsmanager_secret.secret.id
     user_id           = var.user_id
