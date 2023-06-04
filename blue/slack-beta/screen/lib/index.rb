@@ -3,7 +3,7 @@ require 'net/http'
 require 'yake'
 require 'yake/support'
 
-require_relative 'lib/blocks'
+require_relative 'lib/slack'
 
 URL = 'https://slack.com/api/chat.postMessage'
 
@@ -26,7 +26,7 @@ handler :screen do |event|
     text:    text,
     attachments: [{
       color:  '#06E886',
-      blocks: blocks(text, link, media, execution_id),
+      blocks: Slack.blocks(text, link, media, execution_id),
     }]
   }
 

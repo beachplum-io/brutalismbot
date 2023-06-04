@@ -4,7 +4,7 @@ require 'net/http'
 require 'yake'
 require 'yake/support'
 
-require_relative 'lib/blocks'
+require_relative 'lib/slack'
 
 handler :send_post do |event|
   # Extract data
@@ -23,7 +23,7 @@ handler :send_post do |event|
   body = {
     channel: channel,
     text:    text,
-    blocks:  blocks(text, link, media),
+    blocks:  Slack.blocks(text, link, media),
   }.compact
 
   # Send request
