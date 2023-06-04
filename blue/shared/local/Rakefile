@@ -78,17 +78,17 @@ file 'table.local.json' => 'table.json' do |f|
           enum.yield(
             Id:          item['GUID'],
             Kind:        'slack/token',
-            Enabled:     item['ENABLED'],
-            Team:        item['TEAM_NAME'],
-            Channel:     item['CHANNEL_NAME'],
-            AppId:       item['APP_ID'],
-            TeamId:      item['TEAM_ID'],
-            ChannelId:   item['CHANNEL_ID'],
-            UserId:      item['USER_ID'],
             AccessToken: item['ACCESS_TOKEN'],
+            AppId:       item['APP_ID'],
+            ChannelId:   item['CHANNEL_ID'],
+            ChannelName: item['CHANNEL_NAME'],
+            Enabled:     item['ENABLED'],
+            Json:        item['JSON'],
             Scope:       item['SCOPE'],
+            TeamName:    item['TEAM_NAME'],
+            TeamId:      item['TEAM_ID'],
+            UserId:      item['USER_ID'],
             WebhookUrl:  item['WEBHOOK_URL'],
-            JSON:        item['JSON'],
           )
         when 'REDDIT/POST'
           case item['GUID']
@@ -176,18 +176,18 @@ file 'tokens.json' do |f|
       {
         Id:          item['GUID'],
         Kind:        'slack/token',
-        LastUpdate:  item['CREATED_UTC'],
-        Enabled:     item['ENABLED'],
-        Team:        item['TEAM_NAME'],
-        Channel:     item['CHANNEL_NAME'],
-        AppId:       item['APP_ID'],
-        TeamId:      item['TEAM_ID'],
-        ChannelId:   item['CHANNEL_ID'],
-        UserId:      item['USER_ID'],
         AccessToken: item['ACCESS_TOKEN'],
+        AppId:       item['APP_ID'],
+        ChannelName: item['CHANNEL_NAME'],
+        ChannelId:   item['CHANNEL_ID'],
+        Enabled:     item['ENABLED'],
+        Json:        item['JSON'],
+        LastUpdate:  item['CREATED_UTC'],
         Scope:       item['SCOPE'],
+        TeamId:      item['TEAM_ID'],
+        TeamName:    item['TEAM_NAME'],
+        UserId:      item['USER_ID'],
         WebhookUrl:  item['WEBHOOK_URL'],
-        JSON:        item['JSON'],
       }
     end
     stream.write JSON.pretty_generate(Items: items)
