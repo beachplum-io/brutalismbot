@@ -11,6 +11,7 @@ States:
       TableName.$: $.TableName
       IndexName.$: $.IndexName
       KeyConditionExpression.$: $.KeyConditionExpression
+      FilterExpression.$: $.FilterExpression
       ProjectionExpression.$: $.ProjectionExpression
       ExpressionAttributeNames.$: $.ExpressionAttributeNames
       ExpressionAttributeValues.$: $.ExpressionAttributeValues
@@ -36,6 +37,7 @@ States:
           TableName.$: $.Query.TableName
           IndexName.$: $.Query.IndexName
           KeyConditionExpression.$: $.Query.KeyConditionExpression
+          FilterExpression.$: $.Query.FilterExpression
           ProjectionExpression.$: $.Query.ProjectionExpression
           ExpressionAttributeNames.$: $.Query.ExpressionAttributeNames
           ExpressionAttributeValues.$: $.Query.ExpressionAttributeValues

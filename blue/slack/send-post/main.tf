@@ -98,9 +98,11 @@ resource "aws_cloudwatch_event_target" "events" {
           "TableName": "${data.aws_dynamodb_table.table.name}",
           "IndexName": "Kind",
           "KeyConditionExpression": "Kind=:Kind AND begins_with(Id,:IdPrefix)",
+          "FilterExpression": "Enabled=:Enabled",
           "ProjectionExpression": "AccessToken,AppId,ChannelId,ChannelName,#Scope,TeamId,TeamName,UserId,WebhookUrl",
           "ExpressionAttributeNames": {"#Scope": "Scope"},
           "ExpressionAttributeValues": {
+            ":Enabled": {"Bool": true },
             ":Kind": {"S": "slack/token"},
             ":IdPrefix": {"S": "AH0KW28C9/"}
           },

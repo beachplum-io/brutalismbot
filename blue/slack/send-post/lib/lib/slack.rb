@@ -28,7 +28,7 @@ module Slack
   end
 
   def self.blocks(text, link, media)
-    caption = Block.context(elements: [text.link(link).mrkdwn])
+    caption = Block.context(elements: [text.encode_link(link).mrkdwn])
     images  = media.map(&:first).each_with_index.map do |m, i|
       url   = m['u']
       alt   = text
