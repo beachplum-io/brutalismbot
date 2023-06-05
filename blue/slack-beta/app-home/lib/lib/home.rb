@@ -1,4 +1,4 @@
-require 'aws-sdk-cloudwatch'
+require 'aws-sdk-dynamodb'
 require 'aws-sdk-eventbridge'
 require 'aws-sdk-scheduler'
 require 'yake/logger'
@@ -12,11 +12,11 @@ class Home
   include Slack
   include Yake::Logger
 
-  METRICS_NAMESPACE = ENV['METRICS_NAMESPACE'] || 'brutalismbot-blue'
-  EVENT_BUS_NAME    = ENV['EVENT_BUS_NAME']    || 'brutalismbot-blue'
-  SCHEDULE_GROUP    = ENV['SCHEDULE_GROUP']    || 'brutalismbot-blue'
+  TABLE_NAME     = ENV['METRICS_NAMESPACE'] || 'brutalismbot-blue'
+  EVENT_BUS_NAME = ENV['EVENT_BUS_NAME']    || 'brutalismbot-blue'
+  SCHEDULE_GROUP = ENV['SCHEDULE_GROUP']    || 'brutalismbot-blue'
 
-  QUEUES    = {
+  QUEUES = {
     '/r/brutalism' => '/r/brutalism',
   }
   RULES = {
@@ -30,7 +30,7 @@ class Home
 
   def initialize(credentials: nil)
     credentials ||= Aws::CredentialProviderChain.new.resolve
-    @cloudwatch   = Aws::CloudWatch::Client.new(credentials: credentials)
+    @dynamodb     = Aws::DynamoDB::Client.new(credentials: credentials)
     @eventbridge  = Aws::EventBridge::Client.new(credentials: credentials)
     @scheduler    = Aws::Scheduler::Client.new(credentials: credentials)
   end
@@ -40,7 +40,17 @@ class Home
   end
 
   def blocks
-    [ *blocks_queues, *blocks_schedules, *blocks_triggers ]
+    [
+      *blocks_refresh,
+      *blocks_queues,
+      *blocks_schedules,
+      *blocks_triggers,
+    ]
+  end
+
+  def blocks_refresh
+    refresh = Action.button(action_id: 'refresh_home', value: 'home', text: 'Refresh'.plain_text)
+    [Block.actions(elements: [refresh])]
   end
 
   def blocks_queues
@@ -113,17 +123,11 @@ class Home
 
   def queue_size(name)
     params = {
-      dimensions:     [ { name: "QueueName", value: name } ],
-      end_time:       UTC.now.iso8601,
-      metric_name:    'QueueSize',
-      namespace:      METRICS_NAMESPACE,
-      period:         3600,
-      start_time:     UTC.now - 1.day,
-      statistics:     ['Maximum'],
-      unit:           'Count',
+      table_name: TABLE_NAME,
+      key: { Id: name, Kind: 'cursor' },
+      projection_expression: 'QueueSize',
     }
-    logger.info("cloudwatch:GetMetricStatistics #{params.to_json}")
-    datapoints = @cloudwatch.get_metric_statistics(**params).datapoints
-    datapoints.max_by(&:timestamp).maximum.to_i rescue 0
+    logger.info("dynamodb:GetItem #{params.to_json}")
+    @dynamodb.get_item(**params).item['QueueSize'].to_i
   end
 end

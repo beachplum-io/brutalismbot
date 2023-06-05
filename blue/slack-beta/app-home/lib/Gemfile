@@ -4,6 +4,7 @@ gem 'yake', '~> 1.0'
 
 group :development do
   gem 'aws-sdk-cloudwatch',  '~> 1.0'
+  gem 'aws-sdk-dynamodb',    '~> 1.0'
   gem 'aws-sdk-eventbridge', '~> 1.0'
   gem 'aws-sdk-scheduler',   '~> 1.0'
 end

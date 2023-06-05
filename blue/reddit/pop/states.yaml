@@ -53,13 +53,34 @@ States:
           - CloudWatch.SdkClientException
   NewItem?:
     Type: Choice
-    Default: Finish
+    Default: UpdateQueueSize
     Choices:
       - Next: PutPost
         Variable: $.NextPost
         IsPresent: true
-  Finish:
-    Type: Succeed
+  UpdateQueueSize:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:updateItem
+    End: true
+    ResultPath: $.UpdateItem
+    Parameters:
+      TableName: ${table_name}
+      Key:
+        Id:
+          S: /r/brutalism
+        Kind:
+          S: cursor
+      UpdateExpression: >-
+        SET QueueSize=:QueueSize
+      ExpressionAttributeValues:
+        :QueueSize:
+          N.$: States.JsonToString($.QueueSize)
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 60
+        MaxAttempts: 3
+        ErrorEquals:
+          - States.ALL
   PutPost:
     Type: Task
     Resource: arn:aws:states:::aws-sdk:dynamodb:putItem
@@ -101,7 +122,6 @@ States:
     Type: Task
     Resource: arn:aws:states:::aws-sdk:dynamodb:updateItem
     End: true
-    InputPath: $.NextPost
     ResultPath: $.UpdateItem
     Parameters:
       TableName: ${table_name}
@@ -111,20 +131,22 @@ States:
         Kind:
           S: cursor
       UpdateExpression: >-
-        SET ExecutionId=:ExecutionId, Json=:Json, LastUpdate=:LastUpdate, #Name=:Name, Title=:Title
+        SET ExecutionId=:ExecutionId, Json=:Json, LastUpdate=:LastUpdate, #Name=:Name, QueueSize=:QueueSize, Title=:Title
       ExpressionAttributeNames:
         "#Name": Name
       ExpressionAttributeValues:
         :ExecutionId:
           S.$: $$.Execution.Id
         :Json:
-          S.$: $.Json
+          S.$: $.NextPost.Json
         :LastUpdate:
-          S.$: $.LastUpdate
+          S.$: $.NextPost.LastUpdate
         :Name:
-          S.$: $.Name
+          S.$: $.NextPost.Name
+        :QueueSize:
+          N.$: States.JsonToString($.QueueSize)
         :Title:
-          S.$: $.Title
+          S.$: $.NextPost.Title
     Retry:
       - BackoffRate: 2
         IntervalSeconds: 60

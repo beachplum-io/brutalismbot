@@ -19,6 +19,10 @@ data "aws_cloudwatch_event_bus" "bus" {
   name = "brutalismbot-${var.env}"
 }
 
+data "aws_dynamodb_table" "table" {
+  name = "brutalismbot-${var.env}"
+}
+
 data "aws_lambda_function" "shared" {
   for_each      = toset(["http"])
   function_name = "brutalismbot-${var.env}-shared-${each.key}"
@@ -32,57 +36,58 @@ data "aws_secretsmanager_secret" "secret" {
 #   EVENTS   #
 ##############
 
-# resource "aws_iam_role" "events" {
-#   name = "${local.region}-${local.name}-events"
+resource "aws_iam_role" "events" {
+  name = "${local.region}-${local.name}-events"
 
-#   assume_role_policy = jsonencode({
-#     Version = "2012-10-17"
-#     Statement = {
-#       Sid       = "AssumeEvents"
-#       Effect    = "Allow"
-#       Action    = "sts:AssumeRole"
-#       Principal = { Service = "events.amazonaws.com" }
-#     }
-#   })
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = {
+      Sid       = "AssumeEvents"
+      Effect    = "Allow"
+      Action    = "sts:AssumeRole"
+      Principal = { Service = "events.amazonaws.com" }
+    }
+  })
 
-#   inline_policy {
-#     name = "access"
-#     policy = jsonencode({
-#       Version = "2012-10-17"
-#       Statement = {
-#         Sid      = "StartExecution"
-#         Effect   = "Allow"
-#         Action   = "states:StartExecution"
-#         Resource = aws_sfn_state_machine.states.arn
-#       }
-#     })
-#   }
-# }
+  inline_policy {
+    name = "access"
+    policy = jsonencode({
+      Version = "2012-10-17"
+      Statement = {
+        Sid      = "StartExecution"
+        Effect   = "Allow"
+        Action   = "states:StartExecution"
+        Resource = aws_sfn_state_machine.states.arn
+      }
+    })
+  }
+}
 
-# resource "aws_cloudwatch_event_rule" "events" {
-#   description    = "Update app home"
-#   event_bus_name = data.aws_cloudwatch_event_bus.bus.name
-#   is_enabled     = true
-#   name           = local.name
+resource "aws_cloudwatch_event_rule" "events" {
+  description = "Refresh app home"
+  # event_bus_name = data.aws_cloudwatch_event_bus.bus.name
+  event_bus_name = "brutalismbot"
+  is_enabled     = true
+  name           = local.name
 
-#   event_pattern = jsonencode({
-#     source      = ["slack/beta"]
-#     detail-type = ["POST /callbacks"]
+  event_pattern = jsonencode({
+    source      = ["slack/beta"]
+    detail-type = ["POST /callbacks"]
 
-#     detail = {
-#       type = ["block_actions"]
-#       view = { type = ["home"] }
-#     }
-#   })
-# }
+    detail = {
+      type    = ["block_actions"]
+      actions = { action_id = ["refresh_home"] }
+    }
+  })
+}
 
-# resource "aws_cloudwatch_event_target" "events" {
-#   arn            = aws_sfn_state_machine.states.arn
-#   event_bus_name = aws_cloudwatch_event_rule.events.event_bus_name
-#   role_arn       = aws_iam_role.events.arn
-#   rule           = aws_cloudwatch_event_rule.events.name
-#   target_id      = "state-machine"
-# }
+resource "aws_cloudwatch_event_target" "events" {
+  arn            = aws_sfn_state_machine.states.arn
+  event_bus_name = aws_cloudwatch_event_rule.events.event_bus_name
+  role_arn       = aws_iam_role.events.arn
+  rule           = aws_cloudwatch_event_rule.events.name
+  target_id      = "state-machine"
+}
 
 ##############
 #   LAMBDA   #
@@ -125,16 +130,17 @@ resource "aws_iam_role" "lambda" {
           Resource = "arn:aws:events:${local.region}:${local.account}:rule/brutalismbot-${var.env}/*"
         },
         {
+          Sid       = "GetItem"
+          Effect    = "Allow"
+          Action    = "dynamodb:GetItem"
+          Resource  = data.aws_dynamodb_table.table.arn
+          Condition = { "ForAllValues:StringEquals" = { "dynamodb:LeadingKeys" = "/r/brutalism" } }
+        },
+        {
           Sid      = "GetSchedule"
           Effect   = "Allow"
           Action   = "scheduler:GetSchedule"
           Resource = "arn:aws:scheduler:${local.region}:${local.account}:schedule/brutalismbot-${var.env}/*"
-        },
-        {
-          Sid      = "GetMetrics"
-          Effect   = "Allow"
-          Action   = "cloudwatch:GetMetricStatistics"
-          Resource = "*"
         },
         {
           Sid      = "Logs"
@@ -157,6 +163,14 @@ resource "aws_lambda_function" "lambda" {
   runtime          = "ruby2.7"
   source_code_hash = data.archive_file.lambda.output_base64sha256
   timeout          = 10
+
+  environment {
+    variables = {
+      TABLE_NAME     = data.aws_dynamodb_table.table.name
+      EVENT_BUS_NAME = data.aws_cloudwatch_event_bus.bus.name
+      SCHEDULE_GROUP = "brutalismbot-${var.env}"
+    }
+  }
 }
 
 #####################
