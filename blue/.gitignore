@@ -1,0 +1,18 @@
+# terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+
+# .env
+*.env
+*.env.*
+
+# packages
+*.zip
+
+# ruby
+.task/
+vendor/
+.rspec_status
+*.json

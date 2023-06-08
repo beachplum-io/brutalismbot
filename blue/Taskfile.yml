@@ -1,0 +1,48 @@
+# https://taskfile.dev
+---
+version: "3"
+
+dotenv:
+  - .env
+
+vars:
+  DIR: "{{.PWD}}"
+  NAME:
+    sh: basename {{.PWD}}
+
+tasks:
+  init:
+    label: "{{.NAME}}:init"
+    desc: Initialize project
+    dir: "{{.DIR}}"
+    sources:
+      - terraform.tf
+    generates:
+      - .terraform.lock.hcl
+    cmds:
+      - terraform init
+
+  init:upgrade:
+    label: "{{.NAME}}:init:upgrade"
+    desc: Initialize project [upgrade]
+    dir: "{{.DIR}}"
+    cmds:
+      - terraform init -upgrade
+
+  apply:
+    label: "{{.NAME}}:apply"
+    desc: Apply configuration
+    dir: "{{.DIR}}"
+    deps:
+      - init
+    cmds:
+      - terraform apply
+
+  apply:auto:
+    label: "{{.NAME}}:apply:auto"
+    desc: Apply configuration [auto]
+    dir: "{{.DIR}}"
+    deps:
+      - init
+    cmds:
+      - terraform apply -auto-approve
