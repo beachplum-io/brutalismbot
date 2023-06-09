@@ -2,9 +2,8 @@
 StartAt: SendTweet
 States:
   SendTweet:
-    # Type: Task
-    # Resource: ${send_tweet_arn}
-    Type: Pass # Remove this
+    Type: Task
+    Resource: ${send_tweet_arn}
     Next: EachTweet
     Parameters:
       Media.$: States.StringToJson($.Media)
@@ -12,7 +11,6 @@ States:
       Permalink.$: $.Permalink
       Title.$: $.Title
       TTL.$: $.TTL
-      Posts: [] # Remove this
   EachTweet:
     Type: Map
     End: true

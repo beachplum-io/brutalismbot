@@ -18,7 +18,7 @@ class Twitter
   def thread(text:, link:, media:)
     # Get text
     max   = MAX_STATUS - link.length
-    text  = text.length < max ? "#{text}\n" : "#{text[...max]}…\n"
+    text  = text.length < max ? "#{text} " : "#{text[...max]}… "
     text << link
 
     # Zip media & status

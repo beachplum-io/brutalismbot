@@ -62,7 +62,7 @@ locals {
     }
 
     twitter = {
-      post = true
+      post = false
     }
   }
 
