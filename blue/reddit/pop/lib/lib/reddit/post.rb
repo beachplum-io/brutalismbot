@@ -70,8 +70,11 @@ module Reddit
     # Get media URLs from gallery
     def media_gallery
       area = -> (x) {  x[:x] * x[:y] }
-      urls = -> (x) { dig(:media_metadata, x[:media_id].to_sym)[:p].sort_by(&area).reverse }
-      dig(:gallery_data, :items)&.map(&urls)
+      imgs = -> (x) do
+        img = dig(:media_metadata, x[:media_id].to_sym)
+        (img[:p] + [img[:s]]).sort_by(&area).reverse
+      end
+      dig(:gallery_data, :items)&.map(&imgs)
     end
 
     ##
@@ -79,7 +82,7 @@ module Reddit
     def media_preview
       area = -> (x) { x[:width] * x[:height] }
       smol = -> (x) { { x: x[:width], y: x[:height], u: x[:url] } }
-      imgs = -> (x) { ([x[:source]] + x[:resolutions]).sort_by(&area).reverse.map(&smol) }
+      imgs = -> (x) { (x[:resolutions] + [x[:source]]).sort_by(&area).reverse.map(&smol) }
       dig(:preview, :images)&.map(&imgs)
     end
   end
