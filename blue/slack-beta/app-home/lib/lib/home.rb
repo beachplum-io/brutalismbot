@@ -58,16 +58,16 @@ class Home
   def schedules
     SCHEDULES.map do |name, key|
       schedule = get_schedule(key)
-      value    = { group_name: schedule.group_name, name: schedule.name }
+      value    = { GroupName: schedule.group_name, Name: schedule.name }
       enabled  = schedule.state == 'ENABLED'
-      Schedule.new(name: name, value: value)
+      Schedule.new(name: name, value: value, enabled?: enabled)
     end
   end
 
   def rules
     RULES.map do |name, key|
       rule    = get_rule(key)
-      value   = { event_bus_name: rule.event_bus_name, name: rule.name }
+      value   = { EventBusName: rule.event_bus_name, Name: rule.name }
       enabled = rule.state == 'ENABLED'
       Schedule.new(name: name, value: value, enabled?: enabled)
     end

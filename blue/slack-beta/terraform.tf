@@ -82,6 +82,24 @@ module "delete-message" {
   env    = local.env
 }
 
+module "disable" {
+  source = "./disable"
+  app    = local.app
+  env    = local.env
+}
+
+module "enable" {
+  source = "./enable"
+  app    = local.app
+  env    = local.env
+}
+
+module "reject" {
+  source = "./reject"
+  app    = local.app
+  env    = local.env
+}
+
 module "screen" {
   source     = "./screen"
   app        = local.app

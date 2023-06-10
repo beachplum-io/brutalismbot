@@ -1,0 +1,69 @@
+---
+StartAt: EachAction
+States:
+  EachAction:
+    Type: Map
+    Next: UpdateHome
+    ItemsPath: $.detail.actions
+    ItemSelector:
+      ActionId.$: $$.Map.Item.Value.action_id
+      Value.$: States.StringToJson($$.Map.Item.Value.value)
+    ItemProcessor:
+      StartAt: WhichAction?
+      States:
+        WhichAction?:
+          Type: Choice
+          Default: DisableRule
+          Choices:
+            - Next: GetSchedule
+              Variable: $.ActionId
+              StringEquals: disable_schedule
+        DisableRule:
+          Type: Task
+          Resource: arn:aws:states:::aws-sdk:eventbridge:disableRule
+          End: true
+          InputPath: $.Value
+          Parameters:
+            EventBusName.$: $.EventBusName
+            Name.$: $.Name
+        GetSchedule:
+          Type: Task
+          Resource: arn:aws:states:::aws-sdk:scheduler:getSchedule
+          Next: DisableSchedule
+          InputPath: $.Value
+          Parameters:
+            GroupName.$: $.GroupName
+            Name.$: $.Name
+          ResultSelector:
+            FlexibleTimeWindow.$: $.FlexibleTimeWindow
+            GroupName.$: $.GroupName
+            Name.$: $.Name
+            ScheduleExpression.$: $.ScheduleExpression
+            ScheduleExpressionTimezone.$: $.ScheduleExpressionTimezone
+            Target.$: $.Target
+        DisableRule:
+          Type: Task
+          Resource: arn:aws:states:::aws-sdk:eventbridge:disableRule
+          End: true
+          InputPath: $.Value
+          Parameters:
+            EventBusName.$: $.EventBusName
+            Name.$: $.Name
+        DisableSchedule:
+          Type: Task
+          Resource: arn:aws:states:::aws-sdk:scheduler:updateSchedule
+          End: true
+          Parameters:
+            FlexibleTimeWindow.$: $.FlexibleTimeWindow
+            GroupName.$: $.GroupName
+            Name.$: $.Name
+            ScheduleExpression.$: $.ScheduleExpression
+            ScheduleExpressionTimezone.$: $.ScheduleExpressionTimezone
+            State: DISABLED
+            Target.$: $.Target
+  UpdateHome:
+    Type: Task
+    Resource: arn:aws:states:::states:startExecution
+    End: true
+    Parameters:
+      StateMachineArn: ${app_home_arn}
