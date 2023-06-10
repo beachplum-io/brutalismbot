@@ -154,7 +154,7 @@ resource "aws_lambda_function" "lambda" {
   function_name    = local.name
   handler          = "index.screen"
   role             = aws_iam_role.lambda.arn
-  runtime          = "ruby2.7"
+  runtime          = "ruby3.2"
   source_code_hash = data.archive_file.lambda.output_base64sha256
 }
 
