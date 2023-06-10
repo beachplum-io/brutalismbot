@@ -1,0 +1,85 @@
+---
+type: home
+callback_id: home
+blocks:
+  - type: actions
+    elements:
+      - type: button
+        action_id: refresh_home
+        value: home
+        text:
+          type: plain_text
+          text: Refresh
+  - type: header
+    text:
+      type: plain_text
+      text: Queues
+  <% @queues.each do |queue| %>
+  - type: section
+    text:
+      type: mrkdwn
+      text: >-
+        <%= queue.name %> `<%= '█' * queue.size %>`
+    accessory:
+      type: button
+      action_id: pop
+      value: >-
+        <%= queue.name %>
+      text:
+        type: plain_text
+        text: Pop
+  <% end %>
+  - type: header
+    text:
+      type: plain_text
+      text: Schedules
+  <% @schedules.each do |item| %>
+  - type: section
+    text:
+      type: plain_text
+      text: >-
+        <%= item.name %>
+    accessory:
+      type: button
+      value: >-
+        <%= item.value.to_json %>
+      <% if item.enabled? %>
+      action_id: disable_schedule
+      text:
+        type: plain_text
+        text: Enabled
+      <% else %>
+      style: danger
+      action_id: enable_schedule
+      text:
+        type: plain_text
+        text: Disabled
+      <% end %>
+    <% end %>
+  - type: header
+    text:
+      type: plain_text
+      text: Rules
+  <% @rules.each do |item| %>
+  - type: section
+    text:
+      type: plain_text
+      text: >-
+        <%= item.name %>
+    accessory:
+      type: button
+      value: >-
+        <%= item.value.to_json %>
+      <% if item.enabled? %>
+      action_id: disable_rule
+      text:
+        type: plain_text
+        text: Enabled
+      <% else %>
+      style: danger
+      action_id: enable_rule
+      text:
+        type: plain_text
+        text: Disabled
+      <% end %>
+    <% end %>
