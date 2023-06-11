@@ -22,6 +22,10 @@ data "aws_dynamodb_table" "table" {
   name = "brutalismbot-${var.env}"
 }
 
+data "aws_sfn_state_machine" "app-home" {
+  name = "brutalismbot-${var.env}-slack-beta-app-home"
+}
+
 ##############
 #   LAMBDA   #
 ##############
@@ -235,6 +239,12 @@ resource "aws_iam_role" "states" {
           Effect   = "Allow"
           Action   = "lambda:InvokeFunction"
           Resource = aws_lambda_function.lambda.arn
+        },
+        {
+          Sid      = "StartExecution"
+          Effect   = "Allow"
+          Action   = "states:StartExecution"
+          Resource = data.aws_sfn_state_machine.app-home.arn
         }
       ]
     })
@@ -246,6 +256,7 @@ resource "aws_sfn_state_machine" "states" {
   role_arn = aws_iam_role.states.arn
 
   definition = jsonencode(yamldecode(templatefile("${path.module}/states.yaml", {
+    app_home_arn = data.aws_sfn_state_machine.app-home.arn
     cloudwatch_namespace = "brutalismbot-${var.env}"
     reddit_pop_arn       = aws_lambda_function.lambda.arn
     table_name           = data.aws_dynamodb_table.table.name

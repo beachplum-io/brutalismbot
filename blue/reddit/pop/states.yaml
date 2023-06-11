@@ -121,7 +121,7 @@ States:
   UpdateCursor:
     Type: Task
     Resource: arn:aws:states:::aws-sdk:dynamodb:updateItem
-    End: true
+    Next: RefreshHome
     ResultPath: $.UpdateItem
     Parameters:
       TableName: ${table_name}
@@ -153,3 +153,9 @@ States:
         MaxAttempts: 3
         ErrorEquals:
           - States.ALL
+  RefreshHome:
+    Type: Task
+    Resource: arn:aws:states:::states:startExecution
+    End: true
+    Parameters:
+      StateMachineArn: ${app_home_arn}
