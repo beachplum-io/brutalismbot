@@ -1,0 +1,54 @@
+---
+channel: >-
+  <%= channel %>
+text: >-
+  <%= text %>
+attachments:
+  - color: "#06E886"
+    blocks:
+      <% images.each do |image| %>
+      - type: image
+        image_url: >-
+          <%= image.url %>
+        alt_text: >-
+          <%= image.alt %>
+        title:
+          type: plain_text
+          text: >-
+            <%= image.title %>
+      <% end %>
+      - type: context
+        elements:
+          - type: mrkdwn
+            text: >-
+              <<%= link %>|<%= text %>>
+      - type: actions
+        elements:
+          - type: button
+            action_id: delete_me
+            value: approve
+            text:
+              type: plain_text
+              text: Dismiss
+          - type: button
+            action_id: reject
+            style: danger
+            value: >-
+              <%= execution_id %>
+            text:
+              type: plain_text
+              text: Reject
+            confirm:
+              style: danger
+              title:
+                type: plain_text
+                text: Are you sure?
+              text:
+                type: plain_text
+                text: This cannot be undone
+              confirm:
+                type: plain_text
+                text: Reject
+              deny:
+                type: plain_text
+                text: Cancel

@@ -216,6 +216,6 @@ resource "aws_sfn_state_machine" "states" {
     screen_arn        = aws_lambda_function.lambda.arn
     secret_id         = data.aws_secretsmanager_secret.secret.id
     table_name        = data.aws_dynamodb_table.table.name
-    wait_time_seconds = 10
+    wait_time_seconds = 14400
   })))
 }
