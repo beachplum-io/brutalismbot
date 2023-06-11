@@ -52,16 +52,9 @@ locals {
   account_id = data.aws_caller_identity.current.account_id
   region     = data.aws_region.current.name
 
-  acm = {
-    us-east-1 = element(tolist(aws_acm_certificate.us-east-1.domain_validation_options), 0)
-    us-west-2 = element(tolist(aws_acm_certificate.us-west-2.domain_validation_options), 0)
-  }
-
-  apis = {
-    "slack"           = "brutalismbot/slack"
-    "slack/beta"      = "brutalismbot/slack/beta"
-    "blue/slack"      = "brutalismbot-${local.env}-slack-api"
-    "blue/slack/beta" = "brutalismbot-${local.env}-slack-beta-api"
+  domain_validation_options = {
+    for x in aws_acm_certificate.us-east-1.domain_validation_options :
+    x.domain_name => x
   }
 
   tags = {
@@ -78,23 +71,13 @@ locals {
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-data "aws_apigatewayv2_apis" "apis" {
-  for_each = local.apis
-  name     = each.value
-}
-
-data "aws_apigatewayv2_api" "apis" {
-  for_each = { for k, v in data.aws_apigatewayv2_apis.apis : k => tolist(v.ids)[0] }
-  api_id   = each.value
-}
-
 data "aws_cloudfront_distribution" "website" {
   id = "E56K5Y115KDS"
 }
 
-#######################
-#   ACM :: US-EAST-1  #
-#######################
+########################
+#   ACM :: US-EAST-1   #
+########################
 
 resource "aws_acm_certificate" "us-east-1" {
   provider                  = aws.us-east-1
@@ -111,9 +94,9 @@ resource "aws_acm_certificate_validation" "us-east-1" {
   validation_record_fqdns = [aws_route53_record.acm.fqdn]
 }
 
-#######################
-#   ACM :: US-WEST-2  #
-#######################
+########################
+#   ACM :: US-WEST-2   #
+########################
 
 resource "aws_acm_certificate" "us-west-2" {
   domain_name               = aws_route53_zone.zone.name
@@ -126,28 +109,6 @@ resource "aws_acm_certificate" "us-west-2" {
 resource "aws_acm_certificate_validation" "us-west-2" {
   certificate_arn         = aws_acm_certificate.us-west-2.arn
   validation_record_fqdns = [aws_route53_record.acm.fqdn]
-}
-
-###################
-#   API GATEWAY   #
-###################
-
-resource "aws_apigatewayv2_domain_name" "us-west-2" {
-  domain_name = "api.brutalismbot.com"
-
-  domain_name_configuration {
-    certificate_arn = aws_acm_certificate.us-west-2.arn
-    endpoint_type   = "REGIONAL"
-    security_policy = "TLS_1_2"
-  }
-}
-
-resource "aws_apigatewayv2_api_mapping" "mappings" {
-  for_each        = { for k, v in data.aws_apigatewayv2_api.apis : k => v.id }
-  api_mapping_key = each.key
-  api_id          = each.value
-  domain_name     = "api.brutalismbot.com"
-  stage           = "$default"
 }
 
 #######################
@@ -164,31 +125,11 @@ resource "aws_route53_zone" "zone" {
 ##########################
 
 resource "aws_route53_record" "acm" {
-  name    = local.acm.us-east-1.resource_record_name
-  records = [local.acm.us-east-1.resource_record_value]
+  name    = local.domain_validation_options["brutalismbot.com"].resource_record_name
+  records = [local.domain_validation_options["brutalismbot.com"].resource_record_value]
   ttl     = 300
-  type    = local.acm.us-east-1.resource_record_type
+  type    = local.domain_validation_options["brutalismbot.com"].resource_record_type
   zone_id = aws_route53_zone.zone.id
-}
-
-resource "aws_route53_record" "api" {
-  for_each       = { us-west-2 = aws_apigatewayv2_domain_name.us-west-2 }
-  name           = each.value.domain_name
-  set_identifier = "${each.key}.${each.value.domain_name}"
-  type           = "A"
-  zone_id        = aws_route53_zone.zone.id
-
-  # health_check_id = aws_route53_health_check.healthcheck.id
-
-  alias {
-    evaluate_target_health = true
-    name                   = each.value.domain_name_configuration.0.target_domain_name
-    zone_id                = each.value.domain_name_configuration.0.hosted_zone_id
-  }
-
-  latency_routing_policy {
-    region = each.key
-  }
 }
 
 resource "aws_route53_record" "website" {
@@ -217,16 +158,21 @@ resource "aws_route53_record" "bluesky" {
   zone_id = aws_route53_zone.zone.id
 }
 
-###############################
-#   ROUTE53 :: HEALTHCHECKS   #
-###############################
+#####################
+#   REGIONAL APIS   #
+#####################
 
-# resource "aws_route53_health_check" "healthcheck" {
-#   failure_threshold = "3"
-#   fqdn              = "api.brutalismbot.com"
-#   measure_latency   = true
-#   port              = 443
-#   request_interval  = "30"
-#   resource_path     = "/slack/health"
-#   type              = "HTTPS"
-# }
+module "api-us-west-2" {
+  source              = "./api"
+  acm_certificate_arn = aws_acm_certificate.us-west-2.arn
+  zone_id             = aws_route53_zone.zone.id
+
+  mappings = {
+    "slack"      = "brutalismbot-blue-slack-api"
+    "slack/beta" = "brutalismbot-blue-slack-beta-api"
+    # "slack"      = "brutalismbot/slack"
+    # "slack/beta" = "brutalismbot/slack/beta"
+    # "green/slack"      = "brutalismbot-green-slack-api"
+    # "green/slack/beta" = "brutalismbot-green-slack-beta-api"
+  }
+}
