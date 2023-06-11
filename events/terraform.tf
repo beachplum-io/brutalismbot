@@ -51,14 +51,14 @@ locals {
     }
 
     slack = {
-      beta_app_home_opened = true
-      beta_enable_disable  = true
-      beta_link_shared     = true
-      beta_refresh_home    = true
-      install              = true
+      beta_app_home_opened = false
+      beta_enable_disable  = false
+      beta_link_shared     = false
+      beta_refresh_home    = false
+      install              = false
       post                 = true
       post_channel         = true
-      uninstall            = true
+      uninstall            = false
     }
 
     twitter = {

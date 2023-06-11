@@ -23,9 +23,8 @@ data "aws_dynamodb_table" "table" {
   name = "brutalismbot-${var.env}"
 }
 
-data "aws_lambda_function" "shared" {
-  for_each      = toset(["http"])
-  function_name = "brutalismbot-${var.env}-shared-${each.key}"
+data "aws_lambda_function" "http" {
+  function_name = "brutalismbot-${var.env}-shared-http"
 }
 
 data "aws_secretsmanager_secret" "secret" {
@@ -64,9 +63,8 @@ resource "aws_iam_role" "events" {
 }
 
 resource "aws_cloudwatch_event_rule" "events" {
-  description = "Refresh app home"
-  # event_bus_name = data.aws_cloudwatch_event_bus.bus.name
-  event_bus_name = "brutalismbot"
+  description    = "Refresh app home"
+  event_bus_name = data.aws_cloudwatch_event_bus.bus.name
   is_enabled     = true
   name           = local.name
 
@@ -207,7 +205,7 @@ resource "aws_iam_role" "states" {
           Action = "lambda:InvokeFunction"
           Resource = [
             aws_lambda_function.lambda.arn,
-            data.aws_lambda_function.shared["http"].arn,
+            data.aws_lambda_function.http.arn,
           ]
         }
       ]
@@ -221,7 +219,7 @@ resource "aws_sfn_state_machine" "states" {
 
   definition = jsonencode(yamldecode(templatefile("${path.module}/states.yaml", {
     home_view_arn     = aws_lambda_function.lambda.arn
-    http_function_arn = data.aws_lambda_function.shared["http"].arn
+    http_function_arn = data.aws_lambda_function.http.arn
     secret_id         = data.aws_secretsmanager_secret.secret.id
     user_id           = var.user_id
   })))

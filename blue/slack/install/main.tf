@@ -14,7 +14,7 @@ locals {
 data "aws_region" "current" {}
 
 data "aws_cloudwatch_event_bus" "bus" {
-  name = "brutalismbot"
+  name = "brutalismbot-${var.env}"
 }
 
 data "aws_dynamodb_table" "table" {

@@ -8,7 +8,7 @@ terraform {
   # cloud {
   #   organization = "beachplum"
 
-  #   workspaces { name = "brutalismbot-blue-shared" }
+  #   workspaces { name = "brutalismbot-${local.env}-shared" }
   # }
 
   required_providers {
@@ -56,10 +56,10 @@ locals {
   name = "brutalismbot-${local.env}"
 
   tags = {
-    "brutalismbot:env"       = "blue"
-    "brutalismbot:app"       = "shared"
+    "brutalismbot:env"       = local.env
+    "brutalismbot:app"       = local.app
     "terraform:organization" = "beachplum"
-    "terraform:workspace"    = "brutalismbot-blue-shared"
+    "terraform:workspace"    = "brutalismbot-${local.env}-${local.app}"
     "git:repo"               = "beachplum-io/brutalismbot"
   }
 }

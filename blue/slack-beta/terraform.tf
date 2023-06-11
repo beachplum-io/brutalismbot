@@ -8,7 +8,7 @@ terraform {
   # cloud {
   #   organization = "beachplum"
 
-  #   workspaces { name = "brutalismbot-blue-slack-beta" }
+  #   workspaces { name = "brutalismbot-${local.env}-slack-beta" }
   # }
 
   required_providers {

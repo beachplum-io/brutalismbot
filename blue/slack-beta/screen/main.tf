@@ -21,9 +21,8 @@ data "aws_dynamodb_table" "table" {
   name = "brutalismbot-${var.env}"
 }
 
-data "aws_lambda_function" "shared" {
-  for_each      = toset(["http"])
-  function_name = "brutalismbot-${var.env}-shared-${each.key}"
+data "aws_lambda_function" "http" {
+  function_name = "brutalismbot-${var.env}-shared-http"
 }
 
 data "aws_secretsmanager_secret" "secret" {
@@ -192,7 +191,7 @@ resource "aws_iam_role" "states" {
           Action = "lambda:InvokeFunction"
           Resource = [
             aws_lambda_function.lambda.arn,
-            data.aws_lambda_function.shared["http"].arn,
+            data.aws_lambda_function.http.arn,
           ]
         },
         {
@@ -212,7 +211,7 @@ resource "aws_sfn_state_machine" "states" {
 
   definition = jsonencode(yamldecode(templatefile("${path.module}/states.yaml", {
     channel_id        = var.channel_id
-    http_function_arn = data.aws_lambda_function.shared["http"].arn
+    http_function_arn = data.aws_lambda_function.http.arn
     screen_arn        = aws_lambda_function.lambda.arn
     secret_id         = data.aws_secretsmanager_secret.secret.id
     table_name        = data.aws_dynamodb_table.table.name

@@ -14,8 +14,7 @@ locals {
 data "aws_region" "current" {}
 
 data "aws_cloudwatch_event_bus" "bus" {
-  # name = "brutalismbot-${var.env}"
-  name = "brutalismbot"
+  name = "brutalismbot-${var.env}"
 }
 
 data "aws_dynamodb_table" "table" {
@@ -256,7 +255,7 @@ resource "aws_sfn_state_machine" "states" {
   role_arn = aws_iam_role.states.arn
 
   definition = jsonencode(yamldecode(templatefile("${path.module}/states.yaml", {
-    app_home_arn = data.aws_sfn_state_machine.app-home.arn
+    app_home_arn         = data.aws_sfn_state_machine.app-home.arn
     cloudwatch_namespace = "brutalismbot-${var.env}"
     reddit_pop_arn       = aws_lambda_function.lambda.arn
     table_name           = data.aws_dynamodb_table.table.name

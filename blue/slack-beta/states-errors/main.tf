@@ -13,9 +13,8 @@ locals {
 
 data "aws_region" "current" {}
 
-data "aws_lambda_function" "shared" {
-  for_each      = toset(["http"])
-  function_name = "brutalismbot-${var.env}-shared-${each.key}"
+data "aws_lambda_function" "http" {
+  function_name = "brutalismbot-${var.env}-shared-http"
 }
 
 data "aws_secretsmanager_secret" "secret" {
@@ -107,7 +106,7 @@ resource "aws_iam_role" "states" {
           Sid      = "PostSlack"
           Effect   = "Allow"
           Action   = "lambda:InvokeFunction"
-          Resource = data.aws_lambda_function.shared["http"].arn
+          Resource = data.aws_lambda_function.http.arn
         }
       ]
     })
@@ -120,7 +119,7 @@ resource "aws_sfn_state_machine" "states" {
 
   definition = jsonencode(yamldecode(templatefile("${path.module}/states.yaml", {
     channel_id        = var.channel_id
-    http_function_arn = data.aws_lambda_function.shared["http"].arn
+    http_function_arn = data.aws_lambda_function.http.arn
     secret_id         = data.aws_secretsmanager_secret.secret.id
   })))
 }
