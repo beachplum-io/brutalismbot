@@ -14,7 +14,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 4.0"
+      version = "~> 5.2"
     }
   }
 }
@@ -56,11 +56,6 @@ locals {
   s3_bucket_name            = "brutalismbot-${local.region}-website"
   s3_bucket_object_arn_glob = "arn:aws:s3:::${local.s3_bucket_name}/*"
 
-  acm = {
-    us_east_1 = element(tolist(aws_acm_certificate.us_east_1.domain_validation_options), 0)
-    us_west_2 = element(tolist(aws_acm_certificate.us_west_2.domain_validation_options), 0)
-  }
-
   mime_map = {
     css         = "text/css"
     html        = "text/html"
@@ -86,42 +81,6 @@ data "aws_acm_certificate" "ssl" {
   provider = aws.us_east_1
   domain   = "brutalismbot.com"
   statuses = ["ISSUED"]
-}
-
-##########################
-#    ACM :: US-EAST-1    #
-##########################
-
-resource "aws_acm_certificate" "us_east_1" {
-  provider                  = aws.us_east_1
-  domain_name               = aws_route53_zone.zone.name
-  subject_alternative_names = ["*.${aws_route53_zone.zone.name}"]
-  validation_method         = "DNS"
-
-  lifecycle { create_before_destroy = true }
-}
-
-resource "aws_acm_certificate_validation" "us_east_1" {
-  provider                = aws.us_east_1
-  certificate_arn         = aws_acm_certificate.us_east_1.arn
-  validation_record_fqdns = [aws_route53_record.acm_us_east_1.fqdn]
-}
-
-##########################
-#    ACM :: US-WEST-2    #
-##########################
-
-resource "aws_acm_certificate" "us_west_2" {
-  domain_name               = aws_route53_zone.zone.name
-  subject_alternative_names = ["*.${aws_route53_zone.zone.name}"]
-  validation_method         = "DNS"
-
-  lifecycle { create_before_destroy = true }
-}
-
-resource "aws_acm_certificate_validation" "us_west_2" {
-  certificate_arn         = aws_acm_certificate.us_west_2.arn
-  validation_record_fqdns = [aws_route53_record.acm_us_east_1.fqdn]
 }
 
 ##################
@@ -181,91 +140,6 @@ resource "aws_cloudfront_origin_access_identity" "website" {
   comment = "access-identity-${local.s3_bucket_name}.s3.amazonaws.com"
 }
 
-#######################
-#   ROUTE53 :: ZONE   #
-#######################
-
-resource "aws_route53_zone" "zone" {
-  comment = "HostedZone created by Route53 Registrar"
-  name    = "brutalismbot.com"
-}
-
-##########################
-#   ROUTE53 :: RECORDS   #
-##########################
-
-resource "aws_route53_record" "acm_us_east_1" {
-  name    = local.acm.us_east_1.resource_record_name
-  records = [local.acm.us_east_1.resource_record_value]
-  ttl     = 300
-  type    = local.acm.us_east_1.resource_record_type
-  zone_id = aws_route53_zone.zone.id
-}
-
-resource "aws_route53_record" "a" {
-  name    = "brutalismbot.com"
-  type    = "A"
-  zone_id = aws_route53_zone.zone.id
-
-  alias {
-    evaluate_target_health = false
-    name                   = aws_cloudfront_distribution.website.domain_name
-    zone_id                = aws_cloudfront_distribution.website.hosted_zone_id
-  }
-}
-
-resource "aws_route53_record" "aaaa" {
-  name    = "brutalismbot.com"
-  type    = "AAAA"
-  zone_id = aws_route53_zone.zone.id
-
-  alias {
-    evaluate_target_health = false
-    name                   = aws_cloudfront_distribution.website.domain_name
-    zone_id                = aws_cloudfront_distribution.website.hosted_zone_id
-  }
-}
-
-resource "aws_route53_record" "www_a" {
-  name    = "www.brutalismbot.com"
-  type    = "A"
-  zone_id = aws_route53_zone.zone.id
-
-  alias {
-    evaluate_target_health = false
-    name                   = aws_cloudfront_distribution.website.domain_name
-    zone_id                = aws_cloudfront_distribution.website.hosted_zone_id
-  }
-}
-
-resource "aws_route53_record" "www_aaaa" {
-  name    = "www.brutalismbot.com"
-  type    = "AAAA"
-  zone_id = aws_route53_zone.zone.id
-
-  alias {
-    evaluate_target_health = false
-    name                   = aws_cloudfront_distribution.website.domain_name
-    zone_id                = aws_cloudfront_distribution.website.hosted_zone_id
-  }
-}
-
-resource "aws_route53_record" "bluesky" {
-  name    = "_atproto.brutalismbot.com"
-  records = ["did=did:plc:ss234xtabshxpidtaa5kbnt2"]
-  ttl     = 300
-  type    = "TXT"
-  zone_id = aws_route53_zone.zone.id
-}
-
-resource "aws_route53_record" "github" {
-  name    = "_github-challenge-brutalismbot.brutalismbot.com"
-  records = ["0981d41914"]
-  ttl     = 300
-  type    = "TXT"
-  zone_id = aws_route53_zone.zone.id
-}
-
 #################
 #   S3 BUCKET   #
 #################
@@ -320,11 +194,3 @@ resource "aws_s3_object" "objects" {
   source       = "${path.module}/www/${each.key}"
   source_hash  = filemd5("${path.module}/www/${each.key}")
 }
-
-###############
-#   OUTPUTS   #
-###############
-
-output "cloudfront_distribution_id" { value = aws_cloudfront_distribution.website.id }
-output "cloudfront_distribution_domain_name" { value = aws_cloudfront_distribution.website.domain_name }
-output "s3_bucket" { value = { arn : aws_s3_bucket.website.arn, bucket : aws_s3_bucket.website.bucket } }
