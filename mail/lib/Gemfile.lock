@@ -38,7 +38,7 @@ GEM
     net-smtp (0.3.3)
       net-protocol
     timeout (0.3.2)
-    yake (0.8.0)
+    yake (1.0.0)
 
 PLATFORMS
   x86_64-darwin-22
@@ -47,7 +47,7 @@ DEPENDENCIES
   aws-sdk-s3 (~> 1.0)
   aws-sdk-states (~> 1.0)
   mail (~> 2.7)
-  yake (~> 0.8)
+  yake (~> 1.0)
 
 BUNDLED WITH
    2.4.13

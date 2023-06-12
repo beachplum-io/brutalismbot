@@ -12,20 +12,15 @@ terraform {
   }
 
   required_providers {
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.0"
+    }
+
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 4.0"
+      version = "~> 5.2"
     }
-  }
-}
-
-data "terraform_remote_state" "functions" {
-  backend = "remote"
-
-  config = {
-    organization = "beachplum"
-
-    workspaces = { name = "brutalismbot-functions" }
   }
 }
 
@@ -38,9 +33,6 @@ provider "aws" {
   assume_role { role_arn = var.AWS_ROLE_ARN }
   default_tags { tags = local.tags }
 }
-
-data "aws_caller_identity" "current" {}
-data "aws_region" "current" {}
 
 #################
 #   VARIABLES   #
@@ -57,23 +49,104 @@ locals {
   account_id = data.aws_caller_identity.current.account_id
   region     = data.aws_region.current.name
 
-  s3_bucket_name            = "brutalismbot-${local.region}-mail"
-  s3_bucket_arn             = "arn:aws:s3:::${local.s3_bucket_name}"
-  s3_bucket_object_arn_glob = "arn:aws:s3:::${local.s3_bucket_name}/*"
+  env  = "global"
+  app  = "mail"
+  name = "brutalismbot-${local.app}"
 
   tags = {
+    "brutalismbot:env"       = local.env
+    "brutalismbot:app"       = local.app
     "terraform:organization" = "beachplum"
-    "terraform:workspace"    = "brutalismbot-mail"
+    "terraform:workspace"    = local.name
     "git:repo"               = "beachplum-io/brutalismbot"
   }
 }
 
-#######################
-#   ROUTE53 :: ZONE   #
-#######################
+############
+#   DATA   #
+############
+
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
 
 data "aws_route53_zone" "zone" {
   name = "brutalismbot.com."
+}
+
+##############
+#   LAMBDA   #
+##############
+
+data "archive_file" "lambda" {
+  excludes    = ["package.zip"]
+  source_dir  = "${path.module}/lib"
+  output_path = "${path.module}/lib/package.zip"
+  type        = "zip"
+}
+
+resource "aws_cloudwatch_log_group" "lambda" {
+  name              = "/aws/lambda/${aws_lambda_function.lambda.function_name}"
+  retention_in_days = 14
+}
+
+resource "aws_iam_role" "lambda" {
+  name = "${local.region}-${local.name}-lambda"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = {
+      Sid       = "AssumeEvents"
+      Effect    = "Allow"
+      Action    = "sts:AssumeRole"
+      Principal = { Service = "lambda.amazonaws.com" }
+    }
+  })
+
+  inline_policy {
+    name = "access"
+    policy = jsonencode({
+      Version = "2012-10-17"
+      Statement = [
+        {
+          Sid      = "Logs"
+          Effect   = "Allow"
+          Action   = "logs:*"
+          Resource = "*"
+        },
+        {
+          Sid      = "S3"
+          Effect   = "Allow"
+          Action   = "s3:GetObject"
+          Resource = "${aws_s3_bucket.mail.arn}/*"
+        },
+        {
+          Sid      = "StepFunctions"
+          Effect   = "Allow"
+          Action   = "states:StartExecution"
+          Resource = aws_sfn_state_machine.states.arn
+        }
+      ]
+    })
+  }
+}
+
+resource "aws_lambda_function" "lambda" {
+  architectures    = ["arm64"]
+  description      = "Forward incoming messages to @brutalismbot.com"
+  filename         = data.archive_file.lambda.output_path
+  function_name    = local.name
+  handler          = "index.mail"
+  role             = aws_iam_role.lambda.arn
+  runtime          = "ruby3.2"
+  source_code_hash = data.archive_file.lambda.output_base64sha256
+  timeout          = 15
+
+  environment {
+    variables = {
+      MAIL_TO           = var.MAIL_TO
+      STATE_MACHINE_ARN = aws_sfn_state_machine.states.arn
+    }
+  }
 }
 
 ##########################
@@ -81,12 +154,12 @@ data "aws_route53_zone" "zone" {
 ##########################
 
 resource "aws_route53_record" "dkims" {
-  count   = 3
-  zone_id = data.aws_route53_zone.zone.id
-  name    = "${element(aws_ses_domain_dkim.brutalismbot.dkim_tokens, count.index)}._domainkey"
-  type    = "CNAME"
-  ttl     = "600"
-  records = ["${element(aws_ses_domain_dkim.brutalismbot.dkim_tokens, count.index)}.dkim.amazonses.com"]
+  for_each = toset(aws_ses_domain_dkim.brutalismbot.dkim_tokens)
+  zone_id  = data.aws_route53_zone.zone.id
+  name     = "${each.value}._domainkey"
+  type     = "CNAME"
+  ttl      = "600"
+  records  = ["${each.value}.dkim.amazonses.com"]
 }
 
 resource "aws_route53_record" "mail_from_mx" {
@@ -172,27 +245,9 @@ resource "aws_ses_active_receipt_rule_set" "default" {
 #   S3   #
 ##########
 
-data "aws_iam_policy_document" "mail" {
-  statement {
-    sid       = "AllowSES"
-    actions   = ["s3:PutObject"]
-    resources = [local.s3_bucket_object_arn_glob]
-
-    condition {
-      test     = "StringEquals"
-      variable = "aws:Referer"
-      values   = [local.account_id]
-    }
-
-    principals {
-      type        = "Service"
-      identifiers = ["ses.amazonaws.com"]
-    }
-  }
-}
-
 resource "aws_s3_bucket" "mail" {
-  bucket = "brutalismbot-${data.aws_region.current.name}-mail"
+  bucket        = "${local.region}-${local.name}"
+  force_destroy = true
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "mail" {
@@ -210,7 +265,17 @@ resource "aws_s3_bucket_lifecycle_configuration" "mail" {
 
 resource "aws_s3_bucket_policy" "mail" {
   bucket = aws_s3_bucket.mail.id
-  policy = data.aws_iam_policy_document.mail.json
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "AllowSES"
+      Effect    = "Allow"
+      Action    = "s3:PutObject"
+      Resource  = "${aws_s3_bucket.mail.arn}/*"
+      Principal = { Service = "ses.amazonaws.com" }
+      Condition = { StringEquals = { "aws:Referer" = local.account_id } }
+    }]
+  })
 }
 
 resource "aws_s3_bucket_public_access_block" "mail" {
@@ -227,24 +292,54 @@ resource "aws_s3_bucket_public_access_block" "mail" {
 
 resource "aws_lambda_permission" "mail" {
   action        = "lambda:InvokeFunction"
-  function_name = data.terraform_remote_state.functions.outputs.functions.mail.arn
+  function_name = aws_lambda_function.lambda.arn
   principal     = "sns.amazonaws.com"
   source_arn    = aws_sns_topic.mail.arn
 }
 
 resource "aws_sns_topic" "mail" {
-  name = "brutalismbot-mail"
+  name = local.name
 }
 
 resource "aws_sns_topic_subscription" "mail" {
-  endpoint  = data.terraform_remote_state.functions.outputs.functions.mail.arn
+  endpoint  = aws_lambda_function.lambda.arn
   protocol  = "lambda"
   topic_arn = aws_sns_topic.mail.arn
 }
 
-###############
-#   OUTPUTS   #
-###############
+#####################
+#   STATE MACHINE   #
+#####################
 
-output "s3_bucket_arn" { value = aws_s3_bucket.mail.arn }
-output "sns_mail_topic_arn" { value = aws_sns_topic.mail.arn }
+resource "aws_iam_role" "states" {
+  name = "${local.region}-${local.name}-states"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = {
+      Sid       = "AssumeStates"
+      Effect    = "Allow"
+      Action    = "sts:AssumeRole"
+      Principal = { Service = "states.amazonaws.com" }
+    }
+  })
+
+  inline_policy {
+    name = "access"
+    policy = jsonencode({
+      Version = "2012-10-17"
+      Statement = {
+        Sid      = "SendEmail"
+        Effect   = "Allow"
+        Action   = "ses:SendEmail"
+        Resource = "*"
+      }
+    })
+  }
+}
+
+resource "aws_sfn_state_machine" "states" {
+  definition = jsonencode(yamldecode(file("${path.module}/states.yaml")))
+  name       = local.name
+  role_arn   = aws_iam_role.states.arn
+}
