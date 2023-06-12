@@ -60,24 +60,6 @@ locals {
   }
 }
 
-############
-#   MAIL   #
-############
-
-module "mail" {
-  source = "./state-machine"
-  name   = "mail"
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = {
-      Sid      = "SendEmail"
-      Effect   = "Allow"
-      Action   = "ses:SendEmail"
-      Resource = "*"
-    }
-  })
-}
-
 #############
 #   QUERY   #
 #############
