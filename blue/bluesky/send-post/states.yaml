@@ -4,7 +4,6 @@ States:
   SendPost:
     Type: Task
     Resource: ${send_post_arn}
-    # Type: Pass # Remove this
     Next: EachPost
     Parameters:
       Media.$: States.StringToJson($.Media)
@@ -12,7 +11,6 @@ States:
       Permalink.$: $.Permalink
       TTL.$: $.TTL
       Title.$: $.Title
-      # Posts: [] # Remove this
   EachPost:
     Type: Map
     End: true
