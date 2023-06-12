@@ -1,8 +1,0 @@
-source 'https://rubygems.org/'
-
-gem 'twurl', '~> 0.9'
-gem 'yake',  '~> 0.8'
-
-group :development do
-  gem 'aws-sdk-secretsmanager', '~> 1.0'
-end

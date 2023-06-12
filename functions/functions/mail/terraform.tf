@@ -81,7 +81,7 @@ resource "aws_lambda_function" "function" {
   function_name    = "brutalismbot-mail"
   handler          = "index.mail"
   role             = aws_iam_role.role.arn
-  runtime          = "ruby2.7"
+  runtime          = "ruby3.2"
   source_code_hash = data.archive_file.package.output_base64sha256
   timeout          = 15
 
