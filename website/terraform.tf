@@ -53,8 +53,9 @@ locals {
   account_id = data.aws_caller_identity.current.account_id
   region     = data.aws_region.current.name
 
-  s3_bucket_name            = "brutalismbot-${local.region}-website"
-  s3_bucket_object_arn_glob = "arn:aws:s3:::${local.s3_bucket_name}/*"
+  env  = "global"
+  app  = "website"
+  name = "brutalismbot-${local.app}"
 
   mime_map = {
     css         = "text/css"
@@ -67,8 +68,10 @@ locals {
   }
 
   tags = {
+    "beachplum:env"          = local.env
+    "beachplum:app"          = local.app
     "terraform:organization" = "beachplum"
-    "terraform:workspace"    = "brutalismbot-website"
+    "terraform:workspace"    = local.name
     "git:repo"               = "beachplum-io/brutalismbot"
   }
 }
@@ -137,28 +140,15 @@ resource "aws_cloudfront_distribution" "website" {
 }
 
 resource "aws_cloudfront_origin_access_identity" "website" {
-  comment = "access-identity-${local.s3_bucket_name}.s3.amazonaws.com"
+  comment = "access-identity-${aws_s3_bucket.website.bucket}.s3.amazonaws.com"
 }
 
 #################
 #   S3 BUCKET   #
 #################
 
-data "aws_iam_policy_document" "website" {
-  statement {
-    sid       = "AllowCloudFront"
-    actions   = ["s3:GetObject"]
-    resources = [local.s3_bucket_object_arn_glob]
-
-    principals {
-      type        = "AWS"
-      identifiers = [aws_cloudfront_origin_access_identity.website.iam_arn]
-    }
-  }
-}
-
 resource "aws_s3_bucket" "website" {
-  bucket = local.s3_bucket_name
+  bucket = "${local.region}-${local.name}"
 }
 
 resource "aws_s3_bucket_public_access_block" "website" {
@@ -179,7 +169,16 @@ resource "aws_s3_bucket_website_configuration" "website" {
 
 resource "aws_s3_bucket_policy" "website" {
   bucket = aws_s3_bucket.website.id
-  policy = data.aws_iam_policy_document.website.json
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = {
+      Sid       = "AllowCloudFront"
+      Effect    = "Allow"
+      Action    = "s3:GetObject"
+      Resource  = "${aws_s3_bucket.website.arn}/*"
+      Principal = { AWS = aws_cloudfront_origin_access_identity.website.iam_arn }
+    }
+  })
 }
 
 resource "aws_s3_object" "objects" {
