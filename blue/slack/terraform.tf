@@ -67,6 +67,12 @@ module "api" {
   app    = local.app
 }
 
+module "create-posts" {
+  source = "./create-posts"
+  env    = local.env
+  app    = local.app
+}
+
 module "install" {
   source = "./install"
   env    = local.env

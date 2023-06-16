@@ -1,0 +1,22 @@
+---
+channel: >-
+  <%= channel %>
+text: >-
+  <%= text %>
+blocks:
+  <% images.each do |image| %>
+  - type: image
+    image_url: >-
+      <%= image.url %>
+    alt_text: >-
+      <%= image.alt %>
+    title:
+      type: plain_text
+      text: >-
+        <%= image.title %>
+  <% end %>
+  - type: context
+    elements:
+      - type: mrkdwn
+        text: >-
+          <<%= link %>|<%= text %>>

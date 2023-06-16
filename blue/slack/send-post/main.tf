@@ -23,6 +23,10 @@ data "aws_dynamodb_table" "table" {
   name = "brutalismbot-${var.env}"
 }
 
+data "aws_lambda_function" "http" {
+  function_name = "brutalismbot-${var.env}-shared-http"
+}
+
 data "aws_secretsmanager_secret" "secret" {
   name = "brutalismbot"
 }
@@ -67,10 +71,10 @@ resource "aws_cloudwatch_event_rule" "events" {
     source      = ["Pipe brutalismbot-${var.env}-shared-streams"]
     detail-type = ["Event from aws:dynamodb"]
     detail = {
-      eventName = ["MODIFY"]
+      eventName = ["INSERT"]
       dynamodb = {
-        Keys     = { Kind = { S = ["reddit/post"] } }
-        NewImage = { Status = { S = ["Approved"] } }
+        Keys = { Kind = { S = ["slack/post"] } }
+        # NewImage = { TeamId = { S = ["THAQ99JLW"] } } # Remove this
       }
     }
   })
@@ -85,104 +89,18 @@ resource "aws_cloudwatch_event_target" "events" {
 
   input_transformer {
     input_paths = {
-      Id        = "$.detail.dynamodb.Keys.Id.S"
-      Title     = "$.detail.dynamodb.NewImage.Title.S"
-      Media     = "$.detail.dynamodb.NewImage.Media.S"
-      Name      = "$.detail.dynamodb.NewImage.Name.S"
-      Permalink = "$.detail.dynamodb.NewImage.Permalink.S"
-      TTL       = "$.detail.dynamodb.NewImage.TTL.N"
+      Id      = "$.detail.dynamodb.Keys.Id.S"
+      Kind    = "$.detail.dynamodb.Keys.Kind.S"
+      Request = "$.detail.dynamodb.NewImage.Request.S"
     }
     input_template = <<-JSON
       {
-        "Query": {
-          "TableName": "${data.aws_dynamodb_table.table.name}",
-          "IndexName": "Kind",
-          "KeyConditionExpression": "Kind=:Kind AND begins_with(Id,:IdPrefix)",
-          "FilterExpression": "Enabled=:Enabled",
-          "ProjectionExpression": "AccessToken,AppId,ChannelId,ChannelName,#Scope,TeamId,TeamName,UserId,WebhookUrl",
-          "ExpressionAttributeNames": {"#Scope": "Scope"},
-          "ExpressionAttributeValues": {
-            ":Enabled": {"Bool": true },
-            ":Kind": {"S": "slack/token"},
-            ":IdPrefix": {"S": "AH0KW28C9/"}
-          },
-          "ExclusiveStartKey": null,
-          "Limit": 25
-        },
-        "Post": {
-          "Title": <Title>,
-          "Media": <Media>,
-          "Name": <Name>,
-          "Permalink": <Permalink>,
-          "TTL": <TTL>
-        }
+        "Id": <Id>,
+        "Kind": <Kind>,
+        "Request": <Request>
       }
     JSON
   }
-}
-
-##############
-#   LAMBDA   #
-##############
-
-data "archive_file" "lambda" {
-  excludes    = ["package.zip"]
-  source_dir  = "${path.module}/lib"
-  output_path = "${path.module}/lib/package.zip"
-  type        = "zip"
-}
-
-resource "aws_cloudwatch_log_group" "lambda" {
-  name              = "/aws/lambda/${aws_lambda_function.lambda.function_name}"
-  retention_in_days = 14
-}
-
-resource "aws_iam_role" "lambda" {
-  name = "${local.region}-${local.name}-lambda"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = {
-      Sid       = "AssumeLambda"
-      Effect    = "Allow"
-      Action    = "sts:AssumeRole"
-      Principal = { Service = "lambda.amazonaws.com" }
-    }
-  })
-
-  inline_policy {
-    name = "access"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Sid      = "Logs"
-          Effect   = "Allow"
-          Action   = "logs:*"
-          Resource = "*"
-        },
-        {
-          Sid      = "GetSecretValue"
-          Effect   = "Allow"
-          Action   = "secretsmanager:GetSecretValue"
-          Resource = data.aws_secretsmanager_secret.secret.arn
-        }
-      ]
-    })
-  }
-}
-
-resource "aws_lambda_function" "lambda" {
-  architectures    = ["arm64"]
-  description      = "Create bluesky post item"
-  filename         = data.archive_file.lambda.output_path
-  function_name    = local.name
-  handler          = "index.send_post"
-  memory_size      = 1024
-  role             = aws_iam_role.lambda.arn
-  runtime          = "ruby3.2"
-  source_code_hash = data.archive_file.lambda.output_base64sha256
-  timeout          = 15
 }
 
 #####################
@@ -211,25 +129,13 @@ resource "aws_iam_role" "states" {
           Sid      = "InvokeFunction"
           Effect   = "Allow"
           Action   = "lambda:InvokeFunction"
-          Resource = aws_lambda_function.lambda.arn
+          Resource = data.aws_lambda_function.http.arn
         },
         {
-          Sid      = "PutItem"
+          Sid      = "UpdateItem"
           Effect   = "Allow"
-          Action   = "dynamodb:PutItem"
+          Action   = "dynamodb:UpdateItem"
           Resource = data.aws_dynamodb_table.table.arn
-        },
-        {
-          Sid      = "QueryKind"
-          Effect   = "Allow"
-          Action   = "dynamodb:Query"
-          Resource = "${data.aws_dynamodb_table.table.arn}/index/Kind"
-        },
-        {
-          Sid      = "StartSelf"
-          Effect   = "Allow"
-          Action   = "states:StartExecution"
-          Resource = "arn:aws:states:${local.region}:${local.account}:stateMachine:${local.name}"
         }
       ]
     })
@@ -241,7 +147,7 @@ resource "aws_sfn_state_machine" "states" {
   role_arn = aws_iam_role.states.arn
 
   definition = jsonencode(yamldecode(templatefile("${path.module}/states.yaml", {
-    send_post_arn = aws_lambda_function.lambda.arn
-    table_name    = data.aws_dynamodb_table.table.name
+    http_function_arn = data.aws_lambda_function.http.arn
+    table_name        = data.aws_dynamodb_table.table.name
   })))
 }

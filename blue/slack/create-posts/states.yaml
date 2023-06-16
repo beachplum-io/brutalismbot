@@ -1,0 +1,165 @@
+---
+StartAt: GetTokens
+States:
+  GetTokens:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:query
+    Next: NextPage?
+    InputPath: $.Query
+    ResultPath: $.Result
+    Parameters:
+      TableName.$: $.TableName
+      IndexName.$: $.IndexName
+      KeyConditionExpression.$: $.KeyConditionExpression
+      FilterExpression.$: $.FilterExpression
+      ProjectionExpression.$: $.ProjectionExpression
+      ExpressionAttributeNames.$: $.ExpressionAttributeNames
+      ExpressionAttributeValues.$: $.ExpressionAttributeValues
+      ExclusiveStartKey.$: $.ExclusiveStartKey
+      Limit.$: $.Limit
+  NextPage?:
+    Type: Choice
+    Default: EachToken
+    Choices:
+      - Next: NextPage
+        Variable: $.Result.LastEvaluatedKey
+        IsPresent: true
+  NextPage:
+    Type: Task
+    Resource: arn:aws:states:::states:startExecution
+    Next: EachToken
+    ResultPath: $.NextPage
+    Parameters:
+      StateMachineArn.$: $$.StateMachine.Id
+      Input:
+        AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$: $$.Execution.Id
+        Query:
+          TableName.$: $.Query.TableName
+          IndexName.$: $.Query.IndexName
+          KeyConditionExpression.$: $.Query.KeyConditionExpression
+          FilterExpression.$: $.Query.FilterExpression
+          ProjectionExpression.$: $.Query.ProjectionExpression
+          ExpressionAttributeNames.$: $.Query.ExpressionAttributeNames
+          ExpressionAttributeValues.$: $.Query.ExpressionAttributeValues
+          ExclusiveStartKey.$: $.Result.LastEvaluatedKey
+          Limit.$: $.Query.Limit
+        Post.$: $.Post
+  EachToken:
+    Type: Map
+    End: true
+    ItemsPath: $.Result.Items
+    ItemSelector:
+      Post.$: $.Post
+      Slack:
+        AccessToken.$: $$.Map.Item.Value.AccessToken.S
+        AppId.$: $$.Map.Item.Value.AppId.S
+        Channel.$: $$.Map.Item.Value.ChannelId.S
+        ChannelId.$: $$.Map.Item.Value.ChannelId.S
+        ChannelName.$: $$.Map.Item.Value.ChannelName.S
+        Scope.$: $$.Map.Item.Value.Scope.S
+        TeamId.$: $$.Map.Item.Value.TeamId.S
+        TeamName.$: $$.Map.Item.Value.TeamName.S
+        UserId.$: $$.Map.Item.Value.UserId.S
+        WebhookUrl.$: $$.Map.Item.Value.WebhookUrl.S
+    ItemProcessor:
+      StartAt: WhichMethod?
+      States:
+        WhichMethod?:
+          Type: Choice
+          Default: Webhook
+          Choices:
+            - Next: DirectMessage
+              And:
+                - Variable: $.Slack.Scope
+                  StringMatches: "*chat:write*"
+                - Variable: $.Slack.ChannelId
+                  StringMatches: D*
+            - Next: Channel
+              Variable: $.Slack.Scope
+              StringMatches: "*chat:write*"
+        Channel:
+          Type: Task
+          Resource: ${create_post_arn}
+          Next: PutItem
+          ResultPath: $.Post.Request
+          Parameters:
+            channel.$: $.Slack.ChannelId
+            link.$: $.Post.Permalink
+            media.$: States.StringToJson($.Post.Media)
+            text.$: $.Post.Title
+            token.$: $.Slack.AccessToken
+            url: https://slack.com/api/chat.postMessage
+        DirectMessage:
+          Type: Task
+          Resource: ${create_post_arn}
+          Next: PutItem
+          ResultPath: $.Post.Request
+          Parameters:
+            channel.$: $.Slack.UserId
+            link.$: $.Post.Permalink
+            media.$: States.StringToJson($.Post.Media)
+            text.$: $.Post.Title
+            token.$: $.Slack.AccessToken
+            url: https://slack.com/api/chat.postMessage
+        Webhook:
+          Type: Task
+          Resource: ${create_post_arn}
+          Next: PutItem
+          ResultPath: $.Post.Request
+          Parameters:
+            link.$: $.Post.Permalink
+            media.$: States.StringToJson($.Post.Media)
+            text.$: $.Post.Title
+            url.$: $.Slack.WebhookUrl
+        PutItem:
+          Type: Task
+          Resource: arn:aws:states:::aws-sdk:dynamodb:putItem
+          End: true
+          ResultPath: $.PutItem
+          OutputPath: $.Post.Request
+          Parameters:
+            TableName: ${table_name}
+            Item:
+              Id:
+                S.$: >-
+                  States.Format('{}/{}/{}/{}',
+                  $.Slack.AppId,
+                  $.Slack.TeamId,
+                  $.Slack.ChannelId,
+                  $.Post.Name)
+              Kind:
+                S: slack/post
+              AppId:
+                S.$: $.Slack.AppId
+              ChannelId:
+                S.$: $.Slack.ChannelId
+              ChannelName:
+                S.$: $.Slack.ChannelName
+              ExecutionID:
+                S.$: $$.Execution.Id
+              Media:
+                S.$: $.Post.Media
+              Name:
+                S.$: $.Post.Name
+              Permalink:
+                S.$: $.Post.Permalink
+              Request:
+                S.$: $.Post.Request
+              Scope:
+                S.$: $.Slack.Scope
+              Status:
+                S: Created
+              TeamId:
+                S.$: $.Slack.TeamId
+              TeamName:
+                S.$: $.Slack.TeamName
+              Title:
+                S.$: $.Post.Title
+              TTL:
+                N.$: $.Post.TTL
+              UserId:
+                S.$: $.Slack.UserId
+              WebhookUrl:
+                S.$: $.Slack.WebhookUrl
+    ResultSelector:
+      Posts.$: $
