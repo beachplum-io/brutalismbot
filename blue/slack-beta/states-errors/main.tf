@@ -3,14 +3,16 @@
 ##############
 
 locals {
-  name   = "brutalismbot-${var.env}-${var.app}-states-errors"
-  region = data.aws_region.current.name
+  account = data.aws_caller_identity.current.account_id
+  region  = data.aws_region.current.name
+  name    = "brutalismbot-${var.env}-${var.app}-states-errors"
 }
 
 ############
 #   DATA   #
 ############
 
+data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_lambda_function" "http" {
@@ -61,6 +63,7 @@ resource "aws_cloudwatch_event_rule" "events" {
     detail-type = ["Step Functions Execution Status Change"]
 
     detail = {
+      executionArn    = [{ prefix = "arn:aws:states:${local.region}:${local.account}:execution:brutalismbot-${var.env}-" }]
       stateMachineArn = [{ anything-but = [aws_sfn_state_machine.states.arn] }]
       status          = ["FAILED", "TIMED_OUT"]
     }
