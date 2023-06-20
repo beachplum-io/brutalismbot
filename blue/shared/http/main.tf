@@ -3,7 +3,7 @@
 ##############
 
 locals {
-  name   = "brutalismbot-${var.env}-${var.app}-${var.name}"
+  name   = "brutalismbot-${var.env}-${var.app}-http"
   region = data.aws_region.current.name
 }
 
@@ -19,8 +19,8 @@ data "aws_region" "current" {}
 
 data "archive_file" "package" {
   excludes    = ["package.zip"]
-  source_dir  = "${path.module}/${var.name}"
-  output_path = "${path.module}/${var.name}/package.zip"
+  source_dir  = "${path.module}/lib"
+  output_path = "${path.module}/lib/package.zip"
   type        = "zip"
 }
 
@@ -58,13 +58,13 @@ resource "aws_iam_role" "role" {
 
 resource "aws_lambda_function" "function" {
   architectures    = ["arm64"]
-  description      = var.data.description
+  description      = "Make generic HTTP request"
   filename         = data.archive_file.package.output_path
   function_name    = local.name
-  handler          = var.data.handler
-  memory_size      = var.data.memory_size
+  handler          = "index.http"
+  memory_size      = 512
   role             = aws_iam_role.role.arn
-  runtime          = var.data.runtime
+  runtime          = "ruby3.2"
   source_code_hash = data.archive_file.package.output_base64sha256
-  timeout          = var.data.timeout
+  timeout          = 30
 }

@@ -40,6 +40,7 @@ resource "aws_apigatewayv2_api" "http_api" {
   disable_execute_api_endpoint = true
   name                         = local.name
   protocol_type                = "HTTP"
+  tags                         = var.tags
 }
 
 resource "aws_apigatewayv2_stage" "default" {
@@ -47,6 +48,7 @@ resource "aws_apigatewayv2_stage" "default" {
   auto_deploy = true
   description = "Brutalismbot Slack API default stage"
   name        = "$default"
+  tags        = var.tags
 
   access_log_settings {
     destination_arn = aws_cloudwatch_log_group.http_api.arn
@@ -65,13 +67,6 @@ resource "aws_apigatewayv2_stage" "default" {
 
   lifecycle { ignore_changes = [deployment_id] }
 }
-
-# resource "aws_apigatewayv2_api_mapping" "mapping" {
-#   api_mapping_key = "slack"
-#   api_id          = aws_apigatewayv2_api.http_api.id
-#   domain_name     = "api.brutalismbot.com"
-#   stage           = aws_apigatewayv2_stage.default.id
-# }
 
 resource "aws_apigatewayv2_integration" "proxy" {
   api_id                 = aws_apigatewayv2_api.http_api.id
@@ -95,6 +90,7 @@ resource "aws_apigatewayv2_route" "routes" {
 resource "aws_cloudwatch_log_group" "http_api" {
   name              = "/aws/apigatewayv2/${aws_apigatewayv2_api.http_api.name}"
   retention_in_days = 14
+  tags              = var.tags
 }
 
 ###############
@@ -111,10 +107,12 @@ data "archive_file" "lambda" {
 resource "aws_cloudwatch_log_group" "lambda" {
   name              = "/aws/lambda/${aws_lambda_function.lambda.function_name}"
   retention_in_days = 14
+  tags              = var.tags
 }
 
 resource "aws_iam_role" "lambda" {
   name = "${local.region}-${local.name}-lambda"
+  tags = var.tags
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -164,6 +162,7 @@ resource "aws_lambda_function" "lambda" {
   role             = aws_iam_role.lambda.arn
   runtime          = "ruby3.2"
   source_code_hash = data.archive_file.lambda.output_base64sha256
+  tags             = var.tags
   timeout          = 30
 
   environment {

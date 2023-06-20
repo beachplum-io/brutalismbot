@@ -1,39 +1,6 @@
-#################
-#   TERRAFORM   #
-#################
-
-terraform {
-  required_version = "~> 1.0"
-
-  # cloud {
-  #   organization = "beachplum"
-
-  #   workspaces { name = "brutalismbot-${local.env}-shared" }
-  # }
-
-  required_providers {
-    archive = {
-      source  = "hashicorp/archive"
-      version = "~> 2.3"
-    }
-
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
-
-###########
-#   AWS   #
-###########
-
-variable "AWS_ROLE_ARN" {}
-provider "aws" {
-  region = "us-west-2"
-  assume_role { role_arn = var.AWS_ROLE_ARN }
-  default_tags { tags = local.tags }
-}
+############
+#   DATA   #
+############
 
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
@@ -42,6 +9,7 @@ data "aws_region" "current" {}
 #   VARIABLES   #
 #################
 
+variable "env" { type = string }
 
 ##############
 #   LOCALS   #
@@ -51,12 +19,12 @@ locals {
   account = data.aws_caller_identity.current.account_id
   region  = data.aws_region.current.name
 
-  env  = "blue"
-  app  = "shared"
+  env  = var.env
+  app  = basename(path.module)
   name = "brutalismbot-${local.env}"
 
   tags = {
-    "brutalismbot:env"       = local.env
+    "brutalismbot:env"       = var.env
     "brutalismbot:app"       = local.app
     "terraform:organization" = "beachplum"
     "terraform:workspace"    = "brutalismbot-${local.env}-${local.app}"
@@ -190,11 +158,8 @@ resource "aws_iam_role" "pipes" {
 #   FUNCTIONS   #
 #################
 
-module "functions" {
-  for_each = yamldecode(file("./functions/functions.yaml"))
-  source   = "./functions"
-  env      = local.env
-  app      = local.app
-  name     = each.key
-  data     = each.value
+module "http" {
+  source = "./http"
+  env    = local.env
+  app    = local.app
 }

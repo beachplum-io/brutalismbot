@@ -1,61 +1,18 @@
 #################
-#   TERRAFORM   #
-#################
-
-terraform {
-  required_version = "~> 1.0"
-
-  # cloud {
-  #   organization = "beachplum"
-
-  #   workspaces { name = "brutalismbot-${local.env}-slack-beta" }
-  # }
-
-  required_providers {
-    archive = {
-      source  = "hashicorp/archive"
-      version = "~> 2.3"
-    }
-
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
-
-###########
-#   AWS   #
-###########
-
-provider "aws" {
-  region = "us-west-2"
-  assume_role { role_arn = var.AWS_ROLE_ARN }
-  default_tags { tags = local.tags }
-}
-
-#################
 #   VARIABLES   #
 #################
 
-variable "AWS_ROLE_ARN" { type = string }
-variable "USER_ID" { type = string }
+variable "env" { type = string }
 
 ##############
 #   LOCALS   #
 ##############
 
 locals {
-  env = "blue"
-  app = "slack-beta"
-
-  tags = {
-    "brutalismbot:env"       = local.env
-    "brutalismbot:app"       = local.app
-    "terraform:organization" = "beachplum"
-    "terraform:workspace"    = "brutalismbot-${local.env}-${local.app}"
-    "git:repo"               = "beachplum-io/brutalismbot"
-  }
+  env     = var.env
+  app     = basename(path.module)
+  tags    = { "brutalismbot:app" = local.app }
+  user_id = "UH9M57X6Z"
 }
 
 ###############
@@ -66,6 +23,7 @@ module "api" {
   source = "./api"
   app    = local.app
   env    = local.env
+  tags   = local.tags
 }
 
 
@@ -73,43 +31,50 @@ module "app-home" {
   source  = "./app-home"
   app     = local.app
   env     = local.env
-  user_id = var.USER_ID
+  tags    = local.tags
+  user_id = local.user_id
 }
 
 module "delete-message" {
   source = "./delete-message"
   app    = local.app
   env    = local.env
+  tags   = local.tags
 }
 
 module "disable" {
   source = "./disable"
   app    = local.app
   env    = local.env
+  tags   = local.tags
 }
 
 module "enable" {
   source = "./enable"
   app    = local.app
   env    = local.env
+  tags   = local.tags
 }
 
 module "reject" {
   source = "./reject"
   app    = local.app
   env    = local.env
+  tags   = local.tags
 }
 
 module "screen" {
   source     = "./screen"
   app        = local.app
   env        = local.env
-  channel_id = var.USER_ID
+  tags       = local.tags
+  channel_id = local.user_id
 }
 
 module "states-errors" {
   source     = "./states-errors"
   app        = local.app
   env        = local.env
-  channel_id = var.USER_ID
+  tags       = local.tags
+  channel_id = local.user_id
 }

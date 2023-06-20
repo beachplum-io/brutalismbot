@@ -60,6 +60,7 @@ resource "aws_cloudwatch_event_rule" "events" {
   event_bus_name = data.aws_cloudwatch_event_bus.bus.name
   is_enabled     = true
   name           = local.name
+  tags           = var.tags
 
   event_pattern = jsonencode({
     source      = ["Pipe brutalismbot-${var.env}-shared-streams"]
@@ -115,10 +116,12 @@ data "archive_file" "lambda" {
 resource "aws_cloudwatch_log_group" "lambda" {
   name              = "/aws/lambda/${aws_lambda_function.lambda.function_name}"
   retention_in_days = 14
+  tags              = var.tags
 }
 
 resource "aws_iam_role" "lambda" {
   name = "${local.region}-${local.name}-lambda"
+  tags = var.tags
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -162,6 +165,7 @@ resource "aws_lambda_function" "lambda" {
   role             = aws_iam_role.lambda.arn
   runtime          = "ruby3.2"
   source_code_hash = data.archive_file.lambda.output_base64sha256
+  tags             = var.tags
   timeout          = 15
 }
 
@@ -171,6 +175,7 @@ resource "aws_lambda_function" "lambda" {
 
 resource "aws_iam_role" "states" {
   name = "${local.region}-${local.name}-states"
+  tags = var.tags
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -207,6 +212,7 @@ resource "aws_iam_role" "states" {
 resource "aws_sfn_state_machine" "states" {
   name     = local.name
   role_arn = aws_iam_role.states.arn
+  tags     = var.tags
 
   definition = jsonencode(yamldecode(templatefile("${path.module}/states.yaml", {
     send_post_arn = aws_lambda_function.lambda.arn
