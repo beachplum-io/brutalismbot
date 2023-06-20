@@ -1,6 +1,6 @@
 require 'json'
 
-require 'aws-sdk-secretsmanager'
+require 'aws-sdk-ssm'
 require 'twurl'
 require 'yake/logger'
 
@@ -9,10 +9,11 @@ class Twitter
 
   MAX_STATUS ||= 280
   MAX_IMAGE  ||= 5242880
+  PARAM_PATH ||= ENV['PARAM_PATH']
 
-  def initialize(secret_id:nil)
-    @secret_id      = secret_id || ENV['SECRET_ID'] || 'brutalismbot'
-    @secretsmanager = Aws::SecretsManager::Client.new
+  def initialize(path:nil)
+    @secret_id = path || PARAM_PATH
+    @ssm       = Aws::SSM::Client.new
   end
 
   def thread(text:, link:, media:)
@@ -112,12 +113,14 @@ class Twitter
     raise err
   end
 
-  def secret
-    @secret ||= begin
-      params = { secret_id: @secret_id }
-      logger.info "GET SECRET #{ params.to_json }"
-      result = @secretsmanager.get_secret_value(**params)
-      OpenStruct.new JSON.parse result.secret_string
+  def params
+    @params ||= begin
+      params = { path: @path, with_decryption: true }
+      logger.info "SSM:GetParametersByPath #{params.to_json}"
+      result = @ssm.get_parameters_by_path(**params).map(&:parameters).flatten.map do |param|
+        { File.basename(param.name) => param.value }
+      end.reduce(&:merge)
+      OpenStruct.new(result)
     end
   end
 
@@ -142,22 +145,22 @@ class Twitter
   end
 
   def consumer_key
-    secret.TWITTER_CONSUMER_KEY
+    params.TWITTER_CONSUMER_KEY
   end
 
   def consumer_secret
-    secret.TWITTER_CONSUMER_SECRET
+    params.TWITTER_CONSUMER_SECRET
   end
 
   def access_token
-    secret.TWITTER_ACCESS_TOKEN
+    params.TWITTER_ACCESS_TOKEN
   end
 
   def token_secret
-    secret.TWITTER_ACCESS_TOKEN_SECRET
+    params.TWITTER_ACCESS_TOKEN_SECRET
   end
 
   def username
-    secret.TWITTER_USERNAME
+    params.TWITTER_USERNAME
   end
 end

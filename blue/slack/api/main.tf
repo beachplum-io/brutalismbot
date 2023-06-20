@@ -3,8 +3,11 @@
 ###############
 
 locals {
-  name   = "brutalismbot-${var.env}-${var.app}-api"
-  region = data.aws_region.current.name
+  account = data.aws_caller_identity.current.account_id
+  region  = data.aws_region.current.name
+
+  name       = "brutalismbot-${var.env}-${var.app}-api"
+  param_path = "/brutalismbot/${var.env}/${var.app}/"
 
   routes = [
     "GET /health",
@@ -21,14 +24,11 @@ locals {
 #   DATA   #
 ############
 
+data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_cloudwatch_event_bus" "bus" {
   name = "brutalismbot-${var.env}"
-}
-
-data "aws_secretsmanager_secret" "secret" {
-  name = "brutalismbot"
 }
 
 ################
@@ -142,10 +142,10 @@ resource "aws_iam_role" "lambda" {
           Resource = data.aws_cloudwatch_event_bus.bus.arn
         },
         {
-          Sid      = "Secrets"
+          Sid      = "GetParams"
           Effect   = "Allow"
-          Action   = "secretsmanager:GetSecretValue"
-          Resource = data.aws_secretsmanager_secret.secret.arn
+          Action   = "ssm:GetParametersByPath"
+          Resource = "arn:aws:ssm:${local.region}:${local.account}:parameter${local.param_path}"
         }
       ]
     })
@@ -169,7 +169,7 @@ resource "aws_lambda_function" "lambda" {
     variables = {
       EVENT_BUS    = "brutalismbot-${var.env}"
       EVENT_SOURCE = "slack"
-      SECRET_ID    = data.aws_secretsmanager_secret.secret.name
+      PARAM_PATH   = local.param_path
     }
   }
 }

@@ -3,14 +3,18 @@
 ##############
 
 locals {
-  name   = "brutalismbot-${var.env}-${var.app}-screen"
-  region = data.aws_region.current.name
+  account = data.aws_caller_identity.current.account_id
+  region  = data.aws_region.current.name
+
+  name  = "brutalismbot-${var.env}-${var.app}-screen"
+  param = "/brutalismbot/${var.env}/${var.app}/SLACK_API_TOKEN"
 }
 
 ############
 #   DATA   #
 ############
 
+data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_cloudwatch_event_bus" "bus" {
@@ -23,10 +27,6 @@ data "aws_dynamodb_table" "table" {
 
 data "aws_lambda_function" "http" {
   function_name = "brutalismbot-${var.env}-shared-http"
-}
-
-data "aws_secretsmanager_secret" "secret" {
-  name = "brutalismbot/beta"
 }
 
 ##############
@@ -186,10 +186,10 @@ resource "aws_iam_role" "states" {
       Version = "2012-10-17"
       Statement = [
         {
-          Sid      = "GetSecret"
+          Sid      = "GetToken"
           Effect   = "Allow"
-          Action   = "secretsmanager:GetSecretValue"
-          Resource = data.aws_secretsmanager_secret.secret.arn
+          Action   = "ssm:GetParameter"
+          Resource = "arn:aws:ssm:${local.region}:${local.account}:parameter${local.param}"
         },
         {
           Sid    = "SendScreener"
@@ -219,8 +219,8 @@ resource "aws_sfn_state_machine" "states" {
   definition = jsonencode(yamldecode(templatefile("${path.module}/states.yaml", {
     channel_id        = var.channel_id
     http_function_arn = data.aws_lambda_function.http.arn
+    param             = local.param
     screen_arn        = aws_lambda_function.lambda.arn
-    secret_id         = data.aws_secretsmanager_secret.secret.id
     table_name        = data.aws_dynamodb_table.table.name
     wait_time_seconds = 14400
   })))

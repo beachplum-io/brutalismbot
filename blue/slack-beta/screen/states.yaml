@@ -1,15 +1,16 @@
 ---
-StartAt: GetSecret
+StartAt: GetToken
 States:
-  GetSecret:
+  GetToken:
     Type: Task
-    Resource: arn:aws:states:::aws-sdk:secretsmanager:getSecretValue
-    ResultPath: $.Secret
+    Resource: arn:aws:states:::aws-sdk:ssm:getParameter
+    ResultPath: $.Params
     Next: SendScreener
     Parameters:
-      SecretId: ${secret_id}
+      Name: ${param}
+      WithDecryption: true
     ResultSelector:
-      SecretValue.$: States.StringToJson($.SecretString)
+      AccessToken.$: $.Parameter.Value
   SendScreener:
     Type: Task
     Resource: ${screen_arn}
@@ -17,7 +18,7 @@ States:
     ResultPath: $.Response
     Parameters:
       ExecutionId.$: $$.Execution.Id
-      AccessToken.$: $.Secret.SecretValue.SLACK_API_TOKEN
+      AccessToken.$: $.Params.AccessToken
       Channel: ${channel_id}
       Title.$: $.Title
       Media.$: States.StringToJson($.Media)
@@ -60,7 +61,7 @@ States:
       url: https://slack.com/api/chat.delete
       method: POST
       headers:
-        authorization.$: States.Format('Bearer {}', $.Secret.SecretValue.SLACK_API_TOKEN)
+        authorization.$: States.Format('Bearer {}', $.Params.AccessToken)
         content-type: application/json; charset=utf-8
       body:
         channel.$: $.Response.channel

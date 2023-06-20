@@ -3,6 +3,6 @@ source 'https://rubygems.org/'
 gem 'yake', '~> 1.0'
 
 group :development do
-  gem 'aws-sdk-eventbridge',    '~> 1.0'
-  gem 'aws-sdk-secretsmanager', '~> 1.0'
+  gem 'aws-sdk-eventbridge', '~> 1.0'
+  gem 'aws-sdk-ssm',         '~> 1.0'
 end

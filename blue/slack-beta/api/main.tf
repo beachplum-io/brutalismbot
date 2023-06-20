@@ -3,8 +3,11 @@
 ###############
 
 locals {
-  name   = "brutalismbot-${var.env}-${var.app}-api"
-  region = data.aws_region.current.name
+  account = data.aws_caller_identity.current.account_id
+  region  = data.aws_region.current.name
+
+  name       = "brutalismbot-${var.env}-${var.app}-api"
+  param_path = "/brutalismbot/${var.env}/${var.app}/"
 
   routes = [
     "GET /health",
@@ -23,14 +26,11 @@ locals {
 #   DATA   #
 ############
 
+data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_cloudwatch_event_bus" "bus" {
   name = "brutalismbot-${var.env}"
-}
-
-data "aws_secretsmanager_secret" "secret" {
-  name = "brutalismbot/beta"
 }
 
 ################
@@ -69,13 +69,6 @@ resource "aws_apigatewayv2_stage" "default" {
 
   lifecycle { ignore_changes = [deployment_id] }
 }
-
-# resource "aws_apigatewayv2_api_mapping" "mapping" {
-#   api_mapping_key = "slack/beta"
-#   api_id          = aws_apigatewayv2_api.http_api.id
-#   domain_name     = "api.brutalismbot.com"
-#   stage           = aws_apigatewayv2_stage.default.id
-# }
 
 resource "aws_apigatewayv2_integration" "proxy" {
   api_id                 = aws_apigatewayv2_api.http_api.id
@@ -151,10 +144,10 @@ resource "aws_iam_role" "lambda" {
           Resource = data.aws_cloudwatch_event_bus.bus.arn
         },
         {
-          Sid      = "Secrets"
+          Sid      = "GetParams"
           Effect   = "Allow"
-          Action   = "secretsmanager:GetSecretValue"
-          Resource = data.aws_secretsmanager_secret.secret.arn
+          Action   = "ssm:GetParametersByPath"
+          Resource = "arn:aws:ssm:${local.region}:${local.account}:parameter${local.param_path}"
         }
       ]
     })
@@ -178,7 +171,7 @@ resource "aws_lambda_function" "lambda" {
     variables = {
       EVENT_BUS    = data.aws_cloudwatch_event_bus.bus.name
       EVENT_SOURCE = "slack/beta"
-      SECRET_ID    = data.aws_secretsmanager_secret.secret.name
+      PARAM_PATH   = local.param_path
     }
   }
 }

@@ -1,14 +1,15 @@
-StartAt: GetSecret
+StartAt: GetToken
 States:
-  GetSecret:
+  GetToken:
     Type: Task
-    Resource: arn:aws:states:::aws-sdk:secretsmanager:getSecretValue
-    ResultPath: $.secret
+    Resource: arn:aws:states:::aws-sdk:ssm:getParameter
+    ResultPath: $.params
     Next: PostMessage
     Parameters:
-      SecretId: ${secret_id}
+      Name: ${param}
+      WithDecryption: true
     ResultSelector:
-      SecretValue.$: States.StringToJson($.SecretString)
+      AccessToken.$: $.Parameter.Value
   PostMessage:
     Type: Task
     Resource: ${http_function_arn}
@@ -17,7 +18,7 @@ States:
       method: POST
       url: https://slack.com/api/chat.postMessage
       headers:
-        authorization.$: States.Format('Bearer {}', $.secret.SecretValue.SLACK_API_TOKEN)
+        authorization.$: States.Format('Bearer {}', $.params.AccessToken)
         content-type: application/json; charset=utf-8
       body:
         channel: ${channel_id}

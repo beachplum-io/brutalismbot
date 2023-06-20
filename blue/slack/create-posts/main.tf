@@ -23,10 +23,6 @@ data "aws_dynamodb_table" "table" {
   name = "brutalismbot-${var.env}"
 }
 
-data "aws_secretsmanager_secret" "secret" {
-  name = "brutalismbot"
-}
-
 ##############
 #   EVENTS   #
 ##############
@@ -158,20 +154,12 @@ resource "aws_iam_role" "lambda" {
     name = "access"
     policy = jsonencode({
       Version = "2012-10-17"
-      Statement = [
-        {
-          Sid      = "Logs"
-          Effect   = "Allow"
-          Action   = "logs:*"
-          Resource = "*"
-        },
-        {
-          Sid      = "GetSecretValue"
-          Effect   = "Allow"
-          Action   = "secretsmanager:GetSecretValue"
-          Resource = data.aws_secretsmanager_secret.secret.arn
-        }
-      ]
+      Statement = {
+        Sid      = "Logs"
+        Effect   = "Allow"
+        Action   = "logs:*"
+        Resource = "*"
+      }
     })
   }
 }

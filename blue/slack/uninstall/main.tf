@@ -23,10 +23,6 @@ data "aws_dynamodb_table" "table" {
   name = "brutalismbot-${var.env}"
 }
 
-data "aws_secretsmanager_secret" "secret" {
-  name = "brutalismbot"
-}
-
 ##############
 #   EVENTS   #
 ##############

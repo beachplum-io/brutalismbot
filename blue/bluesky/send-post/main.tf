@@ -3,14 +3,18 @@
 ##############
 
 locals {
-  name   = "brutalismbot-${var.env}-${var.app}-send-post"
-  region = data.aws_region.current.name
+  account = data.aws_caller_identity.current.account_id
+  region  = data.aws_region.current.name
+
+  name       = "brutalismbot-${var.env}-${var.app}-send-post"
+  param_path = "/brutalismbot/${var.env}/${var.app}/"
 }
 
 ############
 #   DATA   #
 ############
 
+data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_cloudwatch_event_bus" "bus" {
@@ -19,10 +23,6 @@ data "aws_cloudwatch_event_bus" "bus" {
 
 data "aws_dynamodb_table" "table" {
   name = "brutalismbot-${var.env}"
-}
-
-data "aws_secretsmanager_secret" "secret" {
-  name = "brutalismbot"
 }
 
 ##############
@@ -145,10 +145,10 @@ resource "aws_iam_role" "lambda" {
           Resource = "*"
         },
         {
-          Sid      = "GetSecretValue"
+          Sid      = "GetParams"
           Effect   = "Allow"
-          Action   = "secretsmanager:GetSecretValue"
-          Resource = data.aws_secretsmanager_secret.secret.arn
+          Action   = "ssm:GetParametersByPath"
+          Resource = "arn:aws:ssm:${local.region}:${local.account}:parameter${local.param_path}"
         }
       ]
     })
@@ -167,6 +167,10 @@ resource "aws_lambda_function" "lambda" {
   source_code_hash = data.archive_file.lambda.output_base64sha256
   tags             = var.tags
   timeout          = 15
+
+  environment {
+    variables = { PARAM_PATH = local.param_path }
+  }
 }
 
 #####################

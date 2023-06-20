@@ -4,5 +4,5 @@ gem 'twurl', '~> 0.9'
 gem 'yake',  '~> 1.0'
 
 group :development do
-  gem 'aws-sdk-secretsmanager', '~> 1.0'
+  gem 'aws-sdk-ssm', '~> 1.0'
 end

@@ -27,10 +27,6 @@ data "aws_lambda_function" "http" {
   function_name = "brutalismbot-${var.env}-shared-http"
 }
 
-data "aws_secretsmanager_secret" "secret" {
-  name = "brutalismbot"
-}
-
 ##############
 #   EVENTS   #
 ##############

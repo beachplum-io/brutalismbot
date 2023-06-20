@@ -1,6 +1,6 @@
 user    := UH9M57X6Z
-secret  := brutalismbot/beta
-token   := $(shell aws secretsmanager get-secret-value --secret-id $(secret) | jq -r '.SecretString|fromjson|.SLACK_API_TOKEN')
+param   := brutalismbot/blue/slack-beta/SLACK_API_TOKEN
+token   := $(shell aws ssm get-parameter --with-decryption --name $(param) | jq -r '.Parameter.Value')
 auth    := authorization: Bearer $(token)
 channel := $(shell curl -s -H "$(auth)" 'https://slack.com/api/conversations.open?users=$(user)' | jq -r '.channel.id')
 

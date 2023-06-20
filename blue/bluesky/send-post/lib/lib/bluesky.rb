@@ -1,18 +1,19 @@
 require 'json'
 
-require 'aws-sdk-secretsmanager'
+require 'aws-sdk-ssm'
 require 'yake/logger'
 
 class Bluesky
   include Yake::Logger
 
-  ENDPOINT  ||= 'https://bsky.social/xrpc'
-  MAX_TEXT  ||= 300
-  MAX_IMAGE ||= 1000000
+  ENDPOINT   ||= 'https://bsky.social/xrpc'
+  MAX_TEXT   ||= 300
+  MAX_IMAGE  ||= 1000000
+  PARAM_PATH ||= ENV['PARAM_PATH']
 
-  def initialize(secret_id:nil)
-    @secret_id      = secret_id || ENV['SECRET_ID'] || 'brutalismbot'
-    @secretsmanager = Aws::SecretsManager::Client.new
+  def initialize(path:nil)
+    @path = path || PARAM_PATH
+    @ssm  = Aws::SSM::Client.new
   end
 
   def thread(text:, link:, media:)
@@ -93,12 +94,14 @@ class Bluesky
     end
   end
 
-  def secret
-    @secret ||= begin
-      params = { secret_id: @secret_id }
-      logger.info "GET SECRET #{params.to_json}"
-      result = @secretsmanager.get_secret_value(**params)
-      OpenStruct.new JSON.parse result.secret_string
+  def params
+    @params ||= begin
+      params = { path: @path, with_decryption: true }
+      logger.info "SSM:GetParametersByPath #{params.to_json}"
+      result = @ssm.get_parameters_by_path(**params).map(&:parameters).flatten.map do |param|
+        { File.basename(param.name) => param.value }
+      end.reduce(&:merge)
+      OpenStruct.new(result)
     end
   end
 
@@ -118,11 +121,11 @@ class Bluesky
   end
 
   def username
-    secret.BLUESKY_USERNAME
+    params.BLUESKY_USERNAME
   end
 
   def password
-    secret.BLUESKY_PASSWORD
+    params.BLUESKY_PASSWORD
   end
 
   def fetch(url)

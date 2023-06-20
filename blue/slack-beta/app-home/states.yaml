@@ -9,13 +9,12 @@ States:
         States:
           GetToken:
             Type: Task
-            Resource: arn:aws:states:::aws-sdk:secretsmanager:getSecretValue
+            Resource: arn:aws:states:::aws-sdk:ssm:getParameter
             End: true
-            OutputPath: $.SecretValue.SLACK_API_TOKEN
+            OutputPath: $.Parameter.Value
             Parameters:
-              SecretId: ${secret_id}
-            ResultSelector:
-              SecretValue.$: States.StringToJson($.SecretString)
+              Name: ${param}
+              WithDecryption: true
       - StartAt: GetView
         States:
           GetView:

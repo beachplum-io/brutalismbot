@@ -2,7 +2,7 @@ require 'json'
 require 'securerandom'
 
 require 'aws-sdk-eventbridge'
-require 'aws-sdk-secretsmanager'
+require 'aws-sdk-ssm'
 require 'yake/errors'
 require 'yake/logger'
 require 'yake/support'
@@ -11,23 +11,24 @@ module Slack
   class Client
     include Yake::Logger
 
-    EVENT_BUS_NAME = ENV['EVENT_BUS']
-    EVENT_SOURCE   = ENV['EVENT_SOURCE']
-    SECRET_ID      = ENV['SECRET_ID'] || 'brutalismbot'
+    EVENT_BUS_NAME ||= ENV['EVENT_BUS']
+    EVENT_SOURCE   ||= ENV['EVENT_SOURCE']
+    PARAM_PATH     ||= ENV['PARAM_PATH']
 
-    def initialize(event_bus_name:nil, source:nil)
+    def initialize(event_bus_name:nil, source:nil, path:nil)
       @event_bus_name = event_bus_name || EVENT_BUS_NAME
       @source         = source         || EVENT_SOURCE
+      @path           = path           || PARAM_PATH
       @eventbridge    = Aws::EventBridge::Client.new
-      @secretsmanager = Aws::SecretsManager::Client.new
+      @ssm            = Aws::SSM::Client.new
     end
 
     def client_id
-      secret.SLACK_CLIENT_ID
+      params.SLACK_CLIENT_ID
     end
 
     def client_secret
-      secret.SLACK_CLIENT_SECRET
+      params.SLACK_CLIENT_SECRET
     end
 
     def install(event)
@@ -60,7 +61,7 @@ module Slack
       app_id     = result['app_id']
       team_id    = result.dig 'team', 'id'
       channel_id = result.dig 'incoming_webhook', 'channel_id'
-      location   = secret.SLACK_OAUTH_SUCCESS_URI % [ team_id, channel_id ]
+      location   = params.SLACK_OAUTH_SUCCESS_URI % [ team_id, channel_id ]
 
       # Publish event
       publish event.update 'body' => result.to_json
@@ -70,15 +71,26 @@ module Slack
     end
 
     def install_uri
-      "#{ secret.SLACK_OAUTH_INSTALL_URI }&state=#{ state }"
+      "#{ params.SLACK_OAUTH_INSTALL_URI }&state=#{ state }"
     end
 
     def oauth_error_uri
-      secret.SLACK_OAUTH_ERROR_URI
+      params.SLACK_OAUTH_ERROR_URI
     end
 
     def oauth_redirect_uri
-      secret.SLACK_OAUTH_REDIRECT_URI
+      params.SLACK_OAUTH_REDIRECT_URI
+    end
+
+    def params
+      @params ||= begin
+        params = { path: @path, with_decryption: true }
+        logger.info "SSM:GetParametersByPath #{params.to_json}"
+        result = @ssm.get_parameters_by_path(**params).map(&:parameters).flatten.map do |param|
+          { File.basename(param.name) => param.value }
+        end.reduce(&:merge)
+        OpenStruct.new(result)
+      end
     end
 
     def post(uri, body = nil, **headers)
@@ -100,17 +112,8 @@ module Slack
       end
     end
 
-    def secret
-      @secret ||= begin
-        params = { secret_id: SECRET_ID }
-        logger.info "SecretsManager:GetSecretValue #{ params.to_json }"
-        result = @secretsmanager.get_secret_value(**params)
-        OpenStruct.new result.secret_string.to_h_from_json
-      end
-    end
-
     def signing_secret
-      secret.SLACK_SIGNING_SECRET
+      params.SLACK_SIGNING_SECRET
     end
 
     def state
