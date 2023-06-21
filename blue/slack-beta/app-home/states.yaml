@@ -21,6 +21,8 @@ States:
             Type: Task
             Resource: ${home_view_arn}
             End: true
+            Parameters:
+              user_id.$: $.detail.user.id
             Retry:
               - BackoffRate: 2
                 IntervalSeconds: 3
@@ -33,9 +35,7 @@ States:
       headers:
         authorization.$: States.Format('Bearer {}', $[0])
         content-type: application/json; charset=utf-8
-      body:
-        user_id: ${user_id}
-        view.$: $[1]
+      body.$: $[1]
   SendRequest:
     Type: Task
     Resource: ${http_function_arn}

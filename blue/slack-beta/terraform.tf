@@ -28,11 +28,10 @@ module "api" {
 
 
 module "app-home" {
-  source  = "./app-home"
-  app     = local.app
-  env     = local.env
-  tags    = local.tags
-  user_id = local.user_id
+  source = "./app-home"
+  app    = local.app
+  env    = local.env
+  tags   = local.tags
 }
 
 module "delete-message" {

@@ -41,11 +41,8 @@ class Home
     @scheduler    = Aws::Scheduler::Client.new(credentials: credentials)
   end
 
-  def view
-    @queues    = queues
-    @schedules = schedules
-    @rules     = rules
-    view_yaml  = ERB.new(TEMPLATE).result(binding)
+  def view(user_id)
+    view_yaml = ERB.new(TEMPLATE).result(binding)
     YAML.safe_load(view_yaml)
   end
 

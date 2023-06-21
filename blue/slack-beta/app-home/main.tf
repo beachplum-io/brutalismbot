@@ -226,6 +226,5 @@ resource "aws_sfn_state_machine" "states" {
     home_view_arn     = aws_lambda_function.lambda.arn
     http_function_arn = data.aws_lambda_function.http.arn
     param             = local.param
-    user_id           = var.user_id
   })))
 }
