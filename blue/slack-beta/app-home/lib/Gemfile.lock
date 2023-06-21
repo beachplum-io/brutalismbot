@@ -3,9 +3,6 @@ GEM
   specs:
     aws-eventstream (1.2.0)
     aws-partitions (1.774.0)
-    aws-sdk-cloudwatch (1.74.0)
-      aws-sdk-core (~> 3, >= 3.174.0)
-      aws-sigv4 (~> 1.1)
     aws-sdk-core (3.174.0)
       aws-eventstream (~> 1, >= 1.0.2)
       aws-partitions (~> 1, >= 1.651.0)
@@ -26,10 +23,9 @@ GEM
     yake (1.0.0)
 
 PLATFORMS
-  x86_64-darwin-22
+  ruby
 
 DEPENDENCIES
-  aws-sdk-cloudwatch (~> 1.0)
   aws-sdk-dynamodb (~> 1.0)
   aws-sdk-eventbridge (~> 1.0)
   aws-sdk-scheduler (~> 1.0)

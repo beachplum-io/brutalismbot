@@ -1,20 +1,15 @@
-# Find all projects in this directory
-projects := $(shell find * -type d -maxdepth 0)
+gemfiles  = $(wildcard */*/lib/Gemfile)
+lockfiles = $(foreach gemfile,$(gemfiles),$(gemfile).lock)
 
-# Mark all + projects as phony
-.PHONY: all upgrade $(projects)
+build: $(lockfiles) .terraform
 
-# Default task is to apply all projects
-all: $(projects)
+.PHONY: build
 
-upgrade:
-	$(foreach dir, $(projects), terraform -chdir=$(dir) init -upgrade ; )
+$(lockfiles): %/Gemfile.lock: %/Gemfile
+	cd $* && bundle install
+	touch $@
 
-# Apply a project
-$(projects): %: %/.terraform
-	terraform -chdir=$@ apply -auto-approve
-
-# Init a project by monitoring {project}/terraform.tf
-%/.terraform: %/terraform.tf
-	terraform -chdir=$* init
+# Init project by monitoring **/terraform.tf
+.terraform: $(wildcard **/terraform.tf)
+	terraform init
 	touch $@

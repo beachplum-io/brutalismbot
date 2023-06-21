@@ -29,7 +29,7 @@ GEM
     yake (1.0.0)
 
 PLATFORMS
-  x86_64-darwin-22
+  ruby
 
 DEPENDENCIES
   aws-sdk-ssm (~> 1.0)

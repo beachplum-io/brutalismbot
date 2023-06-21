@@ -16,10 +16,10 @@ GEM
     jmespath (1.6.2)
 
 PLATFORMS
-  x86_64-darwin-21
+  ruby
 
 DEPENDENCIES
   aws-sdk-dynamodb (~> 1.0)
 
 BUNDLED WITH
-   2.3.26
+   2.4.13
