@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -eo pipefail
+
+aws() {
+  gum style --faint -- "aws $*" >&2
+  "$(brew --prefix)/bin/aws" "$@"
+}
+
+curl() {
+  gum style --faint -- "curl $*" >&2
+  /usr/bin/curl "$@"
+}
+
+getPage() {
+  curl -s --user-agent Brutalismbot "https://www.reddit.com/r/brutalism/new.json?raw_json=1&after=$1" | jq
+}
+
+getFilename() {
+  jq -r '(.data.children|max_by(.data.created).data.created|tojson) + "." + .data.after + ".json"' <<< "$1"
+}
+
+main() {
+  sleep 1
+  local file page next
+  page="$(getPage "$1")"
+  file="$(getFilename "$page")"
+  echo "$page" | aws s3 cp - "s3://brutalismbot/r/brutalism/$file"
+  if jq -e .data.after <<< "$page" &> /dev/null ; then
+    main "$(jq -r .data.after <<< "$page")"
+  fi
+}
+
+main "$@"
