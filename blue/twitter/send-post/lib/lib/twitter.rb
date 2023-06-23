@@ -4,6 +4,8 @@ require 'aws-sdk-ssm'
 require 'twurl'
 require 'yake/logger'
 
+class TwitterError < StandardError; end
+
 class Twitter
   include Yake::Logger
 
@@ -35,9 +37,7 @@ class Twitter
       media, text = tweet
 
       # Upload media
-      media_ids = upload(*media).map do |upload|
-        upload['media_id_string']
-      end
+      media_ids = upload(*media).map { |u| u['media_id_string'] }
 
       # Send tweet!
       data[:text]  = text || ''
@@ -51,6 +51,8 @@ class Twitter
       )
       logger.info "POST #{File.join api_client.consumer.options[:site], options.path}"
       result = api_client.perform_request_from_options(options).read_body.to_h_from_json
+
+      raise TwitterError, result.to_json unless result['data']
 
       # Initialize data for next reply
       tweet_id = result.dig('data', 'id')
