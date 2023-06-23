@@ -12,8 +12,8 @@ class Twitter
   PARAM_PATH ||= ENV['PARAM_PATH']
 
   def initialize(path:nil)
-    @secret_id = path || PARAM_PATH
-    @ssm       = Aws::SSM::Client.new
+    @path = path || PARAM_PATH
+    @ssm  = Aws::SSM::Client.new
   end
 
   def thread(text:, link:, media:)
