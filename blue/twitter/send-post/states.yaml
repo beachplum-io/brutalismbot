@@ -10,7 +10,6 @@ States:
       Name.$: $.Name
       Permalink.$: $.Permalink
       Title.$: $.Title
-      TTL.$: $.TTL
   EachTweet:
     Type: Map
     End: true
@@ -36,8 +35,6 @@ States:
           S.$: $.Permalink
         Title:
           S.$: $.Title
-        TTL:
-          N.$: $.TTL
     ItemProcessor:
       StartAt: PutTweet
       States:

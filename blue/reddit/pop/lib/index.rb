@@ -7,8 +7,7 @@ require_relative 'lib/reddit'
 
 R_BRUTALISM ||= Reddit::Brutalism.new
 
-AGE ||= (ENV['MIN_AGE_HOURS'] ||  '4').to_i.hours
-TTL ||= (ENV['TTL_DAYS']      || '14').to_i.days
+AGE ||= (ENV['MIN_AGE_HOURS'] || '4').to_i.hours
 
 handler :pop do |event|
   start = event['ExclusiveStartTime'].utc rescue Time.at(0).utc

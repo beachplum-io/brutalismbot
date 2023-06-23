@@ -131,7 +131,6 @@ file 'table.local.json' => 'table.json' do |f|
               Title:      item['TITLE'],
               MediaURLs:  urls,
               JSON:       item['JSON'],
-              TTL:        item['TTL'].to_f.to_i,
             )
           end
         when 'TWITTER/POST'

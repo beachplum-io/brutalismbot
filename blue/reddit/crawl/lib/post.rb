@@ -51,15 +51,15 @@ module Reddit
 
     def to_item
       {
-        Id:         { S: "/r/brutalism/#{name}" },
-        Kind:       { S: 'reddit/post' },
-        Json:       { S: to_json },
-        LastUpdate: { S: created_utc.iso8601 },
-        Media:      { S: media_urls.to_json },
-        Name:       { S: name },
-        Permalink:  { S: permalink_url },
-        Status:     { S: 'New' },
-        Title:      { S: title },
+        Id:         "backlog/#{created_utc.to_i}",
+        Kind:       'backlog',
+        Json:       to_json,
+        LastUpdate: created_utc.iso8601,
+        Media:      media_urls.to_json,
+        Name:       name,
+        Permalink:  permalink_url,
+        Status:     'New',
+        Title:      title,
       }
     end
 

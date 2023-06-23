@@ -155,8 +155,6 @@ States:
                 S.$: $.Slack.TeamName
               Title:
                 S.$: $.Post.Title
-              TTL:
-                N.$: $.Post.TTL
               UserId:
                 S.$: $.Slack.UserId
               WebhookUrl:

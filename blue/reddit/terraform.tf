@@ -24,3 +24,10 @@ module "pop" {
   app    = local.app
   tags   = local.tags
 }
+
+module "pop-backlog" {
+  source = "./pop-backlog"
+  env    = local.env
+  app    = local.app
+  tags   = local.tags
+}

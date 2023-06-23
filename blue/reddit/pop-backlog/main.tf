@@ -6,7 +6,7 @@ locals {
   account = data.aws_caller_identity.current.account_id
   region  = data.aws_region.current.name
 
-  name = "brutalismbot-${var.env}-${var.app}-reject"
+  name = "brutalismbot-${var.env}-${var.app}-${basename(path.module)}"
 }
 
 ############
@@ -20,12 +20,8 @@ data "aws_cloudwatch_event_bus" "bus" {
   name = "brutalismbot-${var.env}"
 }
 
-data "aws_lambda_function" "http" {
-  function_name = "brutalismbot-${var.env}-shared-http"
-}
-
-data "aws_sfn_state_machine" "screen" {
-  name = "brutalismbot-${var.env}-${var.app}-screen"
+data "aws_dynamodb_table" "table" {
+  name = "brutalismbot-${var.env}"
 }
 
 ##############
@@ -61,7 +57,7 @@ resource "aws_iam_role" "events" {
 }
 
 resource "aws_cloudwatch_event_rule" "events" {
-  description    = "Reject post for republishing"
+  description    = "Capture delete_me Slack callback"
   event_bus_name = data.aws_cloudwatch_event_bus.bus.name
   is_enabled     = true
   name           = local.name
@@ -72,8 +68,11 @@ resource "aws_cloudwatch_event_rule" "events" {
     detail-type = ["POST /callbacks"]
 
     detail = {
-      type    = ["block_actions"]
-      actions = { action_id = ["reject_v2"] }
+      type = ["block_actions"]
+      actions = {
+        action_id = ["pop"]
+        value     = ["backlog"]
+      }
     }
   })
 }
@@ -84,6 +83,54 @@ resource "aws_cloudwatch_event_target" "events" {
   role_arn       = aws_iam_role.events.arn
   rule           = aws_cloudwatch_event_rule.events.name
   target_id      = "state-machine"
+}
+
+#################
+#   SCHEDULER   #
+#################
+
+resource "aws_iam_role" "scheduler" {
+  name = "${local.region}-${local.name}-scheduler"
+  tags = var.tags
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = {
+      Sid       = "AssumeScheduler"
+      Effect    = "Allow"
+      Action    = "sts:AssumeRole"
+      Principal = { Service = "scheduler.amazonaws.com" }
+    }
+  })
+
+  inline_policy {
+    name = "access"
+    policy = jsonencode({
+      Version = "2012-10-17"
+      Statement = {
+        Sid      = "StartExecution"
+        Effect   = "Allow"
+        Action   = "states:StartExecution"
+        Resource = aws_sfn_state_machine.states.arn
+      }
+    })
+  }
+}
+
+resource "aws_scheduler_schedule" "scheduler" {
+  name                = local.name
+  group_name          = "brutalismbot-${var.env}"
+  schedule_expression = "rate(3 hour)"
+  state               = "DISABLED"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  target {
+    arn      = aws_sfn_state_machine.states.arn
+    role_arn = aws_iam_role.scheduler.arn
+  }
 }
 
 #####################
@@ -110,16 +157,23 @@ resource "aws_iam_role" "states" {
       Version = "2012-10-17"
       Statement = [
         {
-          Sid      = "InvokeHttp"
+          Sid      = "CloudWatch"
           Effect   = "Allow"
-          Action   = "lambda:InvokeFunction"
-          Resource = data.aws_lambda_function.http.arn
+          Action   = "cloudwatch:PutMetricData"
+          Resource = "*"
         },
         {
-          Sid      = "StopExecution"
-          Effect   = "Allow"
-          Action   = "states:StopExecution"
-          Resource = "arn:aws:states:${local.region}:${local.account}:exection:brutalismbot-${var.env}-${var.app}-screen:*"
+          Sid    = "DynamoDB"
+          Effect = "Allow"
+          Action = [
+            "dynamodb:DeleteItem",
+            "dynamodb:PutItem",
+            "dynamodb:Query",
+          ]
+          Resource = [
+            data.aws_dynamodb_table.table.arn,
+            "${data.aws_dynamodb_table.table.arn}/index/Kind",
+          ]
         }
       ]
     })
@@ -132,6 +186,6 @@ resource "aws_sfn_state_machine" "states" {
   tags     = var.tags
 
   definition = jsonencode(yamldecode(templatefile("${path.module}/states.yaml", {
-    http_function_arn = data.aws_lambda_function.http.arn
+    table_name = data.aws_dynamodb_table.table.name
   })))
 }

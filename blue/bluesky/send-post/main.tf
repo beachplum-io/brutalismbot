@@ -88,15 +88,13 @@ resource "aws_cloudwatch_event_target" "events" {
       Name      = "$.detail.dynamodb.NewImage.Name.S"
       Permalink = "$.detail.dynamodb.NewImage.Permalink.S"
       Title     = "$.detail.dynamodb.NewImage.Title.S"
-      TTL       = "$.detail.dynamodb.NewImage.TTL.N"
     }
     input_template = <<-JSON
       {
         "Media": <Media>,
         "Name": <Name>,
         "Permalink": <Permalink>,
-        "Title": <Title>,
-        "TTL": <TTL>
+        "Title": <Title>
       }
     JSON
   }

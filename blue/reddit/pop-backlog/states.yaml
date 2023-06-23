@@ -1,0 +1,56 @@
+---
+StartAt: GetBacklog
+States:
+  GetBacklog:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:query
+    Next: PutPost
+    Parameters:
+      TableName: ${table_name}
+      IndexName: Kind
+      Limit: 1
+      KeyConditionExpression: Kind=:Kind
+      ExpressionAttributeValues:
+        :Kind:
+          S: backlog
+    ResultSelector:
+      Item.$: $.Items[0]
+  PutPost:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:putItem
+    Next: DeleteBacklog
+    InputPath: $.Item
+    ResultPath: $.PutItem
+    Parameters:
+      TableName: ${table_name}
+      Item:
+        Id:
+          S.$: States.Format('/r/brutalism/{}', $.Name.S)
+        Kind:
+          S: reddit/post
+        ExecutionId:
+          S.$: $$.Execution.Id
+        Json.$: $.Json
+        LastUpdate.$: $.LastUpdate
+        Media.$: $.Media
+        Name.$: $.Name
+        Permalink.$: $.Permalink
+        Status.$: $.Status
+        Title.$: $.Title
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 60
+        MaxAttempts: 3
+        ErrorEquals:
+          - States.ALL
+  DeleteBacklog:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:deleteItem
+    End: true
+    InputPath: $.Item
+    ResultPath: $.DeleteItem
+    Parameters:
+      TableName: ${table_name}
+      Key:
+        Id.$: $.Id
+        Kind.$: $.Kind

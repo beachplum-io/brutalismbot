@@ -9,7 +9,6 @@ States:
       Media.$: States.StringToJson($.Media)
       Name.$: $.Name
       Permalink.$: $.Permalink
-      TTL.$: $.TTL
       Title.$: $.Title
   EachPost:
     Type: Map
@@ -36,8 +35,6 @@ States:
           S.$: $.Permalink
         Title:
           S.$: $.Title
-        TTL:
-          N.$: $.TTL
     ItemProcessor:
       StartAt: PutPost
       States:

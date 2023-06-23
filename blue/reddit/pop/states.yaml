@@ -85,33 +85,10 @@ States:
     Type: Task
     Resource: arn:aws:states:::aws-sdk:dynamodb:putItem
     Next: UpdateCursor
-    InputPath: $.NextPost
     ResultPath: $.PutItem
     Parameters:
       TableName: ${table_name}
-      Item:
-        Id:
-          S.$: $.Id
-        Kind:
-          S.$: $.Kind
-        ExecutionId:
-          S.$: $$.Execution.Id
-        Json:
-          S.$: $.Json
-        LastUpdate:
-          S.$: $.LastUpdate
-        Media:
-          S.$: $.Media
-        Name:
-          S.$: $.Name
-        Permalink:
-          S.$: $.Permalink
-        Status:
-          S.$: $.Status
-        Title:
-          S.$: $.Title
-        TTL:
-          N.$: $.TTL
+      Item.$: $.NextPost
     Retry:
       - BackoffRate: 2
         IntervalSeconds: 60
@@ -121,7 +98,7 @@ States:
   UpdateCursor:
     Type: Task
     Resource: arn:aws:states:::aws-sdk:dynamodb:updateItem
-    Next: RefreshHome
+    End: true
     ResultPath: $.UpdateItem
     Parameters:
       TableName: ${table_name}
@@ -137,25 +114,15 @@ States:
       ExpressionAttributeValues:
         :ExecutionId:
           S.$: $$.Execution.Id
-        :Json:
-          S.$: $.NextPost.Json
-        :LastUpdate:
-          S.$: $.NextPost.LastUpdate
-        :Name:
-          S.$: $.NextPost.Name
         :QueueSize:
           N.$: States.JsonToString($.QueueSize)
-        :Title:
-          S.$: $.NextPost.Title
+        :Json.$: $.NextPost.Json
+        :LastUpdate.$: $.NextPost.LastUpdate
+        :Name.$: $.NextPost.Name
+        :Title.$: $.NextPost.Title
     Retry:
       - BackoffRate: 2
         IntervalSeconds: 60
         MaxAttempts: 3
         ErrorEquals:
           - States.ALL
-  RefreshHome:
-    Type: Task
-    Resource: arn:aws:states:::states:startExecution
-    End: true
-    Parameters:
-      StateMachineArn: ${app_home_arn}
