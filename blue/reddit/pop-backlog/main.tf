@@ -169,6 +169,7 @@ resource "aws_iam_role" "states" {
             "dynamodb:DeleteItem",
             "dynamodb:PutItem",
             "dynamodb:Query",
+            "dynamodb:UpdateItem",
           ]
           Resource = [
             data.aws_dynamodb_table.table.arn,

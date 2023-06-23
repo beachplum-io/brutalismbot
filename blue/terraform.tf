@@ -5,11 +5,11 @@
 terraform {
   required_version = "~> 1.0"
 
-  # cloud {
-  #   organization = "beachplum"
+  cloud {
+    organization = "beachplum"
 
-  #   workspaces { name = "brutalismbot-blue" }
-  # }
+    workspaces { name = "brutalismbot-blue" }
+  }
 
   required_providers {
     aws = {

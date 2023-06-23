@@ -21,7 +21,7 @@ view:
       text:
         type: mrkdwn
         text: >-
-          <%= queue.name %> `<%= queue.value.zero? ? '-' : '█' * queue.value %>`
+          <%= queue.name %> `<%= queue.value %>`
       accessory:
         type: button
         action_id: pop
