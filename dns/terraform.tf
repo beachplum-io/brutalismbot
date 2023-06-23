@@ -168,11 +168,7 @@ module "api-us-west-2" {
   zone_id             = aws_route53_zone.zone.id
 
   mappings = {
-    "slack"      = "brutalismbot-blue-slack-api"
-    "slack/beta" = "brutalismbot-blue-slack-beta-api"
-    # "slack"      = "brutalismbot/slack"
-    # "slack/beta" = "brutalismbot/slack/beta"
-    # "green/slack"      = "brutalismbot-green-slack-api"
-    # "green/slack/beta" = "brutalismbot-green-slack-beta-api"
+    "slack"      = "brutalismbot-${local.env}-slack-api"
+    "slack/beta" = "brutalismbot-${local.env}-slack-beta-api"
   }
 }
