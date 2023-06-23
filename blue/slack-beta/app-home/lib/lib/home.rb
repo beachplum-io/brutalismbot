@@ -18,6 +18,7 @@ class Home
 
   QUEUES = {
     '/r/brutalism' => '/r/brutalism',
+    'backlog'      => 'backlog',
   }
   RULES = {
     'Bluesky' => "#{EVENT_BUS_NAME}-bluesky-send-post",
@@ -89,6 +90,6 @@ class Home
       projection_expression: 'QueueSize',
     }
     logger.info("dynamodb:GetItem #{params.to_json}")
-    @dynamodb.get_item(**params).item['QueueSize'].to_i
+    @dynamodb.get_item(**params).item['QueueSize'].to_i rescue 0
   end
 end

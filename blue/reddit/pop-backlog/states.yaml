@@ -46,7 +46,7 @@ States:
   DeleteBacklog:
     Type: Task
     Resource: arn:aws:states:::aws-sdk:dynamodb:deleteItem
-    End: true
+    Next: GetQueueSize
     InputPath: $.Item
     ResultPath: $.DeleteItem
     Parameters:
@@ -54,3 +54,47 @@ States:
       Key:
         Id.$: $.Id
         Kind.$: $.Kind
+  GetQueueSize:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:query
+    Next: UpdateCursor
+    ResultPath: $.QueueSize
+    Parameters:
+      TableName: ${table_name}
+      IndexName: Kind
+      Select: COUNT
+      KeyConditionExpression: Kind=:Kind
+      ExpressionAttributeValues:
+        :Kind:
+          S: backlog
+  UpdateCursor:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:updateItem
+    End: true
+    ResultPath: $.UpdateItem
+    Parameters:
+      TableName: ${table_name}
+      Key:
+        Id:
+          S: backlog
+        Kind:
+          S: cursor
+      UpdateExpression: >-
+        SET ExecutionId=:ExecutionId, Json=:Json, LastUpdate=:LastUpdate, #Name=:Name, QueueSize=:QueueSize, Title=:Title
+      ExpressionAttributeNames:
+        "#Name": Name
+      ExpressionAttributeValues:
+        :ExecutionId:
+          S.$: $$.Execution.Id
+        :QueueSize:
+          N.$: States.JsonToString($.QueueSize.Count)
+        :Json.$: $.Item.Json
+        :LastUpdate.$: $.Item.LastUpdate
+        :Name.$: $.Item.Name
+        :Title.$: $.Item.Title
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 60
+        MaxAttempts: 3
+        ErrorEquals:
+          - States.ALL

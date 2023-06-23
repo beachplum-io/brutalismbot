@@ -130,11 +130,11 @@ resource "aws_iam_role" "lambda" {
           Resource = "arn:aws:events:${local.region}:${local.account}:rule/brutalismbot-${var.env}/*"
         },
         {
-          Sid       = "GetItem"
-          Effect    = "Allow"
-          Action    = "dynamodb:GetItem"
-          Resource  = data.aws_dynamodb_table.table.arn
-          Condition = { "ForAllValues:StringEquals" = { "dynamodb:LeadingKeys" = "/r/brutalism" } }
+          Sid      = "GetItem"
+          Effect   = "Allow"
+          Action   = "dynamodb:GetItem"
+          Resource = data.aws_dynamodb_table.table.arn
+          # Condition = { "ForAllValues:StringEquals" = { "dynamodb:LeadingKeys" = ["backlog", "/r/brutalism"] } }
         },
         {
           Sid      = "GetSchedule"
