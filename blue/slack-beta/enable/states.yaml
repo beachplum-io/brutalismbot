@@ -4,6 +4,7 @@ States:
   EachAction:
     Type: Map
     Next: UpdateHome
+    ResultPath: $.detail.actions
     ItemsPath: $.detail.actions
     ItemSelector:
       ActionId.$: $$.Map.Item.Value.action_id
@@ -67,3 +68,8 @@ States:
     End: true
     Parameters:
       StateMachineArn: ${app_home_arn}
+      Input:
+        AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$: $$.Execution.Id
+        detail:
+          user:
+            id.$: $.detail.user.id
