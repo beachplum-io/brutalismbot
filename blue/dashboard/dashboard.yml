@@ -1,0 +1,79 @@
+---
+widgets:
+  #####################
+  #   LAMBDA ERRORS   #
+  #####################
+  - type: metric
+    height: 8
+    width: 12
+    "x": 0
+    "y": 0
+    properties:
+      liveData: true
+      metrics: ${lambda_errors}
+      period: 3600
+      region: us-west-2
+      setPeriodToTimeRange: false
+      stacked: false
+      stat: Sum
+      title: Lambda Errors
+      view: timeSeries
+      legend:
+        position: hidden
+      yAxis:
+        left:
+          label: Errors
+          showUnits: false
+        right:
+          showUnits: true
+          label: ""
+
+  ################
+  #   DURATION   #
+  ################
+  - type: metric
+    height: 8
+    width: 12
+    "x": 12
+    "y": 0
+    properties:
+      liveData: true
+      metrics: ${duration}
+      period: 3600
+      region: us-west-2
+      stacked: false
+      stat: Average
+      title: Lambda Duration
+      view: timeSeries
+      legend:
+        position: hidden
+      yAxis:
+        left:
+          label: Duration
+          showUnits: true
+
+  ############################
+  #   STATE MACHINE ERRORS   #
+  ############################
+  - type: metric
+    height: 8
+    width: 12
+    "x": 0
+    "y": 8
+    properties:
+      metrics: ${state_machine_errors}
+      period: 3600
+      region: us-west-2
+      stacked: false
+      stat: Sum
+      title: State Machine Errors
+      view: timeSeries
+      legend:
+        position: hidden
+      yAxis:
+        left:
+          label: Errors
+          showUnits: false
+        right:
+          showUnits: true
+          label: ""

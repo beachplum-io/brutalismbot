@@ -69,6 +69,11 @@ module "bluesky" {
   env    = local.env
 }
 
+module "dashboard" {
+  source = "./dashboard"
+  env    = local.env
+}
+
 module "reddit" {
   source = "./reddit"
   env    = local.env
