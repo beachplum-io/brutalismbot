@@ -88,3 +88,8 @@ module "twitter" {
   source = "./twitter"
   env    = local.env
 }
+
+module "website" {
+  source = "./website"
+  env    = local.env
+}
