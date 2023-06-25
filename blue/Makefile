@@ -3,13 +3,16 @@ lockfiles = $(foreach gemfile,$(gemfiles),$(gemfile).lock)
 
 build: $(lockfiles)
 
-apply: build .terraform
+apply: validate
 	terraform apply
 
-plan: build .terraform
+plan: validate
 	terraform plan -detailed-exitcode
 
-.PHONY: apply build plan
+validate: build .terraform
+	terraform validate
+
+.PHONY: apply build plan validate
 
 $(lockfiles): %/Gemfile.lock: %/Gemfile
 	cd $* && bundle install
