@@ -7,7 +7,7 @@ on:
     paths:
       - global/**
 jobs:
-  plan-apis:
+  plan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
