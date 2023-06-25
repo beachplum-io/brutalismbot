@@ -60,7 +60,7 @@ resource "aws_cloudwatch_event_rule" "events" {
   event_bus_name = data.aws_cloudwatch_event_bus.bus.name
   is_enabled     = true
   name           = local.name
-  tags = var.tags
+  tags           = var.tags
 
   event_pattern = jsonencode({
     source      = ["slack/beta"]
@@ -142,9 +142,9 @@ resource "aws_iam_role" "states" {
 resource "aws_sfn_state_machine" "states" {
   name     = local.name
   role_arn = aws_iam_role.states.arn
-  tags = var.tags
+  tags     = var.tags
 
-  definition = jsonencode(yamldecode(templatefile("${path.module}/states.yaml", {
+  definition = jsonencode(yamldecode(templatefile("${path.module}/states.yml", {
     app_home_arn = data.aws_sfn_state_machine.app-home.arn
   })))
 }

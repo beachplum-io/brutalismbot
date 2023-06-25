@@ -144,7 +144,7 @@ resource "aws_sfn_state_machine" "states" {
   role_arn = aws_iam_role.states.arn
   tags     = var.tags
 
-  definition = jsonencode(yamldecode(templatefile("${path.module}/states.yaml", {
+  definition = jsonencode(yamldecode(templatefile("${path.module}/states.yml", {
     app_home_arn = data.aws_sfn_state_machine.app-home.arn
   })))
 }

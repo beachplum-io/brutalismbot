@@ -146,7 +146,7 @@ resource "aws_sfn_state_machine" "states" {
   role_arn = aws_iam_role.states.arn
   tags     = var.tags
 
-  definition = jsonencode(yamldecode(templatefile("${path.module}/states.yaml", {
+  definition = jsonencode(yamldecode(templatefile("${path.module}/states.yml", {
     http_function_arn = data.aws_lambda_function.http.arn
     table_name        = data.aws_dynamodb_table.table.name
   })))
