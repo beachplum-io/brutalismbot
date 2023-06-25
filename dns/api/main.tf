@@ -24,11 +24,6 @@ data "aws_apigatewayv2_apis" "apis" {
   name     = each.value
 }
 
-data "aws_apigatewayv2_api" "apis" {
-  for_each = { for k, v in data.aws_apigatewayv2_apis.apis : k => tolist(v.ids)[0] }
-  api_id   = each.value
-}
-
 ##############
 #   LOCALS   #
 ##############
@@ -52,9 +47,12 @@ resource "aws_apigatewayv2_domain_name" "api" {
 }
 
 resource "aws_apigatewayv2_api_mapping" "mappings" {
-  for_each        = { for k, v in data.aws_apigatewayv2_api.apis : k => v.id }
-  api_mapping_key = each.key
+  for_each = merge([
+    for k, v in data.aws_apigatewayv2_apis.apis :
+    { for id in v.ids : k => id }
+  ]...)
   api_id          = each.value
+  api_mapping_key = each.key
   domain_name     = aws_apigatewayv2_domain_name.api.domain_name
   stage           = "$default"
 }

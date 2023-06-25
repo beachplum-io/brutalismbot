@@ -74,6 +74,11 @@ module "dashboard" {
   env    = local.env
 }
 
+module "mail" {
+  source = "./mail"
+  env    = local.env
+}
+
 module "reddit" {
   source = "./reddit"
   env    = local.env

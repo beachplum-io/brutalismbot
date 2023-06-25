@@ -1,65 +1,22 @@
 #################
-#   TERRAFORM   #
-#################
-
-terraform {
-  required_version = "~> 1.0"
-
-  cloud {
-    organization = "beachplum"
-
-    workspaces { name = "brutalismbot-mail" }
-  }
-
-  required_providers {
-    archive = {
-      source  = "hashicorp/archive"
-      version = "~> 2.0"
-    }
-
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.2"
-    }
-  }
-}
-
-###########
-#   AWS   #
-###########
-
-provider "aws" {
-  region = "us-west-2"
-  assume_role { role_arn = var.AWS_ROLE_ARN }
-  default_tags { tags = local.tags }
-}
-
-#################
 #   VARIABLES   #
 #################
 
-variable "AWS_ROLE_ARN" {}
-variable "MAIL_TO" {}
+variable "env" { type = string }
 
 ##############
 #   LOCALS   #
 ##############
 
 locals {
-  account_id = data.aws_caller_identity.current.account_id
-  region     = data.aws_region.current.name
+  account = data.aws_caller_identity.current.account_id
+  region  = data.aws_region.current.name
 
-  env  = "global"
-  app  = "mail"
-  name = "brutalismbot-${local.app}"
-
-  tags = {
-    "brutalismbot:env"       = local.env
-    "brutalismbot:app"       = local.app
-    "terraform:organization" = "beachplum"
-    "terraform:workspace"    = local.name
-    "git:repo"               = "beachplum-io/brutalismbot"
-  }
+  env   = var.env
+  app   = basename(path.module)
+  name  = "brutalismbot-${local.env}-${local.app}"
+  param = "/brutalismbot/${local.env}/${local.app}/MAIL_TO"
+  tags  = { "brutalismbot:app" = local.app }
 }
 
 ############
@@ -68,10 +25,6 @@ locals {
 
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
-
-data "aws_route53_zone" "zone" {
-  name = "brutalismbot.com."
-}
 
 ##############
 #   LAMBDA   #
@@ -114,6 +67,12 @@ resource "aws_iam_role" "lambda" {
           Resource = "*"
         },
         {
+          Sid      = "GetParameter"
+          Effect   = "Allow"
+          Action   = "ssm:GetParameter"
+          Resource = "arn:aws:ssm:${local.region}:${local.account}:parameter${local.param}"
+        },
+        {
           Sid      = "S3"
           Effect   = "Allow"
           Action   = "s3:GetObject"
@@ -143,102 +102,17 @@ resource "aws_lambda_function" "lambda" {
 
   environment {
     variables = {
-      MAIL_TO           = var.MAIL_TO
+      MAIL_TO_PARAM     = local.param
       STATE_MACHINE_ARN = aws_sfn_state_machine.states.arn
     }
   }
 }
 
-##########################
-#   ROUTE53 :: RECORDS   #
-##########################
-
-resource "aws_route53_record" "dkims" {
-  for_each = toset(aws_ses_domain_dkim.brutalismbot.dkim_tokens)
-  zone_id  = data.aws_route53_zone.zone.id
-  name     = "${each.value}._domainkey"
-  type     = "CNAME"
-  ttl      = "600"
-  records  = ["${each.value}.dkim.amazonses.com"]
-}
-
-resource "aws_route53_record" "mail_from_mx" {
-  name    = aws_ses_domain_mail_from.brutalismbot.mail_from_domain
-  records = ["10 feedback-smtp.${data.aws_region.current.name}.amazonses.com"]
-  ttl     = "600"
-  type    = "MX"
-  zone_id = data.aws_route53_zone.zone.id
-}
-
-resource "aws_route53_record" "mail_to_mx" {
-  name    = data.aws_route53_zone.zone.name
-  records = ["10 inbound-smtp.${data.aws_region.current.name}.amazonaws.com"]
-  ttl     = "300"
-  type    = "MX"
-  zone_id = data.aws_route53_zone.zone.id
-}
-
-#########################
-#   SES :: IDENTITIES   #
-#########################
-
-resource "aws_ses_domain_identity" "brutalismbot" {
-  domain = data.aws_route53_zone.zone.name
-}
-
-resource "aws_ses_email_identity" "identities" {
-  for_each = {
-    bluesky     = "bluesky@brutalismbot.com"
-    destination = var.MAIL_TO
-    help        = "help@brutalismbot.com"
-    no-reply    = "no-reply@brutalismbot.com"
-    slack       = "slack@brutalismbot.com"
-    twitter     = "twitter@brutalismbot.com"
-  }
-  email = each.value
-}
-
-#####################
-#    SES :: DKIM    #
-#####################
-
-resource "aws_ses_domain_dkim" "brutalismbot" {
-  domain = aws_ses_domain_identity.brutalismbot.domain
-}
-
-#######################
-#   SES :: OUTBOUND   #
-#######################
-
-resource "aws_ses_domain_mail_from" "brutalismbot" {
-  domain           = aws_ses_domain_identity.brutalismbot.domain
-  mail_from_domain = "bounce.${aws_ses_domain_identity.brutalismbot.domain}"
-}
-
-######################
-#   SES :: INBOUND   #
-######################
-
-resource "aws_ses_receipt_rule" "default" {
-  enabled       = true
-  name          = "default"
-  recipients    = [data.aws_route53_zone.zone.name]
-  rule_set_name = aws_ses_receipt_rule_set.default.rule_set_name
-  scan_enabled  = true
-
-  s3_action {
-    bucket_name = aws_s3_bucket.mail.bucket
-    position    = 1
-    topic_arn   = aws_sns_topic.mail.arn
-  }
-}
-
-resource "aws_ses_receipt_rule_set" "default" {
-  rule_set_name = "default-rule-set"
-}
-
-resource "aws_ses_active_receipt_rule_set" "default" {
-  rule_set_name = aws_ses_receipt_rule_set.default.rule_set_name
+resource "aws_lambda_permission" "mail" {
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.lambda.arn
+  principal     = "sns.amazonaws.com"
+  source_arn    = aws_sns_topic.mail.arn
 }
 
 ##########
@@ -273,7 +147,7 @@ resource "aws_s3_bucket_policy" "mail" {
       Action    = "s3:PutObject"
       Resource  = "${aws_s3_bucket.mail.arn}/*"
       Principal = { Service = "ses.amazonaws.com" }
-      Condition = { StringEquals = { "aws:Referer" = local.account_id } }
+      Condition = { StringEquals = { "aws:Referer" = local.account } }
     }]
   })
 }
@@ -287,15 +161,31 @@ resource "aws_s3_bucket_public_access_block" "mail" {
 }
 
 ###########
-#   SNS   #
+#   SES   #
 ###########
 
-resource "aws_lambda_permission" "mail" {
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.lambda.arn
-  principal     = "sns.amazonaws.com"
-  source_arn    = aws_sns_topic.mail.arn
+resource "aws_ses_receipt_rule" "mail" {
+  depends_on    = [aws_lambda_permission.mail]
+  enabled       = true
+  name          = local.name
+  recipients    = ["brutalismbot.com"]
+  rule_set_name = aws_ses_receipt_rule_set.mail.rule_set_name
+  scan_enabled  = true
+
+  s3_action {
+    bucket_name = aws_s3_bucket.mail.bucket
+    position    = 1
+    topic_arn   = aws_sns_topic.mail.arn
+  }
 }
+
+resource "aws_ses_receipt_rule_set" "mail" {
+  rule_set_name = local.name
+}
+
+###########
+#   SNS   #
+###########
 
 resource "aws_sns_topic" "mail" {
   name = local.name
@@ -339,7 +229,7 @@ resource "aws_iam_role" "states" {
 }
 
 resource "aws_sfn_state_machine" "states" {
-  definition = jsonencode(yamldecode(file("${path.module}/states.yaml")))
+  definition = jsonencode(yamldecode(file("${path.module}/states.yml")))
   name       = local.name
   role_arn   = aws_iam_role.states.arn
 }

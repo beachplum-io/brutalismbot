@@ -5,11 +5,11 @@
 terraform {
   required_version = "~> 1.0"
 
-  cloud {
-    organization = "beachplum"
+  # cloud {
+  #   organization = "beachplum"
 
-    workspaces { name = "brutalismbot-dns" }
-  }
+  #   workspaces { name = "brutalismbot-dns" }
+  # }
 
   required_providers {
     aws = {
@@ -40,7 +40,8 @@ provider "aws" {
 #   VARIABLES   #
 #################
 
-variable "AWS_ROLE_ARN" {}
+variable "AWS_ROLE_ARN" { type = string }
+variable "MAIL_TO" { type = string }
 
 ##############
 #   LOCALS   #
@@ -51,8 +52,6 @@ locals {
   region     = data.aws_region.current.name
 
   env = "blue"
-
-  website_bucket = "${local.region}-brutalismbot-${local.env}-website"
 
   domain_validation_options = {
     for x in aws_acm_certificate.us-east-1.domain_validation_options :
@@ -74,7 +73,7 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_s3_bucket" "website" {
-  bucket = local.website_bucket
+  bucket = "${local.region}-brutalismbot-${local.env}-website"
 }
 
 ########################
@@ -211,6 +210,51 @@ resource "aws_route53_record" "acm" {
   zone_id = aws_route53_zone.zone.id
 }
 
+resource "aws_route53_record" "bluesky" {
+  name    = "_atproto.brutalismbot.com"
+  records = ["did=did:plc:ss234xtabshxpidtaa5kbnt2"]
+  ttl     = 300
+  type    = "TXT"
+  zone_id = aws_route53_zone.zone.id
+}
+
+resource "aws_route53_record" "dkims" {
+  for_each = toset(aws_ses_domain_dkim.domain.dkim_tokens)
+  zone_id  = aws_route53_zone.zone.id
+  name     = "${each.value}._domainkey"
+  type     = "CNAME"
+  ttl      = "600"
+  records  = ["${each.value}.dkim.amazonses.com"]
+}
+
+# resource "aws_route53_record" "mx" {
+#   for_each = {
+#     aws_ses_domain_mail_from.domain.mail_from_domain = ["10 feedback-smtp.${data.aws_region.current.name}.amazonses.com"]
+#     aws_route53_zone.zone.name                       = ["10 inbound-smtp.${data.aws_region.current.name}.amazonaws.com"]
+#   }
+#   name    = each.key
+#   records = each.value
+#   ttl     = "600"
+#   type    = "MX"
+#   zone_id = aws_route53_zone.zone.id
+# }
+
+resource "aws_route53_record" "mail_from_mx" {
+  name    = aws_ses_domain_mail_from.domain.mail_from_domain
+  records = ["10 feedback-smtp.${data.aws_region.current.name}.amazonses.com"]
+  ttl     = "600"
+  type    = "MX"
+  zone_id = aws_route53_zone.zone.id
+}
+
+resource "aws_route53_record" "mail_to_mx" {
+  name    = aws_route53_zone.zone.name
+  records = ["10 inbound-smtp.${data.aws_region.current.name}.amazonaws.com"]
+  ttl     = "300"
+  type    = "MX"
+  zone_id = aws_route53_zone.zone.id
+}
+
 resource "aws_route53_record" "website" {
   for_each = {
     A        = { name : "brutalismbot.com", type = "A" }
@@ -229,10 +273,35 @@ resource "aws_route53_record" "website" {
   }
 }
 
-resource "aws_route53_record" "bluesky" {
-  name    = "_atproto.brutalismbot.com"
-  records = ["did=did:plc:ss234xtabshxpidtaa5kbnt2"]
-  ttl     = 300
-  type    = "TXT"
-  zone_id = aws_route53_zone.zone.id
+##########
+#  SES   #
+##########
+
+resource "aws_ses_active_receipt_rule_set" "mail" {
+  rule_set_name = "brutalismbot-${local.env}-mail"
+}
+
+resource "aws_ses_domain_identity" "domain" {
+  domain = aws_route53_zone.zone.name
+}
+
+resource "aws_ses_email_identity" "identities" {
+  for_each = {
+    bluesky     = "bluesky@brutalismbot.com"
+    destination = var.MAIL_TO
+    help        = "help@brutalismbot.com"
+    no-reply    = "no-reply@brutalismbot.com"
+    slack       = "slack@brutalismbot.com"
+    twitter     = "twitter@brutalismbot.com"
+  }
+  email = each.value
+}
+
+resource "aws_ses_domain_dkim" "domain" {
+  domain = aws_ses_domain_identity.domain.domain
+}
+
+resource "aws_ses_domain_mail_from" "domain" {
+  domain           = aws_ses_domain_identity.domain.domain
+  mail_from_domain = "bounce.${aws_ses_domain_identity.domain.domain}"
 }
