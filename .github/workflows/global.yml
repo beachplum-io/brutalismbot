@@ -1,19 +1,17 @@
-name: mail
+name: global
 on:
   pull_request:
     paths:
-      - mail/**
+      - global/**
   push:
     paths:
-      - mail/**
+      - global/**
 jobs:
-  plan-mail:
+  plan-apis:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/plan
         with:
-          name: mail
+          name: global
           token: ${{ secrets.TF_API_TOKEN }}
-        env:
-          TF_VAR_MAIL_TO: ${{ secrets.TF_VAR_MAIL_TO }}

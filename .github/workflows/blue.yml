@@ -1,17 +1,17 @@
-name: states
+name: blue
 on:
   pull_request:
     paths:
-      - states/**
+      - blue/**
   push:
     paths:
-      - states/**
+      - blue/**
 jobs:
-  plan-states:
+  plan-apis:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/plan
         with:
-          name: states
+          name: blue
           token: ${{ secrets.TF_API_TOKEN }}
