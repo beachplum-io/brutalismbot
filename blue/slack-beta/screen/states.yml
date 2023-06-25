@@ -11,6 +11,12 @@ States:
       WithDecryption: true
     ResultSelector:
       AccessToken.$: $.Parameter.Value
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 3
+        MaxAttempts: 4
+        ErrorEquals:
+          - States.ALL
   SendScreener:
     Type: Task
     Resource: ${screen_arn}
@@ -28,10 +34,7 @@ States:
         IntervalSeconds: 3
         MaxAttempts: 4
         ErrorEquals:
-          - Lambda.AWSLambdaException
-          - Lambda.SdkClientException
-          - Lambda.ServiceException
-          - Lambda.Unknown
+          - States.ALL
   Wait:
     Type: Wait
     Next: UpdateItem
@@ -53,6 +56,12 @@ States:
           S.$: $$.Execution.Id
         :Status:
           S: Approved
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 3
+        MaxAttempts: 4
+        ErrorEquals:
+          - States.ALL
   DeleteScreener:
     Type: Task
     Resource: ${http_function_arn}
@@ -71,7 +80,4 @@ States:
         IntervalSeconds: 3
         MaxAttempts: 4
         ErrorEquals:
-          - Lambda.AWSLambdaException
-          - Lambda.SdkClientException
-          - Lambda.ServiceException
-          - Lambda.Unknown
+          - States.ALL

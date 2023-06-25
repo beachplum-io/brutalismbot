@@ -38,3 +38,9 @@ States:
           S.$: $.detail.authed_user.id
         WebhookUrl:
           S.$: $.detail.incoming_webhook.url
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 3
+        MaxAttempts: 4
+        ErrorEquals:
+          - States.ALL

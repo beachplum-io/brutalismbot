@@ -17,6 +17,12 @@ States:
       ExpressionAttributeValues.$: $.ExpressionAttributeValues
       ExclusiveStartKey.$: $.ExclusiveStartKey
       Limit.$: $.Limit
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 3
+        MaxAttempts: 4
+        ErrorEquals:
+          - States.ALL
   NextPage?:
     Type: Choice
     Default: EachToken
@@ -44,6 +50,12 @@ States:
           ExclusiveStartKey.$: $.Result.LastEvaluatedKey
           Limit.$: $.Query.Limit
         Post.$: $.Post
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 3
+        MaxAttempts: 4
+        ErrorEquals:
+          - States.ALL
   EachToken:
     Type: Map
     End: true
@@ -89,6 +101,12 @@ States:
             text.$: $.Post.Title
             token.$: $.Slack.AccessToken
             url: https://slack.com/api/chat.postMessage
+          Retry:
+            - BackoffRate: 2
+              IntervalSeconds: 3
+              MaxAttempts: 4
+              ErrorEquals:
+                - States.ALL
         DirectMessage:
           Type: Task
           Resource: ${create_post_arn}
@@ -101,6 +119,12 @@ States:
             text.$: $.Post.Title
             token.$: $.Slack.AccessToken
             url: https://slack.com/api/chat.postMessage
+          Retry:
+            - BackoffRate: 2
+              IntervalSeconds: 3
+              MaxAttempts: 4
+              ErrorEquals:
+                - States.ALL
         Webhook:
           Type: Task
           Resource: ${create_post_arn}
@@ -111,6 +135,12 @@ States:
             media.$: States.StringToJson($.Post.Media)
             text.$: $.Post.Title
             url.$: $.Slack.WebhookUrl
+          Retry:
+            - BackoffRate: 2
+              IntervalSeconds: 3
+              MaxAttempts: 4
+              ErrorEquals:
+                - States.ALL
         PutItem:
           Type: Task
           Resource: arn:aws:states:::aws-sdk:dynamodb:putItem
@@ -159,5 +189,11 @@ States:
                 S.$: $.Slack.UserId
               WebhookUrl:
                 S.$: $.Slack.WebhookUrl
+          Retry:
+            - BackoffRate: 2
+              IntervalSeconds: 3
+              MaxAttempts: 4
+              ErrorEquals:
+                - States.ALL
     ResultSelector:
       Posts.$: $

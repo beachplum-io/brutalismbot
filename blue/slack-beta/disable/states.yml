@@ -27,6 +27,12 @@ States:
           Parameters:
             EventBusName.$: $.EventBusName
             Name.$: $.Name
+          Retry:
+            - BackoffRate: 2
+              IntervalSeconds: 3
+              MaxAttempts: 4
+              ErrorEquals:
+                - States.ALL
         GetSchedule:
           Type: Task
           Resource: arn:aws:states:::aws-sdk:scheduler:getSchedule
@@ -42,6 +48,12 @@ States:
             ScheduleExpression.$: $.ScheduleExpression
             ScheduleExpressionTimezone.$: $.ScheduleExpressionTimezone
             Target.$: $.Target
+          Retry:
+            - BackoffRate: 2
+              IntervalSeconds: 3
+              MaxAttempts: 4
+              ErrorEquals:
+                - States.ALL
         DisableRule:
           Type: Task
           Resource: arn:aws:states:::aws-sdk:eventbridge:disableRule
@@ -50,6 +62,12 @@ States:
           Parameters:
             EventBusName.$: $.EventBusName
             Name.$: $.Name
+          Retry:
+            - BackoffRate: 2
+              IntervalSeconds: 3
+              MaxAttempts: 4
+              ErrorEquals:
+                - States.ALL
         DisableSchedule:
           Type: Task
           Resource: arn:aws:states:::aws-sdk:scheduler:updateSchedule
@@ -62,6 +80,12 @@ States:
             ScheduleExpressionTimezone.$: $.ScheduleExpressionTimezone
             State: DISABLED
             Target.$: $.Target
+          Retry:
+            - BackoffRate: 2
+              IntervalSeconds: 3
+              MaxAttempts: 4
+              ErrorEquals:
+                - States.ALL
   UpdateHome:
     Type: Task
     Resource: arn:aws:states:::states:startExecution
@@ -73,3 +97,9 @@ States:
         detail:
           user:
             id.$: $.detail.user.id
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 3
+        MaxAttempts: 4
+        ErrorEquals:
+          - States.ALL

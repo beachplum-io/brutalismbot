@@ -164,7 +164,7 @@ resource "aws_lambda_function" "lambda" {
   runtime          = "ruby3.2"
   source_code_hash = data.archive_file.lambda.output_base64sha256
   tags             = var.tags
-  timeout          = 15
+  timeout          = 60
 
   environment {
     variables = { PARAM_PATH = local.param_path }

@@ -15,7 +15,4 @@ States:
         IntervalSeconds: 3
         MaxAttempts: 4
         ErrorEquals:
-          - Lambda.AWSLambdaException
-          - Lambda.SdkClientException
-          - Lambda.ServiceException
-          - Lambda.Unknown
+          - States.ALL

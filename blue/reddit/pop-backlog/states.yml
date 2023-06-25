@@ -15,6 +15,12 @@ States:
           S: backlog
     ResultSelector:
       Item.$: $.Items[0]
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 3
+        MaxAttempts: 4
+        ErrorEquals:
+          - States.ALL
   PutPost:
     Type: Task
     Resource: arn:aws:states:::aws-sdk:dynamodb:putItem
@@ -39,8 +45,8 @@ States:
         Title.$: $.Title
     Retry:
       - BackoffRate: 2
-        IntervalSeconds: 60
-        MaxAttempts: 3
+        IntervalSeconds: 3
+        MaxAttempts: 4
         ErrorEquals:
           - States.ALL
   DeleteBacklog:
@@ -54,6 +60,12 @@ States:
       Key:
         Id.$: $.Id
         Kind.$: $.Kind
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 3
+        MaxAttempts: 4
+        ErrorEquals:
+          - States.ALL
   GetQueueSize:
     Type: Task
     Resource: arn:aws:states:::aws-sdk:dynamodb:query
@@ -67,6 +79,12 @@ States:
       ExpressionAttributeValues:
         :Kind:
           S: backlog
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 3
+        MaxAttempts: 4
+        ErrorEquals:
+          - States.ALL
   UpdateCursor:
     Type: Task
     Resource: arn:aws:states:::aws-sdk:dynamodb:updateItem
@@ -94,7 +112,7 @@ States:
         :Title.$: $.Item.Title
     Retry:
       - BackoffRate: 2
-        IntervalSeconds: 60
-        MaxAttempts: 3
+        IntervalSeconds: 3
+        MaxAttempts: 4
         ErrorEquals:
           - States.ALL

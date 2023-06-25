@@ -8,6 +8,12 @@ States:
     ResultPath: $.stopExecution
     Parameters:
       ExecutionArn.$: $.detail.actions[0].value
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 3
+        MaxAttempts: 4
+        ErrorEquals:
+          - States.ALL
   DeleteMessage:
     Type: Task
     Resource: ${http_function_arn}

@@ -14,6 +14,12 @@ States:
       ProjectionExpression.$: $.ProjectionExpression
       ExpressionAttributeValues.$: $.ExpressionAttributeValues
       ExclusiveStartKey.$: $.ExclusiveStartKey
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 3
+        MaxAttempts: 4
+        ErrorEquals:
+          - States.ALL
   NextPage?:
     Type: Choice
     Default: EachItem
@@ -38,6 +44,12 @@ States:
           ProjectionExpression.$: $.Query.ProjectionExpression
           ExpressionAttributeValues.$: $.Query.ExpressionAttributeValues
           ExclusiveStartKey.$: $.Result.LastEvaluatedKey
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 3
+        MaxAttempts: 4
+        ErrorEquals:
+          - States.ALL
   EachItem:
     Type: Map
     End: true
@@ -69,3 +81,9 @@ States:
             UpdateExpression.$: $.UpdateExpression
             ExpressionAttributeNames.$: $.ExpressionAttributeNames
             ExpressionAttributeValues.$: $.ExpressionAttributeValues
+          Retry:
+            - BackoffRate: 2
+              IntervalSeconds: 3
+              MaxAttempts: 4
+              ErrorEquals:
+                - States.ALL

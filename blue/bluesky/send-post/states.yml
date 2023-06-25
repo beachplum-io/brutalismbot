@@ -10,6 +10,12 @@ States:
       Name.$: $.Name
       Permalink.$: $.Permalink
       Title.$: $.Title
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 3
+        MaxAttempts: 4
+        ErrorEquals:
+          - States.ALL
   EachPost:
     Type: Map
     End: true
@@ -47,5 +53,11 @@ States:
           Parameters:
             TableName.$: $.TableName
             Item.$: $.Item
+          Retry:
+            - BackoffRate: 2
+              IntervalSeconds: 3
+              MaxAttempts: 4
+              ErrorEquals:
+                - States.ALL
     ResultSelector:
       Posts.$: $

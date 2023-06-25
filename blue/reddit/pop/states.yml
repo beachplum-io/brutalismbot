@@ -17,8 +17,8 @@ States:
       ExclusiveStartTime.$: $.Item.LastUpdate.S
     Retry:
       - BackoffRate: 2
-        IntervalSeconds: 60
-        MaxAttempts: 3
+        IntervalSeconds: 3
+        MaxAttempts: 4
         ErrorEquals:
           - States.ALL
   DequeueNext:
@@ -47,10 +47,10 @@ States:
               Value: /r/brutalism
     Retry:
       - BackoffRate: 2
-        IntervalSeconds: 60
-        MaxAttempts: 3
+        IntervalSeconds: 3
+        MaxAttempts: 4
         ErrorEquals:
-          - CloudWatch.SdkClientException
+          - States.ALL
   NewItem?:
     Type: Choice
     Default: UpdateQueueSize
@@ -77,8 +77,8 @@ States:
           N.$: States.JsonToString($.QueueSize)
     Retry:
       - BackoffRate: 2
-        IntervalSeconds: 60
-        MaxAttempts: 3
+        IntervalSeconds: 3
+        MaxAttempts: 4
         ErrorEquals:
           - States.ALL
   PutPost:
@@ -91,8 +91,8 @@ States:
       Item.$: $.NextPost
     Retry:
       - BackoffRate: 2
-        IntervalSeconds: 60
-        MaxAttempts: 3
+        IntervalSeconds: 3
+        MaxAttempts: 4
         ErrorEquals:
           - States.ALL
   UpdateCursor:
@@ -122,7 +122,7 @@ States:
         :Title.$: $.NextPost.Title
     Retry:
       - BackoffRate: 2
-        IntervalSeconds: 60
-        MaxAttempts: 3
+        IntervalSeconds: 3
+        MaxAttempts: 4
         ErrorEquals:
           - States.ALL

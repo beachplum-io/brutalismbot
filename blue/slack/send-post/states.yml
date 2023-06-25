@@ -19,6 +19,12 @@ States:
       url.$: $.url
       headers.$: $.headers
       body.$: $.body
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 3
+        MaxAttempts: 4
+        ErrorEquals:
+          - States.ALL
   UpdateItem:
     Type: Task
     Resource: arn:aws:states:::aws-sdk:dynamodb:updateItem
@@ -42,3 +48,9 @@ States:
           S.$: $.Response
         :Status:
           S: Posted
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 3
+        MaxAttempts: 4
+        ErrorEquals:
+          - States.ALL

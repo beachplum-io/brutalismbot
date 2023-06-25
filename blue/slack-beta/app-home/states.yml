@@ -15,6 +15,12 @@ States:
             Parameters:
               Name: ${param}
               WithDecryption: true
+            Retry:
+              - BackoffRate: 2
+                IntervalSeconds: 3
+                MaxAttempts: 4
+                ErrorEquals:
+                  - States.ALL
       - StartAt: GetView
         States:
           GetView:
