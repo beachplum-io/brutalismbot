@@ -154,6 +154,17 @@ resource "aws_iam_role" "pipes" {
   }
 }
 
+resource "aws_pipes_pipe" "pipes" {
+  description = "Pipe DynamoDB streams to EventBridge"
+  name        = local.name
+  role_arn    = aws_iam_role.pipes.arn
+  source      = aws_dynamodb_table.table.stream_arn
+  target      = aws_cloudwatch_event_bus.bus.arn
+
+  source_parameters {}
+  target_parameters {}
+}
+
 #################
 #   FUNCTIONS   #
 #################
