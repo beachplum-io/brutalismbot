@@ -63,7 +63,7 @@ resource "aws_cloudwatch_event_rule" "events" {
   tags           = var.tags
 
   event_pattern = jsonencode({
-    source      = ["Pipe brutalismbot-${var.env}-shared-streams"]
+    source      = ["Pipe brutalismbot-${var.env}"]
     detail-type = ["Event from aws:dynamodb"]
     detail = {
       eventName = ["MODIFY"]
