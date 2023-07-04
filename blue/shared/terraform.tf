@@ -160,9 +160,6 @@ resource "aws_pipes_pipe" "pipes" {
   role_arn    = aws_iam_role.pipes.arn
   source      = aws_dynamodb_table.table.stream_arn
   target      = aws_cloudwatch_event_bus.bus.arn
-
-  source_parameters {}
-  target_parameters {}
 }
 
 #################
