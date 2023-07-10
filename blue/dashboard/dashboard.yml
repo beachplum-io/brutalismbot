@@ -42,7 +42,7 @@ widgets:
       period: 3600
       region: us-west-2
       stacked: false
-      stat: Average
+      stat: Maximum
       title: Lambda Duration
       view: timeSeries
       legend:
@@ -50,7 +50,7 @@ widgets:
       yAxis:
         left:
           label: Duration
-          showUnits: true
+          showUnits: false
 
   ############################
   #   STATE MACHINE ERRORS   #

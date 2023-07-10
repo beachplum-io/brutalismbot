@@ -9,6 +9,8 @@ variable "env" { type = string }
 ##############
 
 locals {
+  region = data.aws_region.current.name
+
   env  = var.env
   app  = basename(path.module)
   tags = { "brutalismbot:app" = local.app }
@@ -36,6 +38,8 @@ locals {
 #   DATA   #
 ############
 
+data "aws_region" "current" {}
+
 data "aws_lambda_function" "functions" {
   for_each = toset(concat([
     for app, names in local.functions :
@@ -61,12 +65,12 @@ resource "aws_cloudwatch_dashboard" "dashboard" {
   dashboard_body = jsonencode(yamldecode(templatefile("${path.module}/dashboard.yml", {
     duration = jsonencode([
       for function in keys(data.aws_lambda_function.functions) :
-      ["AWS/Lambda", "Duration", "FunctionName", function]
+      ["AWS/Lambda", "Duration", "FunctionName", function, { region : local.region }]
     ])
 
     lambda_errors = jsonencode([
       for function in keys(data.aws_lambda_function.functions) :
-      ["AWS/Lambda", "Errors", "FunctionName", function]
+      ["AWS/Lambda", "Errors", "FunctionName", function, { region : local.region }]
     ])
 
     state_machine_errors = jsonencode([
