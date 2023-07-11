@@ -121,7 +121,7 @@ resource "aws_scheduler_schedule" "scheduler" {
   name                = local.name
   group_name          = "brutalismbot-${var.env}"
   schedule_expression = "rate(3 hour)"
-  state               = "DISABLED"
+  state               = "ENABLED"
 
   flexible_time_window {
     mode = "OFF"
