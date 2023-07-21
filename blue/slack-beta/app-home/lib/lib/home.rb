@@ -26,7 +26,8 @@ class Home
     'Twitter' => "#{EVENT_BUS_NAME}-twitter-send-post",
   }
   SCHEDULES = {
-    'Reddit' => "#{SCHEDULE_GROUP}-reddit-pop",
+    'Reddit'  => "#{SCHEDULE_GROUP}-reddit-pop",
+    'Backlog' => "#{SCHEDULE_GROUP}-reddit-pop-backlog",
   }
 
   TEMPLATE = File.read(File.expand_path('home.yml.erb', File.dirname(__FILE__)))
