@@ -73,7 +73,7 @@ resource "aws_cloudwatch_event_rule" "events" {
 
     detail = {
       type    = ["block_actions"]
-      actions = { action_id = ["reject_v2"] }
+      actions = { action_id = ["reject_v2", "reject"] }
     }
   })
 }
