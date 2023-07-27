@@ -9,6 +9,7 @@ URL = 'https://slack.com/api/chat.postMessage'
 
 handler :screen do |event|
   # Extract data
+  key          = event['Key']
   token        = event['AccessToken']
   execution_id = event['ExecutionId']
   channel      = event['Channel']
@@ -27,6 +28,7 @@ handler :screen do |event|
     link:         link,
     images:       Screener.images(text, media),
     execution_id: execution_id,
+    key:          key,
   )
 
   # Send request

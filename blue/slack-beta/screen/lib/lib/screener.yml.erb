@@ -34,7 +34,7 @@ attachments:
             action_id: reject
             style: danger
             value: >-
-              <%= execution_id %>
+              <%= { ExecutionId: execution_id, Key: key }.to_json %>
             text:
               type: plain_text
               text: Reject

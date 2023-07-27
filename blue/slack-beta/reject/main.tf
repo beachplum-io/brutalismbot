@@ -20,6 +20,10 @@ data "aws_cloudwatch_event_bus" "bus" {
   name = "brutalismbot-${var.env}"
 }
 
+data "aws_dynamodb_table" "table" {
+  name = "brutalismbot-${var.env}"
+}
+
 data "aws_lambda_function" "http" {
   function_name = "brutalismbot-${var.env}-shared-http"
 }
@@ -110,6 +114,12 @@ resource "aws_iam_role" "states" {
       Version = "2012-10-17"
       Statement = [
         {
+          Sid      = "UpdateItem"
+          Effect   = "Allow"
+          Action   = "dynamodb:UpdateItem"
+          Resource = data.aws_dynamodb_table.table.arn
+        },
+        {
           Sid      = "InvokeHttp"
           Effect   = "Allow"
           Action   = "lambda:InvokeFunction"
@@ -119,7 +129,7 @@ resource "aws_iam_role" "states" {
           Sid      = "StopExecution"
           Effect   = "Allow"
           Action   = "states:StopExecution"
-          Resource = "arn:aws:states:${local.region}:${local.account}:exection:brutalismbot-${var.env}-${var.app}-screen:*"
+          Resource = "arn:aws:states:${local.region}:${local.account}:execution:brutalismbot-${var.env}-${var.app}-screen:*"
         }
       ]
     })
@@ -132,6 +142,7 @@ resource "aws_sfn_state_machine" "states" {
   tags     = var.tags
 
   definition = jsonencode(yamldecode(templatefile("${path.module}/states.yml", {
+    table_name        = data.aws_dynamodb_table.table.name
     http_function_arn = data.aws_lambda_function.http.arn
   })))
 }

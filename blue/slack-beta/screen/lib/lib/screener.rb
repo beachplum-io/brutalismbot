@@ -2,7 +2,7 @@ require 'erb'
 require 'json'
 require 'yaml'
 
-class Screener < Struct.new('Screener', :channel, :text, :link, :images, :execution_id)
+class Screener < Struct.new('Screener', :channel, :text, :link, :images, :execution_id, :key)
   class Image < Struct.new('Image', :url, :title, :alt) ; end
 
   TEMPLATE = File.read(File.expand_path('screener.yml.erb', File.dirname(__FILE__)))

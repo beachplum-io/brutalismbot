@@ -26,6 +26,7 @@ States:
       ExecutionId.$: $$.Execution.Id
       AccessToken.$: $.Params.AccessToken
       Channel: ${channel_id}
+      Key.$: $.Key
       Title.$: $.Title
       Media.$: States.StringToJson($.Media)
       Permalink.$: $.Permalink

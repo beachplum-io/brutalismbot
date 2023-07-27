@@ -1,26 +1,51 @@
 ---
-StartAt: StopExecution
+StartAt: GetValue
 States:
+  GetValue:
+    Type: Pass
+    Next: StopExecution
+    InputPath: $.detail
+    Parameters:
+      response_url.$: $.response_url
+      value.$: States.StringToJson($.actions[0].value)
   StopExecution:
     Type: Task
     Resource: arn:aws:states:::aws-sdk:sfn:stopExecution
-    Next: DeleteMessage
+    Next: UpdateItem
     ResultPath: $.stopExecution
     Parameters:
-      ExecutionArn.$: $.detail.actions[0].value
+      ExecutionArn.$: $.value.ExecutionId
     Retry:
       - BackoffRate: 2
         IntervalSeconds: 3
         MaxAttempts: 4
         ErrorEquals:
           - States.ALL
+  UpdateItem:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:updateItem
+    Next: DeleteMessage
+    InputPath: $.value
+    ResultPath: $.updateItem
+    Parameters:
+      TableName: ${table_name}
+      Key.$: $.Key
+      UpdateExpression: >-
+        SET #Status=:Status, ExecutionId=:ExecutionId
+      ExpressionAttributeNames:
+        "#Status": Status
+      ExpressionAttributeValues:
+        :ExecutionId:
+          S.$: $$.Execution.Id
+        :Status:
+          S: Rejected
   DeleteMessage:
     Type: Task
     Resource: ${http_function_arn}
     End: true
     Parameters:
       method: POST
-      url.$: $.detail.response_url
+      url.$: $.response_url
       body:
         delete_original: true
     Retry:
