@@ -77,3 +77,10 @@ module "states-errors" {
   tags       = local.tags
   channel_id = local.user_id
 }
+
+module "states-retry" {
+  source = "./states-retry"
+  app    = local.app
+  env    = local.env
+  tags   = local.tags
+}

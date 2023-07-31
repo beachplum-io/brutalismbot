@@ -48,6 +48,12 @@ States:
                   type: plain_text
                   text: Dismiss
               - type: button
+                action_id: retry
+                value.$: $.detail.executionArn
+                text:
+                  type: plain_text
+                  text: Retry
+              - type: button
                 action_id: open_execution
                 value.$: $.detail.executionArn
                 url.$: States.Format('https://{}.console.aws.amazon.com/states/home?region={}#/v2/executions/details/{}', $.region, $.region, $.detail.executionArn)

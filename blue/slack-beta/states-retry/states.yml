@@ -1,0 +1,40 @@
+---
+StartAt: GetValue
+States:
+  GetValue:
+    Type: Pass
+    Next: DescribeExecution
+    InputPath: $.detail
+    Parameters:
+      response_url.$: $.response_url
+      value.$: $.actions[0].value
+  DescribeExecution:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:sfn:describeExecution
+    Next: StartExecution
+    ResultPath: $.execution
+    Parameters:
+      ExecutionArn.$: $.value
+  StartExecution:
+    Type: Task
+    Resource: arn:aws:states:::states:startExecution
+    Next: DeleteMessage
+    ResultPath: $.execution
+    Parameters:
+      StateMachineArn.$: $.execution.StateMachineArn
+      Input.$: $.execution.Input
+  DeleteMessage:
+    Type: Task
+    Resource: ${http_function_arn}
+    End: true
+    Parameters:
+      method: POST
+      url.$: $.response_url
+      body:
+        delete_original: true
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 3
+        MaxAttempts: 4
+        ErrorEquals:
+          - States.ALL
