@@ -194,6 +194,10 @@ resource "aws_scheduler_schedule" "scheduler" {
     arn      = aws_sfn_state_machine.states.arn
     role_arn = aws_iam_role.scheduler.arn
   }
+
+  lifecycle {
+    ignore_changes = [state]
+  }
 }
 
 #####################

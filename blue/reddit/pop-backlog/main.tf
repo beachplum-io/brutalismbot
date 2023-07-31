@@ -121,7 +121,7 @@ resource "aws_scheduler_schedule" "scheduler" {
   name                = local.name
   group_name          = "brutalismbot-${var.env}"
   schedule_expression = "rate(3 hour)"
-  state               = "ENABLED"
+  state               = "DISABLED"
 
   flexible_time_window {
     mode = "OFF"
@@ -130,6 +130,10 @@ resource "aws_scheduler_schedule" "scheduler" {
   target {
     arn      = aws_sfn_state_machine.states.arn
     role_arn = aws_iam_role.scheduler.arn
+  }
+
+  lifecycle {
+    ignore_changes = [state]
   }
 }
 
