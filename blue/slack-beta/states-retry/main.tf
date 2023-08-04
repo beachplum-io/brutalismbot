@@ -112,10 +112,16 @@ resource "aws_iam_role" "states" {
           Resource = data.aws_lambda_function.http.arn
         },
         {
-          Sid      = "States"
+          Sid      = "DescribeExecution"
           Effect   = "Allow"
-          Action   = ["states:DescribeExecution", "states:StartExecution"]
+          Action   = "states:DescribeExecution"
           Resource = "arn:aws:states:${local.region}:${local.account}:execution:brutalismbot-${var.env}-*"
+        },
+        {
+          Sid      = "StartExecution"
+          Effect   = "Allow"
+          Action   = "states:StartExecution"
+          Resource = "arn:aws:states:${local.region}:${local.account}:stateMachine:brutalismbot-${var.env}-*",
         }
       ]
     })
