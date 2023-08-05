@@ -15,3 +15,5 @@ jobs:
         with:
           name: global
           token: ${{ secrets.TF_API_TOKEN }}
+        env:
+          TF_VAR_MAIL_TO: ${{ secrets.TF_VAR_MAIL_TO }}
