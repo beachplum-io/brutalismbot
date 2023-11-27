@@ -9,14 +9,6 @@ variable "env" { type = string }
 ##############
 
 locals {
-
-}
-
-##############
-#   LOCALS   #
-##############
-
-locals {
   region = data.aws_region.current.name
 
   env  = var.env
@@ -31,6 +23,14 @@ locals {
     svg         = "image/svg+xml"
     webmanifest = "application/manifest+json"
     xml         = "application/xml"
+  }
+
+  keys = fileset("${path.module}/www", "**")
+  objects = {
+    for key in local.keys : key => {
+      content_type = lookup(local.mime_map, reverse(split(".", key))[0], "text/plain")
+      source       = "${path.module}/www/${key}"
+    }
   }
 }
 
@@ -83,14 +83,11 @@ resource "aws_s3_bucket_policy" "website" {
 }
 
 resource "aws_s3_object" "objects" {
-  for_each = {
-    for x in fileset("${path.module}/www", "**") :
-    x => lookup(local.mime_map, reverse(split(".", x))[0])
-  }
+  for_each = local.objects
 
   bucket       = aws_s3_bucket.website.id
   key          = each.key
-  content_type = each.value
-  source       = "${path.module}/www/${each.key}"
-  source_hash  = filemd5("${path.module}/www/${each.key}")
+  content_type = each.value.content_type
+  source       = each.value.source
+  source_hash  = filemd5(each.value.source)
 }
