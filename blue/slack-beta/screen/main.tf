@@ -63,8 +63,8 @@ resource "aws_iam_role" "events" {
 resource "aws_cloudwatch_event_rule" "events" {
   description    = "Capture new reddit posts"
   event_bus_name = data.aws_cloudwatch_event_bus.bus.name
-  is_enabled     = true
   name           = local.name
+  state          = "ENABLED"
   tags           = var.tags
 
   event_pattern = jsonencode({

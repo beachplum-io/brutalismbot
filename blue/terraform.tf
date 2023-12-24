@@ -30,15 +30,8 @@ terraform {
 
 provider "aws" {
   region = "us-west-2"
-  assume_role { role_arn = var.AWS_ROLE_ARN }
   default_tags { tags = local.tags }
 }
-
-#################
-#   VARIABLES   #
-#################
-
-variable "AWS_ROLE_ARN" { type = string }
 
 ##############
 #   LOCALS   #
