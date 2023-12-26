@@ -273,9 +273,9 @@ resource "aws_route53_record" "website" {
   }
 }
 
-##########
-#  SES   #
-##########
+###########
+#   SES   #
+###########
 
 resource "aws_ses_active_receipt_rule_set" "mail" {
   rule_set_name = "brutalismbot-${local.env}-mail"
