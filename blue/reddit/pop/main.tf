@@ -3,14 +3,18 @@
 ##############
 
 locals {
-  name   = "brutalismbot-${var.env}-${var.app}-pop"
-  region = data.aws_region.current.name
+  account = data.aws_caller_identity.current.account_id
+  region  = data.aws_region.current.name
+
+  name       = "brutalismbot-${var.env}-${var.app}-pop"
+  param_path = "/brutalismbot/${var.env}/${var.app}/"
 }
 
 ############
 #   DATA   #
 ############
 
+data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_cloudwatch_event_bus" "bus" {
@@ -56,12 +60,20 @@ resource "aws_iam_role" "lambda" {
     name = "access"
     policy = jsonencode({
       Version = "2012-10-17"
-      Statement = {
-        Sid      = "Logs"
-        Effect   = "Allow"
-        Action   = "logs:*"
-        Resource = "*"
-      }
+      Statement = [
+        {
+          Sid      = "Logs"
+          Effect   = "Allow"
+          Action   = "logs:*"
+          Resource = "*"
+        },
+        {
+          Sid      = "GetParams"
+          Effect   = "Allow"
+          Action   = "ssm:GetParametersByPath"
+          Resource = "arn:aws:ssm:${local.region}:${local.account}:parameter${local.param_path}"
+        }
+      ]
     })
   }
 }
@@ -82,7 +94,7 @@ resource "aws_lambda_function" "lambda" {
   environment {
     variables = {
       MIN_AGE_HOURS = "4"
-      USER_AGENT    = "Brutalismbot"
+      PARAM_PATH    = local.param_path
     }
   }
 }
