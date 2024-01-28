@@ -25,14 +25,12 @@ terraform {
 
 provider "aws" {
   region = "us-west-2"
-  assume_role { role_arn = var.AWS_ROLE_ARN }
   default_tags { tags = local.tags }
 }
 
 provider "aws" {
   alias  = "us-east-1"
   region = "us-east-1"
-  assume_role { role_arn = var.AWS_ROLE_ARN }
   default_tags { tags = local.tags }
 }
 
@@ -40,7 +38,6 @@ provider "aws" {
 #   VARIABLES   #
 #################
 
-variable "AWS_ROLE_ARN" { type = string }
 variable "MAIL_TO" { type = string }
 
 ##############
