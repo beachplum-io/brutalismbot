@@ -24,7 +24,7 @@ terraform {
 ###########
 
 provider "aws" {
-  region = "us-west-2"
+  region = local.region
   default_tags { tags = local.tags }
 }
 
@@ -45,10 +45,8 @@ variable "MAIL_TO" { type = string }
 ##############
 
 locals {
-  account_id = data.aws_caller_identity.current.account_id
-  region     = data.aws_region.current.name
-
-  env = "blue"
+  region = "us-west-2"
+  env    = "blue"
 
   domain_validation_options = {
     for x in aws_acm_certificate.us-east-1.domain_validation_options :
@@ -65,9 +63,6 @@ locals {
 ############
 #   DATA   #
 ############
-
-data "aws_caller_identity" "current" {}
-data "aws_region" "current" {}
 
 data "aws_s3_bucket" "website" {
   bucket = "${local.region}-brutalismbot-${local.env}-website"
@@ -226,8 +221,8 @@ resource "aws_route53_record" "dkims" {
 
 # resource "aws_route53_record" "mx" {
 #   for_each = {
-#     aws_ses_domain_mail_from.domain.mail_from_domain = ["10 feedback-smtp.${data.aws_region.current.name}.amazonses.com"]
-#     aws_route53_zone.zone.name                       = ["10 inbound-smtp.${data.aws_region.current.name}.amazonaws.com"]
+#     aws_ses_domain_mail_from.domain.mail_from_domain = ["10 feedback-smtp.${local.region}.amazonses.com"]
+#     aws_route53_zone.zone.name                       = ["10 inbound-smtp.${local.region}.amazonaws.com"]
 #   }
 #   name    = each.key
 #   records = each.value
@@ -238,7 +233,7 @@ resource "aws_route53_record" "dkims" {
 
 resource "aws_route53_record" "mail_from_mx" {
   name    = aws_ses_domain_mail_from.domain.mail_from_domain
-  records = ["10 feedback-smtp.${data.aws_region.current.name}.amazonses.com"]
+  records = ["10 feedback-smtp.${local.region}.amazonses.com"]
   ttl     = "600"
   type    = "MX"
   zone_id = aws_route53_zone.zone.id
@@ -246,7 +241,7 @@ resource "aws_route53_record" "mail_from_mx" {
 
 resource "aws_route53_record" "mail_to_mx" {
   name    = aws_route53_zone.zone.name
-  records = ["10 inbound-smtp.${data.aws_region.current.name}.amazonaws.com"]
+  records = ["10 inbound-smtp.${local.region}.amazonaws.com"]
   ttl     = "300"
   type    = "MX"
   zone_id = aws_route53_zone.zone.id
