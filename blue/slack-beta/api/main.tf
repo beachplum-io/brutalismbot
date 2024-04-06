@@ -162,7 +162,7 @@ resource "aws_lambda_function" "lambda" {
   handler          = "index.proxy"
   memory_size      = 3072
   role             = aws_iam_role.lambda.arn
-  runtime          = "ruby3.2"
+  runtime          = "ruby3.3"
   source_code_hash = data.archive_file.lambda.output_base64sha256
   tags             = var.tags
   timeout          = 30

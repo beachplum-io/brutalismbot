@@ -160,7 +160,7 @@ resource "aws_lambda_function" "lambda" {
   function_name    = local.name
   handler          = "index.home"
   role             = aws_iam_role.lambda.arn
-  runtime          = "ruby3.2"
+  runtime          = "ruby3.3"
   source_code_hash = data.archive_file.lambda.output_base64sha256
   tags             = var.tags
   timeout          = 10
