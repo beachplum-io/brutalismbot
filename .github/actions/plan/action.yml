@@ -13,7 +13,7 @@ runs:
     - uses: ruby/setup-ruby@v1
       with:
         ruby-version: "3.2"
-    - uses: hashicorp/setup-terraform@v2
+    - uses: hashicorp/setup-terraform@v3
       with:
         cli_config_credentials_token: ${{ inputs.token }}
     - run: make -C ${{ inputs.name }} plan

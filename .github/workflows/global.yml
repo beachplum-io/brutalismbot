@@ -2,9 +2,11 @@ name: global
 on:
   pull_request:
     paths:
+      - .github/**
       - global/**
   push:
     paths:
+      - .github/**
       - global/**
 jobs:
   plan:

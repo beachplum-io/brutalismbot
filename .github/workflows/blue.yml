@@ -2,9 +2,11 @@ name: blue
 on:
   pull_request:
     paths:
+      - .github/**
       - blue/**
   push:
     paths:
+      - .github/**
       - blue/**
 jobs:
   plan:
