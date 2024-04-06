@@ -10,6 +10,7 @@ class Bluesky
   MAX_TEXT   ||= 300
   MAX_IMAGE  ||= 1000000
   PARAM_PATH ||= ENV['PARAM_PATH']
+  R_BRUTALISM ||= 'r/brutalism'
 
   def initialize(path:nil)
     @path = path || PARAM_PATH
@@ -21,9 +22,9 @@ class Bluesky
     alt = text.length >= MAX_TEXT ? "#{text[...MAX_TEXT]}…" : "#{text}"
 
     # Get text
-    max   = MAX_TEXT - '/r/brutalism'.length
+    max   = MAX_TEXT - R_BRUTALISM.length
     text  = text.length < max ? "#{text} " : "#{text[...max]}… "
-    text << '/r/brutalism'
+    text << R_BRUTALISM
 
     # Zip media & text
     size  = (media.count % 4).between?(1, 2) ? 3 : 4
