@@ -11,7 +11,7 @@ handler :send_tweet do |event|
   media = event['Media']
 
   # Send Tweets!
-  tweets = TWITTER.thread(text: text, link: link, media: media)
+  tweets = TWITTER.thread(text:, link:, media:)
 
   # Return enhanced event
   event.update('Posts' => tweets, 'LastUpdate' => UTC.now.iso8601)

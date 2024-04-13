@@ -1,6 +1,6 @@
 source 'https://rubygems.org/'
 
-gem 'twurl', '~> 0.9'
+gem 'x',     '~> 0.14'
 gem 'yake',  '~> 1.0'
 
 group :development do

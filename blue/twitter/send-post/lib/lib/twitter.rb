@@ -1,7 +1,8 @@
 require 'json'
 
 require 'aws-sdk-ssm'
-require 'twurl'
+require 'x'
+require 'x/media_uploader'
 require 'yake/logger'
 
 class TwitterError < StandardError; end
@@ -38,27 +39,22 @@ class Twitter
 
       # Upload media
       media_ids = upload(*media).map { |u| u['media_id_string'] }
+      media = { media_ids: } if media_ids.any?
 
       # Send tweet!
       data[:text]  = text || ''
-      data[:media] = { media_ids: media_ids } if media_ids.any?
-      options = Twurl::Options.new(
-        request_method:  'post',
-        host:            'api.twitter.com',
-        path:            '/2/tweets',
-        headers:         { 'content-type' => 'application/json' },
-        data:            { data.to_json => nil },
-      )
-      logger.info "POST #{File.join api_client.consumer.options[:site], options.path}"
-      result = api_client.perform_request_from_options(options).read_body.to_h_from_json
+      data[:media] = { media_ids: } if media_ids.any?
+      logger.info "POST #{ data.to_json }"
+      binding.irb
+      tweet = client.post('tweets', data.to_json)
 
-      raise TwitterError, result.to_json unless result['data']
+      raise TwitterError, tweet.to_json unless tweet['data']
 
       # Initialize data for next reply
-      tweet_id = result.dig('data', 'id')
-      data[:reply] = { in_reply_to_tweet_id: tweet_id }
+      in_reply_to_tweet_id = tweet.dig('data', 'id')
+      data[:reply] = { in_reply_to_tweet_id: }
 
-      result['data']
+      tweet['data']
     end
   end
 
@@ -73,7 +69,7 @@ class Twitter
 
     res
   rescue => err
-    logger.error("COULD NOT DOWNLOAD MEDIA")
+    logger.error('COULD NOT DOWNLOAD MEDIA')
     logger.error(err)
     raise err
   end
@@ -91,26 +87,21 @@ class Twitter
     end
 
     # Upload images
-    images.map do |image|
+    images.each_with_index.map do |image, i|
       Tempfile.open do |tempfile|
         tempfile.write(image.body)
         tempfile.rewind
 
-        options = Twurl::Options.new(
-          request_method:  'post',
-          host:            'upload.twitter.com',
-          path:            '/1.1/media/upload.json',
-          headers:         {},
-          data:            {},
-          upload:          { 'file' => [ tempfile.path ], 'filefield' => 'media' },
-        )
-        logger.info "POST #{ File.join upload_client.consumer.options[:site], options.path }"
-        result = upload_client.perform_request_from_options options
-        result.read_body.to_h_from_json rescue raise result.message
+        file_path      = tempfile.path
+        media_category = 'tweet_image'
+
+        logger.info "UPLOAD [#{i + 1}/#{images.count}]"
+        binding.irb
+        X::MediaUploader.upload(client:, file_path:, media_category:)
       end
     end
   rescue => err
-    logger.error("COULD NOT UPLOAD MEDIA")
+    logger.error('COULD NOT UPLOAD MEDIA')
     logger.error(err)
     raise err
   end
@@ -126,43 +117,14 @@ class Twitter
     end
   end
 
-  def client(host = nil)
-    Twurl.options.host = host || 'api.twitter.com'
-    Twurl::OAuthClient.load_from_options Twurl::Options.new(
-      command:         'request',
-      username:        username,
-      consumer_key:    consumer_key,
-      consumer_secret: consumer_secret,
-      access_token:    access_token,
-      token_secret:    token_secret,
-    )
+  def client
+    @client ||= X::Client.new(base_url:, api_key:, api_key_secret:, access_token:, access_token_secret:)
   end
 
-  def api_client
-    @api_client ||= client 'api.twitter.com'
-  end
-
-  def upload_client
-    @upload_client ||= client 'upload.twitter.com'
-  end
-
-  def consumer_key
-    params.TWITTER_CONSUMER_KEY
-  end
-
-  def consumer_secret
-    params.TWITTER_CONSUMER_SECRET
-  end
-
-  def access_token
-    params.TWITTER_ACCESS_TOKEN
-  end
-
-  def token_secret
-    params.TWITTER_ACCESS_TOKEN_SECRET
-  end
-
-  def username
-    params.TWITTER_USERNAME
-  end
+  def base_url            = 'https://api.twitter.com/2/'
+  def api_key             = params.TWITTER_CONSUMER_KEY
+  def api_key_secret      = params.TWITTER_CONSUMER_SECRET
+  def access_token        = params.TWITTER_ACCESS_TOKEN
+  def access_token_secret = params.TWITTER_ACCESS_TOKEN_SECRET
+  def username            = params.TWITTER_USERNAME
 end
