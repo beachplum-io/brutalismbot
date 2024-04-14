@@ -5,12 +5,6 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-#################
-#   VARIABLES   #
-#################
-
-variable "env" { type = string }
-
 ##############
 #   LOCALS   #
 ##############
@@ -19,16 +13,11 @@ locals {
   account = data.aws_caller_identity.current.account_id
   region  = data.aws_region.current.name
 
-  env  = var.env
   app  = basename(path.module)
-  name = "brutalismbot-${local.env}"
+  name = terraform.workspace
 
   tags = {
-    "brutalismbot:env"       = var.env
-    "brutalismbot:app"       = local.app
-    "terraform:organization" = "beachplum"
-    "terraform:workspace"    = "brutalismbot-${local.env}-${local.app}"
-    "git:repo"               = "beachplum-io/brutalismbot"
+    "brutalismbot:app" = local.app
   }
 }
 
@@ -38,6 +27,7 @@ locals {
 
 resource "aws_cloudwatch_event_bus" "bus" {
   name = local.name
+  tags = local.tags
 }
 
 #################
@@ -46,6 +36,7 @@ resource "aws_cloudwatch_event_bus" "bus" {
 
 resource "aws_scheduler_schedule_group" "group" {
   name = local.name
+  tags = local.tags
 }
 
 #############
@@ -54,6 +45,7 @@ resource "aws_scheduler_schedule_group" "group" {
 
 resource "aws_dynamodb_table" "table" {
   name = local.name
+  tags = local.tags
 
   hash_key  = "Id"
   range_key = "Kind"
@@ -112,6 +104,7 @@ resource "aws_dynamodb_table_item" "cursor" {
 
 resource "aws_iam_role" "pipes" {
   name = "${local.region}-${local.name}-shared-pipes"
+  tags = local.tags
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -160,14 +153,11 @@ resource "aws_pipes_pipe" "pipes" {
   role_arn    = aws_iam_role.pipes.arn
   source      = aws_dynamodb_table.table.stream_arn
   target      = aws_cloudwatch_event_bus.bus.arn
+  tags        = local.tags
 }
 
 #################
 #   FUNCTIONS   #
 #################
 
-module "http" {
-  source = "./http"
-  env    = local.env
-  app    = local.app
-}
+module "http" { source = "./http" }

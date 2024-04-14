@@ -29,7 +29,7 @@ terraform {
 ###########
 
 provider "aws" {
-  region = "us-west-2"
+  region = local.region
   default_tags { tags = local.tags }
 }
 
@@ -38,12 +38,12 @@ provider "aws" {
 ##############
 
 locals {
-  env = "blue"
+  region = "us-west-2"
 
   tags = {
-    "brutalismbot:env"       = local.env
+    "brutalismbot:env"       = split("-", terraform.workspace)[1]
     "terraform:organization" = "beachplum"
-    "terraform:workspace"    = "brutalismbot-${local.env}"
+    "terraform:workspace"    = terraform.workspace
     "git:repo"               = "beachplum-io/brutalismbot"
   }
 }
@@ -52,47 +52,12 @@ locals {
 #   MODULES   #
 ###############
 
-module "shared" {
-  source = "./shared"
-  env    = local.env
-}
-
-module "bluesky" {
-  source = "./bluesky"
-  env    = local.env
-}
-
-module "dashboard" {
-  source = "./dashboard"
-  env    = local.env
-}
-
-module "mail" {
-  source = "./mail"
-  env    = local.env
-}
-
-module "reddit" {
-  source = "./reddit"
-  env    = local.env
-}
-
-module "slack" {
-  source = "./slack"
-  env    = local.env
-}
-
-module "slack-beta" {
-  source = "./slack-beta"
-  env    = local.env
-}
-
-module "twitter" {
-  source = "./twitter"
-  env    = local.env
-}
-
-module "website" {
-  source = "./website"
-  env    = local.env
-}
+module "shared" { source = "./shared" }
+module "bluesky" { source = "./bluesky" }
+module "dashboard" { source = "./dashboard" }
+module "mail" { source = "./mail" }
+module "reddit" { source = "./reddit" }
+module "slack" { source = "./slack" }
+module "slack-beta" { source = "./slack-beta" }
+module "twitter" { source = "./twitter" }
+module "website" { source = "./website" }

@@ -6,8 +6,10 @@ locals {
   account = data.aws_caller_identity.current.account_id
   region  = data.aws_region.current.name
 
-  name       = "brutalismbot-${var.env}-${var.app}-api"
-  param_path = "/brutalismbot/${var.env}/${var.app}/"
+  app        = dirname(path.module)
+  name       = "${terraform.workspace}-${local.app}-${basename(path.module)}"
+  param_path = "/${replace(terraform.workspace, "-", "/")}/${local.app}/"
+  tags       = { "brutalismbot:app" = local.app }
 
   routes = [
     "GET /health",
@@ -28,7 +30,7 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_cloudwatch_event_bus" "bus" {
-  name = "brutalismbot-${var.env}"
+  name = terraform.workspace
 }
 
 ################
@@ -40,7 +42,7 @@ resource "aws_apigatewayv2_api" "http_api" {
   disable_execute_api_endpoint = true
   name                         = local.name
   protocol_type                = "HTTP"
-  tags                         = var.tags
+  tags                         = local.tags
 }
 
 resource "aws_apigatewayv2_stage" "default" {
@@ -48,7 +50,7 @@ resource "aws_apigatewayv2_stage" "default" {
   auto_deploy = true
   description = "Brutalismbot Slack API default stage"
   name        = "$default"
-  tags        = var.tags
+  tags        = local.tags
 
   access_log_settings {
     destination_arn = aws_cloudwatch_log_group.http_api.arn
@@ -90,7 +92,7 @@ resource "aws_apigatewayv2_route" "routes" {
 resource "aws_cloudwatch_log_group" "http_api" {
   name              = "/aws/apigatewayv2/${aws_apigatewayv2_api.http_api.name}"
   retention_in_days = 14
-  tags              = var.tags
+  tags              = local.tags
 }
 
 ###############
@@ -107,12 +109,12 @@ data "archive_file" "lambda" {
 resource "aws_cloudwatch_log_group" "lambda" {
   name              = "/aws/lambda/${aws_lambda_function.lambda.function_name}"
   retention_in_days = 14
-  tags              = var.tags
+  tags              = local.tags
 }
 
 resource "aws_iam_role" "lambda" {
   name = "${local.region}-${local.name}-lambda"
-  tags = var.tags
+  tags = local.tags
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -162,12 +164,12 @@ resource "aws_lambda_function" "lambda" {
   role             = aws_iam_role.lambda.arn
   runtime          = "ruby3.3"
   source_code_hash = data.archive_file.lambda.output_base64sha256
-  tags             = var.tags
+  tags             = local.tags
   timeout          = 30
 
   environment {
     variables = {
-      EVENT_BUS    = "brutalismbot-${var.env}"
+      EVENT_BUS    = terraform.workspace
       EVENT_SOURCE = "slack"
       PARAM_PATH   = local.param_path
     }

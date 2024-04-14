@@ -3,8 +3,10 @@
 ##############
 
 locals {
-  name   = "brutalismbot-${var.env}-${var.app}-http"
+  app    = dirname(path.module)
+  name   = "${terraform.workspace}-${local.app}-${basename(path.module)}"
   region = data.aws_region.current.name
+  tags   = { "brutalismbot:app" = local.app }
 }
 
 ############
@@ -27,10 +29,12 @@ data "archive_file" "package" {
 resource "aws_cloudwatch_log_group" "logs" {
   name              = "/aws/lambda/${aws_lambda_function.function.function_name}"
   retention_in_days = 14
+  tags              = local.tags
 }
 
 resource "aws_iam_role" "role" {
   name = "${local.region}-${local.name}-lambda"
+  tags = local.tags
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -66,5 +70,6 @@ resource "aws_lambda_function" "function" {
   role             = aws_iam_role.role.arn
   runtime          = "ruby3.3"
   source_code_hash = data.archive_file.package.output_base64sha256
+  tags             = local.tags
   timeout          = 30
 }

@@ -6,7 +6,10 @@ locals {
   account = data.aws_caller_identity.current.account_id
   region  = data.aws_region.current.name
 
-  name = "brutalismbot-${var.env}-${var.app}-reject"
+  app        = dirname(path.module)
+  name       = "${terraform.workspace}-${local.app}-${basename(path.module)}"
+  param_path = "/${replace(terraform.workspace, "-", "/")}/${local.app}/"
+  tags       = { "brutalismbot:app" = local.app }
 }
 
 ############
@@ -17,19 +20,19 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_cloudwatch_event_bus" "bus" {
-  name = "brutalismbot-${var.env}"
+  name = terraform.workspace
 }
 
 data "aws_dynamodb_table" "table" {
-  name = "brutalismbot-${var.env}"
+  name = terraform.workspace
 }
 
 data "aws_lambda_function" "http" {
-  function_name = "brutalismbot-${var.env}-shared-http"
+  function_name = "${terraform.workspace}-shared-http"
 }
 
 data "aws_sfn_state_machine" "screen" {
-  name = "brutalismbot-${var.env}-${var.app}-screen"
+  name = "${terraform.workspace}-${local.app}-screen"
 }
 
 ##############
@@ -38,7 +41,7 @@ data "aws_sfn_state_machine" "screen" {
 
 resource "aws_iam_role" "events" {
   name = "${local.region}-${local.name}-events"
-  tags = var.tags
+  tags = local.tags
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -69,7 +72,7 @@ resource "aws_cloudwatch_event_rule" "events" {
   event_bus_name = data.aws_cloudwatch_event_bus.bus.name
   name           = local.name
   state          = "ENABLED"
-  tags           = var.tags
+  tags           = local.tags
 
   event_pattern = jsonencode({
     source      = ["slack/beta"]
@@ -96,7 +99,7 @@ resource "aws_cloudwatch_event_target" "events" {
 
 resource "aws_iam_role" "states" {
   name = "${local.region}-${local.name}-states"
-  tags = var.tags
+  tags = local.tags
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -129,7 +132,7 @@ resource "aws_iam_role" "states" {
           Sid      = "StopExecution"
           Effect   = "Allow"
           Action   = "states:StopExecution"
-          Resource = "arn:aws:states:${local.region}:${local.account}:execution:brutalismbot-${var.env}-${var.app}-screen:*"
+          Resource = "arn:aws:states:${local.region}:${local.account}:execution:${data.aws_sfn_state_machine.screen.name}:*"
         }
       ]
     })
@@ -139,7 +142,7 @@ resource "aws_iam_role" "states" {
 resource "aws_sfn_state_machine" "states" {
   name     = local.name
   role_arn = aws_iam_role.states.arn
-  tags     = var.tags
+  tags     = local.tags
 
   definition = jsonencode(yamldecode(templatefile("${path.module}/states.yml", {
     table_name        = data.aws_dynamodb_table.table.name

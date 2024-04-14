@@ -5,9 +5,13 @@
 locals {
   account = data.aws_caller_identity.current.account_id
   region  = data.aws_region.current.name
+  user_id = "UH9M57X6Z"
 
-  name  = "brutalismbot-${var.env}-${var.app}-states-errors"
-  param = "/brutalismbot/${var.env}/${var.app}/SLACK_API_TOKEN"
+  app        = dirname(path.module)
+  name       = "${terraform.workspace}-${local.app}-${basename(path.module)}"
+  param_path = "/${replace(terraform.workspace, "-", "/")}/${local.app}/"
+  param      = "${local.param_path}SLACK_API_TOKEN"
+  tags       = { "brutalismbot:app" = local.app }
 }
 
 ############
@@ -18,7 +22,7 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_lambda_function" "http" {
-  function_name = "brutalismbot-${var.env}-shared-http"
+  function_name = "${terraform.workspace}-shared-http"
 }
 
 ##############
@@ -27,7 +31,7 @@ data "aws_lambda_function" "http" {
 
 resource "aws_iam_role" "events" {
   name = "${local.region}-${local.name}-events"
-  tags = var.tags
+  tags = local.tags
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -56,14 +60,14 @@ resource "aws_cloudwatch_event_rule" "events" {
   description = "Capture state machine error events"
   name        = local.name
   state       = "ENABLED"
-  tags        = var.tags
+  tags        = local.tags
 
   event_pattern = jsonencode({
     source      = ["aws.states"]
     detail-type = ["Step Functions Execution Status Change"]
 
     detail = {
-      executionArn    = [{ prefix = "arn:aws:states:${local.region}:${local.account}:execution:brutalismbot-${var.env}-" }]
+      executionArn    = [{ prefix = "arn:aws:states:${local.region}:${local.account}:execution:${terraform.workspace}-" }]
       stateMachineArn = [{ anything-but = [aws_sfn_state_machine.states.arn] }]
       status          = ["FAILED", "TIMED_OUT"]
     }
@@ -83,7 +87,7 @@ resource "aws_cloudwatch_event_target" "events" {
 
 resource "aws_iam_role" "states" {
   name = "${local.region}-${local.name}-states"
-  tags = var.tags
+  tags = local.tags
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -120,10 +124,10 @@ resource "aws_iam_role" "states" {
 resource "aws_sfn_state_machine" "states" {
   name     = local.name
   role_arn = aws_iam_role.states.arn
-  tags     = var.tags
+  tags     = local.tags
 
   definition = jsonencode(yamldecode(templatefile("${path.module}/states.yml", {
-    channel_id        = var.channel_id
+    channel_id        = local.user_id
     http_function_arn = data.aws_lambda_function.http.arn
     param             = local.param
   })))

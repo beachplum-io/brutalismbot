@@ -17,8 +17,7 @@ class Home
   SCHEDULE_GROUP = ENV['SCHEDULE_GROUP']    || 'brutalismbot-blue'
 
   QUEUES = {
-    '/r/brutalism' => '/r/brutalism',
-    'backlog'      => 'backlog',
+    'r/brutalism' => '/r/brutalism',
   }
   RULES = {
     'Bluesky' => "#{EVENT_BUS_NAME}-bluesky-send-post",
@@ -27,7 +26,6 @@ class Home
   }
   SCHEDULES = {
     'Reddit'  => "#{SCHEDULE_GROUP}-reddit-pop",
-    'Backlog' => "#{SCHEDULE_GROUP}-reddit-pop-backlog",
   }
 
   TEMPLATE = File.read(File.expand_path('home.yml.erb', File.dirname(__FILE__)))

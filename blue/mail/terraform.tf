@@ -1,9 +1,3 @@
-#################
-#   VARIABLES   #
-#################
-
-variable "env" { type = string }
-
 ##############
 #   LOCALS   #
 ##############
@@ -12,10 +6,9 @@ locals {
   account = data.aws_caller_identity.current.account_id
   region  = data.aws_region.current.name
 
-  env   = var.env
   app   = basename(path.module)
-  name  = "brutalismbot-${local.env}-${local.app}"
-  param = "/brutalismbot/${local.env}/${local.app}/MAIL_TO"
+  name  = "${terraform.workspace}-${local.app}"
+  param = "/${replace(terraform.workspace, "-", "/")}/${local.app}/MAIL_TO"
   tags  = { "brutalismbot:app" = local.app }
 }
 
@@ -44,6 +37,7 @@ resource "aws_cloudwatch_log_group" "lambda" {
 
 resource "aws_iam_role" "lambda" {
   name = "${local.region}-${local.name}-lambda"
+  tags = local.tags
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -98,6 +92,7 @@ resource "aws_lambda_function" "lambda" {
   role             = aws_iam_role.lambda.arn
   runtime          = "ruby3.3"
   source_code_hash = data.archive_file.lambda.output_base64sha256
+  tags             = local.tags
   timeout          = 15
 
   environment {
@@ -122,6 +117,7 @@ resource "aws_lambda_permission" "mail" {
 resource "aws_s3_bucket" "mail" {
   bucket        = "${local.region}-${local.name}"
   force_destroy = true
+  tags          = local.tags
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "mail" {
@@ -189,6 +185,7 @@ resource "aws_ses_receipt_rule_set" "mail" {
 
 resource "aws_sns_topic" "mail" {
   name = local.name
+  tags = local.tags
 }
 
 resource "aws_sns_topic_subscription" "mail" {
@@ -203,6 +200,7 @@ resource "aws_sns_topic_subscription" "mail" {
 
 resource "aws_iam_role" "states" {
   name = "${local.region}-${local.name}-states"
+  tags = local.tags
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -232,4 +230,5 @@ resource "aws_sfn_state_machine" "states" {
   definition = jsonencode(yamldecode(file("${path.module}/states.yml")))
   name       = local.name
   role_arn   = aws_iam_role.states.arn
+  tags       = local.tags
 }

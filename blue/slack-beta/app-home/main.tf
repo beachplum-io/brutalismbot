@@ -6,8 +6,11 @@ locals {
   account = data.aws_caller_identity.current.account_id
   region  = data.aws_region.current.name
 
-  name  = "brutalismbot-${var.env}-${var.app}-app-home"
-  param = "/brutalismbot/${var.env}/${var.app}/SLACK_API_TOKEN"
+  app        = dirname(path.module)
+  name       = "${terraform.workspace}-${local.app}-${basename(path.module)}"
+  param_path = "/${replace(terraform.workspace, "-", "/")}/${local.app}/"
+  param      = "${local.param_path}SLACK_API_TOKEN"
+  tags       = { "brutalismbot:app" = local.app }
 }
 
 ############
@@ -18,15 +21,15 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_cloudwatch_event_bus" "bus" {
-  name = "brutalismbot-${var.env}"
+  name = terraform.workspace
 }
 
 data "aws_dynamodb_table" "table" {
-  name = "brutalismbot-${var.env}"
+  name = terraform.workspace
 }
 
 data "aws_lambda_function" "http" {
-  function_name = "brutalismbot-${var.env}-shared-http"
+  function_name = "${terraform.workspace}-shared-http"
 }
 
 ##############
@@ -35,7 +38,7 @@ data "aws_lambda_function" "http" {
 
 resource "aws_iam_role" "events" {
   name = "${local.region}-${local.name}-events"
-  tags = var.tags
+  tags = local.tags
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -66,7 +69,7 @@ resource "aws_cloudwatch_event_rule" "events" {
   event_bus_name = data.aws_cloudwatch_event_bus.bus.name
   name           = local.name
   state          = "ENABLED"
-  tags           = var.tags
+  tags           = local.tags
 
   event_pattern = jsonencode({
     source      = ["slack/beta"]
@@ -101,12 +104,12 @@ data "archive_file" "lambda" {
 resource "aws_cloudwatch_log_group" "lambda" {
   name              = "/aws/lambda/${aws_lambda_function.lambda.function_name}"
   retention_in_days = 14
-  tags              = var.tags
+  tags              = local.tags
 }
 
 resource "aws_iam_role" "lambda" {
   name = "${local.region}-${local.name}-lambda"
-  tags = var.tags
+  tags = local.tags
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -127,7 +130,7 @@ resource "aws_iam_role" "lambda" {
           Sid      = "DescribeRule"
           Effect   = "Allow"
           Action   = "events:DescribeRule"
-          Resource = "arn:aws:events:${local.region}:${local.account}:rule/brutalismbot-${var.env}/*"
+          Resource = "arn:aws:events:${local.region}:${local.account}:rule/${terraform.workspace}/*"
         },
         {
           Sid      = "GetItem"
@@ -140,7 +143,7 @@ resource "aws_iam_role" "lambda" {
           Sid      = "GetSchedule"
           Effect   = "Allow"
           Action   = "scheduler:GetSchedule"
-          Resource = "arn:aws:scheduler:${local.region}:${local.account}:schedule/brutalismbot-${var.env}/*"
+          Resource = "arn:aws:scheduler:${local.region}:${local.account}:schedule/${terraform.workspace}/*"
         },
         {
           Sid      = "Logs"
@@ -162,14 +165,14 @@ resource "aws_lambda_function" "lambda" {
   role             = aws_iam_role.lambda.arn
   runtime          = "ruby3.3"
   source_code_hash = data.archive_file.lambda.output_base64sha256
-  tags             = var.tags
+  tags             = local.tags
   timeout          = 10
 
   environment {
     variables = {
       TABLE_NAME     = data.aws_dynamodb_table.table.name
       EVENT_BUS_NAME = data.aws_cloudwatch_event_bus.bus.name
-      SCHEDULE_GROUP = "brutalismbot-${var.env}"
+      SCHEDULE_GROUP = terraform.workspace
     }
   }
 }
@@ -180,7 +183,7 @@ resource "aws_lambda_function" "lambda" {
 
 resource "aws_iam_role" "states" {
   name = "${local.region}-${local.name}-states"
-  tags = var.tags
+  tags = local.tags
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -220,7 +223,7 @@ resource "aws_iam_role" "states" {
 resource "aws_sfn_state_machine" "states" {
   name     = local.name
   role_arn = aws_iam_role.states.arn
-  tags     = var.tags
+  tags     = local.tags
 
   definition = jsonencode(yamldecode(templatefile("${path.module}/states.yml", {
     home_view_arn     = aws_lambda_function.lambda.arn

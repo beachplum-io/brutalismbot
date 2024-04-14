@@ -3,9 +3,13 @@
 ##############
 
 locals {
-  name    = "brutalismbot-${var.env}-${var.app}-enable"
   account = data.aws_caller_identity.current.account_id
   region  = data.aws_region.current.name
+
+  app        = dirname(path.module)
+  name       = "${terraform.workspace}-${local.app}-${basename(path.module)}"
+  param_path = "/${replace(terraform.workspace, "-", "/")}/${local.app}/"
+  tags       = { "brutalismbot:app" = local.app }
 }
 
 ############
@@ -16,11 +20,11 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_cloudwatch_event_bus" "bus" {
-  name = "brutalismbot-${var.env}"
+  name = terraform.workspace
 }
 
 data "aws_sfn_state_machine" "app-home" {
-  name = "brutalismbot-${var.env}-${var.app}-app-home"
+  name = "${terraform.workspace}-${local.app}-app-home"
 }
 
 ##############
@@ -29,7 +33,7 @@ data "aws_sfn_state_machine" "app-home" {
 
 resource "aws_iam_role" "events" {
   name = "${local.region}-${local.name}-events"
-  tags = var.tags
+  tags = local.tags
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -60,7 +64,7 @@ resource "aws_cloudwatch_event_rule" "events" {
   event_bus_name = data.aws_cloudwatch_event_bus.bus.name
   name           = local.name
   state          = "ENABLED"
-  tags           = var.tags
+  tags           = local.tags
 
   event_pattern = jsonencode({
     source      = ["slack/beta"]
@@ -92,7 +96,7 @@ resource "aws_cloudwatch_event_target" "events" {
 
 resource "aws_iam_role" "states" {
   name = "${local.region}-${local.name}-states"
-  tags = var.tags
+  tags = local.tags
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -113,7 +117,7 @@ resource "aws_iam_role" "states" {
           Sid      = "EnableRule"
           Effect   = "Allow"
           Action   = ["events:EnableRule"]
-          Resource = "arn:aws:events:${local.region}:${local.account}:rule/brutalismbot-${var.env}/*"
+          Resource = "arn:aws:events:${local.region}:${local.account}:rule/${terraform.workspace}/*"
         },
         {
           Sid    = "EnableSchedule"
@@ -124,8 +128,8 @@ resource "aws_iam_role" "states" {
             "scheduler:UpdateSchedule",
           ]
           Resource = [
-            "arn:aws:iam::${local.account}:role/${local.region}-brutalismbot-${var.env}-*",
-            "arn:aws:scheduler:${local.region}:${local.account}:schedule/brutalismbot-${var.env}/*",
+            "arn:aws:iam::${local.account}:role/${local.region}-${terraform.workspace}-*",
+            "arn:aws:scheduler:${local.region}:${local.account}:schedule/${terraform.workspace}/*",
           ]
         },
         {
@@ -142,7 +146,7 @@ resource "aws_iam_role" "states" {
 resource "aws_sfn_state_machine" "states" {
   name     = local.name
   role_arn = aws_iam_role.states.arn
-  tags     = var.tags
+  tags     = local.tags
 
   definition = jsonencode(yamldecode(templatefile("${path.module}/states.yml", {
     app_home_arn = data.aws_sfn_state_machine.app-home.arn

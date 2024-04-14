@@ -1,9 +1,3 @@
-#################
-#   VARIABLES   #
-#################
-
-variable "env" { type = string }
-
 ##############
 #   LOCALS   #
 ##############
@@ -11,8 +5,8 @@ variable "env" { type = string }
 locals {
   region = data.aws_region.current.name
 
-  env  = var.env
   app  = basename(path.module)
+  name = "${terraform.workspace}-${local.app}"
   tags = { "brutalismbot:app" = local.app }
 
   mime_map = {
@@ -49,7 +43,8 @@ data "aws_cloudfront_origin_access_identities" "website" {
 #################
 
 resource "aws_s3_bucket" "website" {
-  bucket = "${local.region}-brutalismbot-${local.env}-${local.app}"
+  bucket = "${local.region}-${terraform.workspace}-${local.app}"
+  tags   = local.tags
 }
 
 resource "aws_s3_bucket_public_access_block" "website" {
@@ -90,4 +85,5 @@ resource "aws_s3_object" "objects" {
   content_type = each.value.content_type
   source       = each.value.source
   source_hash  = filemd5(each.value.source)
+  tags         = local.tags
 }
