@@ -97,7 +97,7 @@ file 'table.local.json' => 'table.json' do |f|
             urls   = -> (x) { x['image_url'] }
             blocks = JSON.parse(item['JSON'])['blocks']
             enum.yield(
-              Id:         '/r/brutalism',
+              Id:         'r/brutalism',
               Kind:       'cursor/posts',
               LastUpdate: item['CREATED_UTC'],
               Title:      item['TITLE'],
@@ -105,7 +105,7 @@ file 'table.local.json' => 'table.json' do |f|
             )
           when 'STATS/MAX'
             enum.yield(
-              Id:         '/r/brutalism',
+              Id:         'r/brutalism',
               Kind:       'cursor/queue',
               LastUpdate: item['CREATED_UTC'],
               Name:       item['NAME'],
@@ -124,7 +124,7 @@ file 'table.local.json' => 'table.json' do |f|
               post.dig('preview', 'images').map(&urls)
             end
             enum.yield(
-              Id:         "/r/brutalism/#{item['GUID']}",
+              Id:         "r/brutalism/#{item['GUID']}",
               Kind:       "reddit/post",
               Status:     item['STATE'],
               LastUpdate: item['CREATED_UTC'],

@@ -31,7 +31,7 @@ States:
       TableName: ${table_name}
       Item:
         Id:
-          S.$: States.Format('/r/brutalism/{}', $.Name.S)
+          S.$: States.Format('r/brutalism/{}', $.Name.S)
         Kind:
           S: reddit/post
         ExecutionId:

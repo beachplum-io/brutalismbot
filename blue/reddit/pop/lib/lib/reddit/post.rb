@@ -51,7 +51,7 @@ module Reddit
 
     def to_item
       {
-        Id:         { S: "/r/brutalism/#{name}" },
+        Id:         { S: "r/brutalism/#{name}" },
         Kind:       { S: 'reddit/post' },
         Json:       { S: to_json },
         LastUpdate: { S: created_utc.iso8601 },

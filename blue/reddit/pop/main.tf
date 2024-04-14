@@ -82,7 +82,7 @@ resource "aws_iam_role" "lambda" {
 
 resource "aws_lambda_function" "lambda" {
   architectures    = ["arm64"]
-  description      = "Pop next post from /r/brutalism"
+  description      = "Pop next post from r/brutalism"
   filename         = data.archive_file.lambda.output_path
   function_name    = local.name
   handler          = "index.pop"
@@ -148,7 +148,7 @@ resource "aws_cloudwatch_event_rule" "events" {
       type = ["block_actions"]
       actions = {
         action_id = ["pop"]
-        value     = ["/r/brutalism"]
+        value     = ["r/brutalism"]
       }
     }
   })

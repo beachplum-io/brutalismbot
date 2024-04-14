@@ -10,7 +10,7 @@ class Screener < Struct.new('Screener', :channel, :text, :link, :images, :execut
   def self.images(text, media)
     media.map(&:first).each_with_index.map do |m, i|
       url   = m['u']
-      title = media.one? ? '/r/brutalism' : "/r/brutalism [#{i + 1}/#{media.count}]"
+      title = media.one? ? 'r/brutalism' : "r/brutalism [#{i + 1}/#{media.count}]"
       Image.new(url: url, alt: text, title: title)
     end
   end

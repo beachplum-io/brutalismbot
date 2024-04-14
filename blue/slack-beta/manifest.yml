@@ -1,8 +1,8 @@
 display_information:
   name: Brutalismbot Beta
-  description: Mirror posts from /r/brutalism
+  description: Mirror posts from r/brutalism
   background_color: "#2a2254"
-  long_description: "Brutalismbot mirrors posts from the /r/brutalism subreddit to a #channel of your choosing using incoming webhooks. Post frequency depends on the volume of new submissions to /r/brutalism. Typical volume is ~6 posts per day."
+  long_description: "Brutalismbot mirrors posts from the r/brutalism subreddit to a #channel of your choosing using incoming webhooks. Post frequency depends on the volume of new submissions to r/brutalism. Typical volume is ~6 posts per day."
 features:
   app_home:
     home_tab_enabled: true

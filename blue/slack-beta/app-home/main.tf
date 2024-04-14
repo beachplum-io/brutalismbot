@@ -137,7 +137,7 @@ resource "aws_iam_role" "lambda" {
           Effect   = "Allow"
           Action   = "dynamodb:GetItem"
           Resource = data.aws_dynamodb_table.table.arn
-          # Condition = { "ForAllValues:StringEquals" = { "dynamodb:LeadingKeys" = ["backlog", "/r/brutalism"] } }
+          # Condition = { "ForAllValues:StringEquals" = { "dynamodb:LeadingKeys" = ["backlog", "r/brutalism"] } }
         },
         {
           Sid      = "GetSchedule"

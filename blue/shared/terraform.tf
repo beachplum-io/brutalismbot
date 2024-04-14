@@ -88,7 +88,7 @@ resource "aws_dynamodb_table_item" "cursor" {
   range_key  = aws_dynamodb_table.table.range_key
 
   item = jsonencode({
-    Id                 = { S = "/r/brutalism" }
+    Id                 = { S = "r/brutalism" }
     Kind               = { S = "cursor" }
     ExclusiveStartTime = { S = "1970-01-01:00:00:00Z" }
   })

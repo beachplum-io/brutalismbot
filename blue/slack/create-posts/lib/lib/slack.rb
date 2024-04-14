@@ -32,7 +32,7 @@ module Slack
     images  = media.map(&:first).each_with_index.map do |m, i|
       url   = m['u']
       alt   = text
-      title = media.one? ? '/r/brutalism' : "/r/brutalism [#{i + 1}/#{media.count}]"
+      title = media.one? ? 'r/brutalism' : "r/brutalism [#{i + 1}/#{media.count}]"
       Block.image(image_url: url, alt_text: alt, title: title.plain_text)
     end
 

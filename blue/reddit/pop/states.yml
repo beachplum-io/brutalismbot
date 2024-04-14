@@ -9,7 +9,7 @@ States:
       TableName: ${table_name}
       Key:
         Id:
-          S: /r/brutalism
+          S: r/brutalism
         Kind:
           S: cursor
       ProjectionExpression: LastUpdate
@@ -44,7 +44,7 @@ States:
           Value.$: $.QueueSize
           Dimensions:
             - Name: QueueName
-              Value: /r/brutalism
+              Value: r/brutalism
     Retry:
       - BackoffRate: 2
         IntervalSeconds: 3
@@ -67,7 +67,7 @@ States:
       TableName: ${table_name}
       Key:
         Id:
-          S: /r/brutalism
+          S: r/brutalism
         Kind:
           S: cursor
       UpdateExpression: >-
@@ -104,7 +104,7 @@ States:
       TableName: ${table_name}
       Key:
         Id:
-          S: /r/brutalism
+          S: r/brutalism
         Kind:
           S: cursor
       UpdateExpression: >-

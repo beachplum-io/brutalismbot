@@ -54,7 +54,7 @@ class Bluesky
           :uri     => link,
         }],
         :index => {
-          :byteStart => text.bytes.length - '/r/brutalism'.bytes.length,
+          :byteStart => text.bytes.length - 'r/brutalism'.bytes.length,
           :byteEnd   => text.bytes.length,
         }
       }] unless text.nil?
