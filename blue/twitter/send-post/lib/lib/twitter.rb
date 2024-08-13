@@ -88,7 +88,7 @@ class Twitter
 
     # Upload images
     images.each_with_index.map do |image, i|
-      Tempfile.open do |tempfile|
+      Tempfile.open('twitter-', '/tmp') do |tempfile|
         tempfile.write(image.body)
         tempfile.rewind
 
