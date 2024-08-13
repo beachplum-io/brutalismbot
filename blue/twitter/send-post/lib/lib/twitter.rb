@@ -45,7 +45,6 @@ class Twitter
       data[:text]  = text || ''
       data[:media] = { media_ids: } if media_ids.any?
       logger.info "POST #{ data.to_json }"
-      binding.irb
       tweet = client.post('tweets', data.to_json)
 
       raise TwitterError, tweet.to_json unless tweet['data']
@@ -96,7 +95,6 @@ class Twitter
         media_category = 'tweet_image'
 
         logger.info "UPLOAD [#{i + 1}/#{images.count}]"
-        binding.irb
         X::MediaUploader.upload(client:, file_path:, media_category:)
       end
     end
