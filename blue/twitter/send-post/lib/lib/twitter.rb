@@ -94,7 +94,7 @@ class Twitter
         file_path      = tempfile.path
         media_category = 'tweet_image'
 
-        logger.info "UPLOAD [#{i + 1}/#{images.count}]"
+        logger.info "UPLOAD #{file_path} [#{i + 1}/#{images.count}]"
         X::MediaUploader.upload(client:, file_path:, media_category:)
       end
     end
