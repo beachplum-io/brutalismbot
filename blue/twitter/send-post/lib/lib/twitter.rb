@@ -75,14 +75,14 @@ class Twitter
 
   def upload(*media)
     # Fetch images
-    images = media.map do |sizes|
-      Enumerator.new do |enum|
-        sizes.map do |size|
-          url = size['u']
-          img = fetch(url)
-          enum.yield(img) if img['content-length'].to_i <= MAX_IMAGE
-        end
-      end.first
+    images = media.flat_map do |sizes|
+      sizes.filter_map do |size|
+        url = size['u']
+        img = fetch(url)
+        img if img['content-length'].to_i <= MAX_IMAGE
+      end.max_by do |img|
+        img['content-length'].to_i
+      end
     end
 
     # Upload images
