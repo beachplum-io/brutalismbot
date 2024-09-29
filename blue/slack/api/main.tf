@@ -125,33 +125,35 @@ resource "aws_iam_role" "lambda" {
       Principal = { Service = "lambda.amazonaws.com" }
     }
   })
+}
 
-  inline_policy {
-    name = "access"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Sid      = "Logs"
-          Effect   = "Allow"
-          Action   = "logs:*"
-          Resource = "*"
-        },
-        {
-          Sid      = "PutEvents"
-          Effect   = "Allow"
-          Action   = "events:PutEvents"
-          Resource = data.aws_cloudwatch_event_bus.bus.arn
-        },
-        {
-          Sid      = "GetParams"
-          Effect   = "Allow"
-          Action   = "ssm:GetParametersByPath"
-          Resource = "arn:aws:ssm:${local.region}:${local.account}:parameter${local.param_path}"
-        }
-      ]
-    })
-  }
+resource "aws_iam_role_policy" "lambda" {
+  name = "access"
+  role = aws_iam_role.lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "Logs"
+        Effect   = "Allow"
+        Action   = "logs:*"
+        Resource = "*"
+      },
+      {
+        Sid      = "PutEvents"
+        Effect   = "Allow"
+        Action   = "events:PutEvents"
+        Resource = data.aws_cloudwatch_event_bus.bus.arn
+      },
+      {
+        Sid      = "GetParams"
+        Effect   = "Allow"
+        Action   = "ssm:GetParametersByPath"
+        Resource = "arn:aws:ssm:${local.region}:${local.account}:parameter${local.param_path}"
+      }
+    ]
+  })
 }
 
 resource "aws_lambda_function" "lambda" {

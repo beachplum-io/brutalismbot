@@ -41,19 +41,21 @@ resource "aws_iam_role" "events" {
       Principal = { Service = "events.amazonaws.com" }
     }
   })
+}
 
-  inline_policy {
-    name = "access"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = {
-        Sid      = "StartExecution"
-        Effect   = "Allow"
-        Action   = "states:StartExecution"
-        Resource = aws_sfn_state_machine.states.arn
-      }
-    })
-  }
+resource "aws_iam_role_policy" "events" {
+  name = "access"
+  role = aws_iam_role.events.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = {
+      Sid      = "StartExecution"
+      Effect   = "Allow"
+      Action   = "states:StartExecution"
+      Resource = aws_sfn_state_machine.states.arn
+    }
+  })
 }
 
 resource "aws_cloudwatch_event_rule" "events" {
@@ -98,27 +100,29 @@ resource "aws_iam_role" "states" {
       Principal = { Service = "states.amazonaws.com" }
     }
   })
+}
 
-  inline_policy {
-    name = "access"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Sid      = "GetToken"
-          Effect   = "Allow"
-          Action   = "ssm:GetParameter"
-          Resource = "arn:aws:ssm:${local.region}:${local.account}:parameter${local.param}"
-        },
-        {
-          Sid      = "PostSlack"
-          Effect   = "Allow"
-          Action   = "lambda:InvokeFunction"
-          Resource = data.aws_lambda_function.http.arn
-        }
-      ]
-    })
-  }
+resource "aws_iam_role_policy" "states" {
+  name = "access"
+  role = aws_iam_role.states.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "GetToken"
+        Effect   = "Allow"
+        Action   = "ssm:GetParameter"
+        Resource = "arn:aws:ssm:${local.region}:${local.account}:parameter${local.param}"
+      },
+      {
+        Sid      = "PostSlack"
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
+        Resource = data.aws_lambda_function.http.arn
+      }
+    ]
+  })
 }
 
 resource "aws_sfn_state_machine" "states" {

@@ -43,19 +43,21 @@ resource "aws_iam_role" "events" {
       Principal = { Service = "events.amazonaws.com" }
     }
   })
+}
 
-  inline_policy {
-    name = "access"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = {
-        Sid      = "StartExecution"
-        Effect   = "Allow"
-        Action   = "states:StartExecution"
-        Resource = aws_sfn_state_machine.states.arn
-      }
-    })
-  }
+resource "aws_iam_role_policy" "events" {
+  name = "access"
+  role = aws_iam_role.events.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = {
+      Sid      = "StartExecution"
+      Effect   = "Allow"
+      Action   = "states:StartExecution"
+      Resource = aws_sfn_state_machine.states.arn
+    }
+  })
 }
 
 resource "aws_cloudwatch_event_rule" "events" {
@@ -104,19 +106,21 @@ resource "aws_iam_role" "scheduler" {
       Principal = { Service = "scheduler.amazonaws.com" }
     }
   })
+}
 
-  inline_policy {
-    name = "access"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = {
-        Sid      = "StartExecution"
-        Effect   = "Allow"
-        Action   = "states:StartExecution"
-        Resource = aws_sfn_state_machine.states.arn
-      }
-    })
-  }
+resource "aws_iam_role_policy" "scheduler" {
+  name = "access"
+  role = aws_iam_role.scheduler.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = {
+      Sid      = "StartExecution"
+      Effect   = "Allow"
+      Action   = "states:StartExecution"
+      Resource = aws_sfn_state_machine.states.arn
+    }
+  })
 }
 
 resource "aws_scheduler_schedule" "scheduler" {
@@ -156,35 +160,37 @@ resource "aws_iam_role" "states" {
       Principal = { Service = "states.amazonaws.com" }
     }
   })
+}
 
-  inline_policy {
-    name = "access"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Sid      = "CloudWatch"
-          Effect   = "Allow"
-          Action   = "cloudwatch:PutMetricData"
-          Resource = "*"
-        },
-        {
-          Sid    = "DynamoDB"
-          Effect = "Allow"
-          Action = [
-            "dynamodb:DeleteItem",
-            "dynamodb:PutItem",
-            "dynamodb:Query",
-            "dynamodb:UpdateItem",
-          ]
-          Resource = [
-            data.aws_dynamodb_table.table.arn,
-            "${data.aws_dynamodb_table.table.arn}/index/Kind",
-          ]
-        }
-      ]
-    })
-  }
+resource "aws_iam_role_policy" "states" {
+  name = "access"
+  role = aws_iam_role.states.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "CloudWatch"
+        Effect   = "Allow"
+        Action   = "cloudwatch:PutMetricData"
+        Resource = "*"
+      },
+      {
+        Sid    = "DynamoDB"
+        Effect = "Allow"
+        Action = [
+          "dynamodb:DeleteItem",
+          "dynamodb:PutItem",
+          "dynamodb:Query",
+          "dynamodb:UpdateItem",
+        ]
+        Resource = [
+          data.aws_dynamodb_table.table.arn,
+          "${data.aws_dynamodb_table.table.arn}/index/Kind",
+        ]
+      }
+    ]
+  })
 }
 
 resource "aws_sfn_state_machine" "states" {

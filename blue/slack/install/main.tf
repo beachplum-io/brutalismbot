@@ -41,20 +41,23 @@ resource "aws_iam_role" "events" {
       Principal = { Service = "events.amazonaws.com" }
     }
   })
-
-  inline_policy {
-    name = "access"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = {
-        Sid      = "StartExecution"
-        Effect   = "Allow"
-        Action   = "states:StartExecution"
-        Resource = aws_sfn_state_machine.states.arn
-      }
-    })
-  }
 }
+
+resource "aws_iam_role_policy" "events" {
+  name = "access"
+  role = aws_iam_role.events.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = {
+      Sid      = "StartExecution"
+      Effect   = "Allow"
+      Action   = "states:StartExecution"
+      Resource = aws_sfn_state_machine.states.arn
+    }
+  })
+}
+
 
 resource "aws_cloudwatch_event_rule" "events" {
   description    = "Handle Slack installation events"
@@ -94,20 +97,23 @@ resource "aws_iam_role" "states" {
       Principal = { Service = "states.amazonaws.com" }
     }
   })
-
-  inline_policy {
-    name = "access"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = {
-        Sid      = "PutItem"
-        Effect   = "Allow"
-        Action   = "dynamodb:PutItem"
-        Resource = data.aws_dynamodb_table.table.arn
-      }
-    })
-  }
 }
+
+resource "aws_iam_role_policy" "states" {
+  name = "access"
+  role = aws_iam_role.states.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = {
+      Sid      = "PutItem"
+      Effect   = "Allow"
+      Action   = "dynamodb:PutItem"
+      Resource = data.aws_dynamodb_table.table.arn
+    }
+  })
+}
+
 
 resource "aws_sfn_state_machine" "states" {
   name     = local.name

@@ -43,20 +43,23 @@ resource "aws_iam_role" "events" {
       Principal = { Service = "events.amazonaws.com" }
     }
   })
-
-  inline_policy {
-    name = "access"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = {
-        Sid      = "StartExecution"
-        Effect   = "Allow"
-        Action   = "states:StartExecution"
-        Resource = aws_sfn_state_machine.states.arn
-      }
-    })
-  }
 }
+
+resource "aws_iam_role_policy" "events" {
+  name = "access"
+  role = aws_iam_role.events.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = {
+      Sid      = "StartExecution"
+      Effect   = "Allow"
+      Action   = "states:StartExecution"
+      Resource = aws_sfn_state_machine.states.arn
+    }
+  })
+}
+
 
 resource "aws_cloudwatch_event_rule" "events" {
   description    = "Capture approved reddit posts to send to Slack"
@@ -151,20 +154,22 @@ resource "aws_iam_role" "lambda" {
       Principal = { Service = "lambda.amazonaws.com" }
     }
   })
-
-  inline_policy {
-    name = "access"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = {
-        Sid      = "Logs"
-        Effect   = "Allow"
-        Action   = "logs:*"
-        Resource = "*"
-      }
-    })
-  }
 }
+
+resource "aws_iam_role_policy" "lambda" {
+  name = "access"
+  role = aws_iam_role.lambda.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = {
+      Sid      = "Logs"
+      Effect   = "Allow"
+      Action   = "logs:*"
+      Resource = "*"
+    }
+  })
+}
+
 
 resource "aws_lambda_function" "lambda" {
   architectures    = ["arm64"]
@@ -195,39 +200,41 @@ resource "aws_iam_role" "states" {
       Principal = { Service = "states.amazonaws.com" }
     }
   })
+}
 
-  inline_policy {
-    name = "access"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Sid      = "InvokeFunction"
-          Effect   = "Allow"
-          Action   = "lambda:InvokeFunction"
-          Resource = aws_lambda_function.lambda.arn
-        },
-        {
-          Sid      = "PutItem"
-          Effect   = "Allow"
-          Action   = "dynamodb:PutItem"
-          Resource = data.aws_dynamodb_table.table.arn
-        },
-        {
-          Sid      = "QueryKind"
-          Effect   = "Allow"
-          Action   = "dynamodb:Query"
-          Resource = "${data.aws_dynamodb_table.table.arn}/index/Kind"
-        },
-        {
-          Sid      = "StartSelf"
-          Effect   = "Allow"
-          Action   = "states:StartExecution"
-          Resource = "arn:aws:states:${local.region}:${local.account}:stateMachine:${local.name}"
-        }
-      ]
-    })
-  }
+resource "aws_iam_role_policy" "states" {
+  name = "access"
+  role = aws_iam_role.states.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "InvokeFunction"
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
+        Resource = aws_lambda_function.lambda.arn
+      },
+      {
+        Sid      = "PutItem"
+        Effect   = "Allow"
+        Action   = "dynamodb:PutItem"
+        Resource = data.aws_dynamodb_table.table.arn
+      },
+      {
+        Sid      = "QueryKind"
+        Effect   = "Allow"
+        Action   = "dynamodb:Query"
+        Resource = "${data.aws_dynamodb_table.table.arn}/index/Kind"
+      },
+      {
+        Sid      = "StartSelf"
+        Effect   = "Allow"
+        Action   = "states:StartExecution"
+        Resource = "arn:aws:states:${local.region}:${local.account}:stateMachine:${local.name}"
+      }
+    ]
+  })
 }
 
 resource "aws_sfn_state_machine" "states" {

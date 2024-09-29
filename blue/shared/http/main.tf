@@ -45,19 +45,21 @@ resource "aws_iam_role" "role" {
       Principal = { Service = "lambda.amazonaws.com" }
     }
   })
+}
 
-  inline_policy {
-    name = "access"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = {
-        Sid      = "Logs"
-        Effect   = "Allow"
-        Action   = "logs:*"
-        Resource = "*"
-      }
-    })
-  }
+resource "aws_iam_role_policy" "policy" {
+  name = "access"
+  role = aws_iam_role.role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = {
+      Sid      = "Logs"
+      Effect   = "Allow"
+      Action   = "logs:*"
+      Resource = "*"
+    }
+  })
 }
 
 resource "aws_lambda_function" "function" {

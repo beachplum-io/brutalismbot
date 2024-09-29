@@ -44,19 +44,21 @@ resource "aws_iam_role" "events" {
       Principal = { Service = "events.amazonaws.com" }
     }
   })
+}
 
-  inline_policy {
-    name = "access"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = {
-        Sid      = "StartExecution"
-        Effect   = "Allow"
-        Action   = "states:StartExecution"
-        Resource = aws_sfn_state_machine.states.arn
-      }
-    })
-  }
+resource "aws_iam_role_policy" "events" {
+  name = "access"
+  role = aws_iam_role.events.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = {
+      Sid      = "StartExecution"
+      Effect   = "Allow"
+      Action   = "states:StartExecution"
+      Resource = aws_sfn_state_machine.states.arn
+    }
+  })
 }
 
 resource "aws_cloudwatch_event_rule" "events" {
@@ -107,40 +109,42 @@ resource "aws_iam_role" "states" {
       Principal = { Service = "states.amazonaws.com" }
     }
   })
+}
 
-  inline_policy {
-    name = "access"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Sid      = "EnableRule"
-          Effect   = "Allow"
-          Action   = ["events:EnableRule"]
-          Resource = "arn:aws:events:${local.region}:${local.account}:rule/${terraform.workspace}/*"
-        },
-        {
-          Sid    = "EnableSchedule"
-          Effect = "Allow"
-          Action = [
-            "iam:PassRole",
-            "scheduler:GetSchedule",
-            "scheduler:UpdateSchedule",
-          ]
-          Resource = [
-            "arn:aws:iam::${local.account}:role/${local.region}-${terraform.workspace}-*",
-            "arn:aws:scheduler:${local.region}:${local.account}:schedule/${terraform.workspace}/*",
-          ]
-        },
-        {
-          Sid      = "StartExecution"
-          Effect   = "Allow"
-          Action   = "states:StartExecution"
-          Resource = data.aws_sfn_state_machine.app-home.arn
-        }
-      ]
-    })
-  }
+resource "aws_iam_role_policy" "states" {
+  name = "access"
+  role = aws_iam_role.states.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "EnableRule"
+        Effect   = "Allow"
+        Action   = ["events:EnableRule"]
+        Resource = "arn:aws:events:${local.region}:${local.account}:rule/${terraform.workspace}/*"
+      },
+      {
+        Sid    = "EnableSchedule"
+        Effect = "Allow"
+        Action = [
+          "iam:PassRole",
+          "scheduler:GetSchedule",
+          "scheduler:UpdateSchedule",
+        ]
+        Resource = [
+          "arn:aws:iam::${local.account}:role/${local.region}-${terraform.workspace}-*",
+          "arn:aws:scheduler:${local.region}:${local.account}:schedule/${terraform.workspace}/*",
+        ]
+      },
+      {
+        Sid      = "StartExecution"
+        Effect   = "Allow"
+        Action   = "states:StartExecution"
+        Resource = data.aws_sfn_state_machine.app-home.arn
+      }
+    ]
+  })
 }
 
 resource "aws_sfn_state_machine" "states" {

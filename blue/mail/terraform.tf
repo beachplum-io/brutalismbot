@@ -48,39 +48,41 @@ resource "aws_iam_role" "lambda" {
       Principal = { Service = "lambda.amazonaws.com" }
     }
   })
+}
 
-  inline_policy {
-    name = "access"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Sid      = "Logs"
-          Effect   = "Allow"
-          Action   = "logs:*"
-          Resource = "*"
-        },
-        {
-          Sid      = "GetParameter"
-          Effect   = "Allow"
-          Action   = "ssm:GetParameter"
-          Resource = "arn:aws:ssm:${local.region}:${local.account}:parameter${local.param}"
-        },
-        {
-          Sid      = "S3"
-          Effect   = "Allow"
-          Action   = "s3:GetObject"
-          Resource = "${aws_s3_bucket.mail.arn}/*"
-        },
-        {
-          Sid      = "StepFunctions"
-          Effect   = "Allow"
-          Action   = "states:StartExecution"
-          Resource = aws_sfn_state_machine.states.arn
-        }
-      ]
-    })
-  }
+resource "aws_iam_role_policy" "lambda" {
+  name = "access"
+  role = aws_iam_role.lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "Logs"
+        Effect   = "Allow"
+        Action   = "logs:*"
+        Resource = "*"
+      },
+      {
+        Sid      = "GetParameter"
+        Effect   = "Allow"
+        Action   = "ssm:GetParameter"
+        Resource = "arn:aws:ssm:${local.region}:${local.account}:parameter${local.param}"
+      },
+      {
+        Sid      = "S3"
+        Effect   = "Allow"
+        Action   = "s3:GetObject"
+        Resource = "${aws_s3_bucket.mail.arn}/*"
+      },
+      {
+        Sid      = "StepFunctions"
+        Effect   = "Allow"
+        Action   = "states:StartExecution"
+        Resource = aws_sfn_state_machine.states.arn
+      }
+    ]
+  })
 }
 
 resource "aws_lambda_function" "lambda" {
@@ -211,19 +213,21 @@ resource "aws_iam_role" "states" {
       Principal = { Service = "states.amazonaws.com" }
     }
   })
+}
 
-  inline_policy {
-    name = "access"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = {
-        Sid      = "SendEmail"
-        Effect   = "Allow"
-        Action   = "ses:SendEmail"
-        Resource = "*"
-      }
-    })
-  }
+resource "aws_iam_role_policy" "states" {
+  name = "access"
+  role = aws_iam_role.states.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = {
+      Sid      = "SendEmail"
+      Effect   = "Allow"
+      Action   = "ses:SendEmail"
+      Resource = "*"
+    }
+  })
 }
 
 resource "aws_sfn_state_machine" "states" {

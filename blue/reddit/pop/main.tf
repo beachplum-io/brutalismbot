@@ -57,27 +57,29 @@ resource "aws_iam_role" "lambda" {
       Principal = { Service = "lambda.amazonaws.com" }
     }
   })
+}
 
-  inline_policy {
-    name = "access"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Sid      = "Logs"
-          Effect   = "Allow"
-          Action   = "logs:*"
-          Resource = "*"
-        },
-        {
-          Sid      = "GetParams"
-          Effect   = "Allow"
-          Action   = "ssm:GetParametersByPath"
-          Resource = "arn:aws:ssm:${local.region}:${local.account}:parameter${local.param_path}"
-        }
-      ]
-    })
-  }
+resource "aws_iam_role_policy" "lambda" {
+  name = "access"
+  role = aws_iam_role.lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "Logs"
+        Effect   = "Allow"
+        Action   = "logs:*"
+        Resource = "*"
+      },
+      {
+        Sid      = "GetParams"
+        Effect   = "Allow"
+        Action   = "ssm:GetParametersByPath"
+        Resource = "arn:aws:ssm:${local.region}:${local.account}:parameter${local.param_path}"
+      }
+    ]
+  })
 }
 
 resource "aws_lambda_function" "lambda" {
@@ -118,20 +120,23 @@ resource "aws_iam_role" "events" {
       Principal = { Service = "events.amazonaws.com" }
     }
   })
-
-  inline_policy {
-    name = "access"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = {
-        Sid      = "StartExecution"
-        Effect   = "Allow"
-        Action   = "states:StartExecution"
-        Resource = aws_sfn_state_machine.states.arn
-      }
-    })
-  }
 }
+
+resource "aws_iam_role_policy" "events" {
+  name = "access"
+  role = aws_iam_role.events.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = {
+      Sid      = "StartExecution"
+      Effect   = "Allow"
+      Action   = "states:StartExecution"
+      Resource = aws_sfn_state_machine.states.arn
+    }
+  })
+}
+
 
 resource "aws_cloudwatch_event_rule" "events" {
   description    = "Capture delete_me Slack callback"
@@ -179,19 +184,21 @@ resource "aws_iam_role" "scheduler" {
       Principal = { Service = "scheduler.amazonaws.com" }
     }
   })
+}
 
-  inline_policy {
-    name = "access"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = {
-        Sid      = "StartExecution"
-        Effect   = "Allow"
-        Action   = "states:StartExecution"
-        Resource = aws_sfn_state_machine.states.arn
-      }
-    })
-  }
+resource "aws_iam_role_policy" "scheduler" {
+  name = "access"
+  role = aws_iam_role.scheduler.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = {
+      Sid      = "StartExecution"
+      Effect   = "Allow"
+      Action   = "states:StartExecution"
+      Resource = aws_sfn_state_machine.states.arn
+    }
+  })
 }
 
 resource "aws_scheduler_schedule" "scheduler" {
@@ -231,37 +238,39 @@ resource "aws_iam_role" "states" {
       Principal = { Service = "states.amazonaws.com" }
     }
   })
+}
 
-  inline_policy {
-    name = "access"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Sid      = "CloudWatch"
-          Effect   = "Allow"
-          Action   = "cloudwatch:PutMetricData"
-          Resource = "*"
-        },
-        {
-          Sid      = "DynamoDB"
-          Effect   = "Allow"
-          Resource = data.aws_dynamodb_table.table.arn
-          Action = [
-            "dynamodb:GetItem",
-            "dynamodb:PutItem",
-            "dynamodb:UpdateItem",
-          ]
-        },
-        {
-          Sid      = "Lambda"
-          Effect   = "Allow"
-          Action   = "lambda:InvokeFunction"
-          Resource = aws_lambda_function.lambda.arn
-        }
-      ]
-    })
-  }
+resource "aws_iam_role_policy" "states" {
+  name = "access"
+  role = aws_iam_role.states.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "CloudWatch"
+        Effect   = "Allow"
+        Action   = "cloudwatch:PutMetricData"
+        Resource = "*"
+      },
+      {
+        Sid      = "DynamoDB"
+        Effect   = "Allow"
+        Resource = data.aws_dynamodb_table.table.arn
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+        ]
+      },
+      {
+        Sid      = "Lambda"
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
+        Resource = aws_lambda_function.lambda.arn
+      }
+    ]
+  })
 }
 
 resource "aws_sfn_state_machine" "states" {

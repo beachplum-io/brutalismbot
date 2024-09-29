@@ -114,37 +114,39 @@ resource "aws_iam_role" "pipes" {
       Principal = { Service = "pipes.amazonaws.com" }
     }
   })
+}
 
-  inline_policy {
-    name = "access"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Sid      = "DynamoDBListStreams"
-          Effect   = "Allow"
-          Action   = "dynamodb:ListStreams"
-          Resource = "*"
-        },
-        {
-          Sid      = "DynamoDBStreams"
-          Effect   = "Allow"
-          Resource = aws_dynamodb_table.table.stream_arn
-          Action = [
-            "dynamodb:DescribeStream",
-            "dynamodb:GetRecords",
-            "dynamodb:GetShardIterator",
-          ]
-        },
-        {
-          Sid      = "PutEvents"
-          Effect   = "Allow"
-          Action   = "events:PutEvents"
-          Resource = aws_cloudwatch_event_bus.bus.arn
-        }
-      ]
-    })
-  }
+resource "aws_iam_role_policy" "pipes" {
+  name = "access"
+  role = aws_iam_role.pipes.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "DynamoDBListStreams"
+        Effect   = "Allow"
+        Action   = "dynamodb:ListStreams"
+        Resource = "*"
+      },
+      {
+        Sid      = "DynamoDBStreams"
+        Effect   = "Allow"
+        Resource = aws_dynamodb_table.table.stream_arn
+        Action = [
+          "dynamodb:DescribeStream",
+          "dynamodb:GetRecords",
+          "dynamodb:GetShardIterator",
+        ]
+      },
+      {
+        Sid      = "PutEvents"
+        Effect   = "Allow"
+        Action   = "events:PutEvents"
+        Resource = aws_cloudwatch_event_bus.bus.arn
+      }
+    ]
+  })
 }
 
 resource "aws_pipes_pipe" "pipes" {
