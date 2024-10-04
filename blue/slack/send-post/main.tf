@@ -55,20 +55,12 @@ resource "aws_iam_role_policy" "events" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
-      {
-        Sid      = "InvokeFunction"
-        Effect   = "Allow"
-        Action   = "lambda:InvokeFunction"
-        Resource = data.aws_lambda_function.http.arn
-      },
-      {
-        Sid      = "UpdateItem"
-        Effect   = "Allow"
-        Action   = "dynamodb:UpdateItem"
-        Resource = data.aws_dynamodb_table.table.arn
-      }
-    ]
+    Statement = {
+      Sid      = "StartExecution"
+      Effect   = "Allow"
+      Action   = "states:StartExecution"
+      Resource = aws_sfn_state_machine.states.arn
+    }
   })
 }
 
