@@ -57,28 +57,38 @@ resource "aws_dynamodb_table" "table" {
   read_capacity  = 0
   write_capacity = 0
 
-  attribute {
-    name = "Id"
-    type = "S"
-  }
-
-  attribute {
-    name = "Kind"
-    type = "S"
-  }
-
   ttl {
     attribute_name = "TTL"
     enabled        = true
   }
 
-  global_secondary_index {
-    name            = "Kind"
-    hash_key        = "Kind"
-    range_key       = "Id"
-    projection_type = "ALL"
-    read_capacity   = 0
-    write_capacity  = 0
+  dynamic "attribute" {
+    for_each = {
+      Id   = "S"
+      Kind = "S"
+      Name = "S"
+    }
+
+    content {
+      name = attribute.key
+      type = attribute.value
+    }
+  }
+
+  dynamic "global_secondary_index" {
+    for_each = {
+      Kind = "Id"
+      Name = "Id"
+    }
+
+    content {
+      name            = global_secondary_index.key
+      hash_key        = global_secondary_index.key
+      range_key       = global_secondary_index.value
+      projection_type = "ALL"
+      read_capacity   = 0
+      write_capacity  = 0
+    }
   }
 }
 
