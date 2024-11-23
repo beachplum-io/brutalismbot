@@ -63,7 +63,7 @@ resource "aws_cloudwatch_event_rule" "events" {
   description    = "Capture approved reddit posts to tweet"
   event_bus_name = data.aws_cloudwatch_event_bus.bus.name
   name           = local.name
-  state          = "ENABLED"
+  state          = "DISABLED"
   tags           = local.tags
 
   event_pattern = jsonencode({
