@@ -22,7 +22,6 @@ class Home
   RULES = {
     'Bluesky' => "#{EVENT_BUS_NAME}-bluesky-send-post",
     'Slack'   => "#{EVENT_BUS_NAME}-slack-send-post",
-    'Twitter' => "#{EVENT_BUS_NAME}-twitter-send-post",
   }
   SCHEDULES = {
     'Reddit' => "#{SCHEDULE_GROUP}-reddit-pop",
