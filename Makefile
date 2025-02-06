@@ -1,5 +1,5 @@
-GEMFILES  ?= $(shell find . -name Gemfile -maxdepth 5 | sort)
-LOCKFILES ?= $(foreach GEMFILE,$(GEMFILES),$(GEMFILE).lock)
+GEMFILES  ?= $(shell git ls-tree -r --name-only @ | grep Gemfile$)
+LOCKFILES ?= $(shell git ls-tree -r --name-only @ | grep Gemfile.lock$)
 
 .PHONY: blue build clean global logs
 
@@ -7,6 +7,7 @@ blue:
 	terraform -chdir=$@ apply
 
 build: $(LOCKFILES)
+	docker compose down --rmi local
 
 clean:
 	find . -type d -name vendor | xargs rm -rf
@@ -18,5 +19,5 @@ logs:
 	aws logs tail --follow $(shell aws logs describe-log-groups | jq -r '.logGroups[].logGroupName' | grep brutalismbot | fzf --no-info --reverse --sync --height 10%)
 
 $(LOCKFILES): %.lock: % .ruby-version
-	BUNDLE_APP_CONFIG=$(PWD)/.bundle BUNDLE_GEMFILE=$< bundle update
-	BUNDLE_APP_CONFIG=$(PWD)/.bundle BUNDLE_GEMFILE=$< bundle install
+	BUNDLE=$(shell dirname $<) docker compose run --rm build update
+	BUNDLE=$(shell dirname $<) docker compose run --rm build install

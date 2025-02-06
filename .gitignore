@@ -12,6 +12,7 @@
 *.zip
 
 # ruby
+.bundle/cache
 vendor/
 .rspec_status
 *.json
