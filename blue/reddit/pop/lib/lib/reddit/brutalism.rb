@@ -41,9 +41,14 @@ module Reddit
         http.request(req)
       end
 
-      res.body.to_h_from_json.symbolize_names.dig(:data, :children).each do |child|
-        post = Post.new child[:data]
-        yield post if post.media_urls.any?
+      begin
+        res.body.to_h_from_json.symbolize_names.dig(:data, :children).each do |child|
+          post = Post.new child[:data]
+          yield post if post.media_urls.any?
+        end
+      rescue
+        logger.error(res.body)
+        raise
       end
     end
 
