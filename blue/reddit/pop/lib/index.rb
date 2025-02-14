@@ -16,3 +16,27 @@ handler :pop do |event|
 
   { QueueSize: queue.size, NextPost: post&.to_item }.compact
 end
+
+############################
+#   RE-AUTHORIZING STEPS   #
+############################
+#
+# https://www.reddit.com/prefs/apps
+#
+# client_id=<client_id>
+# client_secret=<client_secret>
+# state=Brutalismbot
+# redirect_uri=https://www.brutalismbot.com/
+# duration=permanent
+# scope=read
+#
+# open "https://www.reddit.com/api/v1/authorize?client_id=$client_id&response_type=code&state=$state&redirect_uri=$redirect_uri&duration=$duration&scope=$scope"
+#
+# code=<copy from redirect URL>
+#
+# curl -X POST https://www.reddit.com/api/v1/access_token \
+#   -H 'content-type: application/x-www-form-urlencoded' \
+#   -A "$state" \
+#   -u "$client_id:$client_secret" \
+#   -d "grant_type=authorization_code&code=$code&redirect_uri=$redirect_uri" \
+# | jq -r '.refresh_token'

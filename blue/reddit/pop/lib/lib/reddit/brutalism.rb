@@ -22,9 +22,9 @@ module Reddit
       @ssm      = Aws::SSM::Client.new
     end
 
-    def client_id     = params.CLIENT_ID
-    def client_secret = params.CLIENT_SECRET
-    def refresh_token = params.REFRESH_TOKEN
+    def client_id     = params.OAUTH_CLIENT_ID
+    def client_secret = params.OAUTH_CLIENT_SECRET
+    def refresh_token = params.OAUTH_REFRESH_TOKEN
     def user_agent    = params.USER_AGENT
 
     def each
@@ -41,14 +41,9 @@ module Reddit
         http.request(req)
       end
 
-      begin
-        res.body.to_h_from_json.symbolize_names.dig(:data, :children).each do |child|
-          post = Post.new child[:data]
-          yield post if post.media_urls.any?
-        end
-      rescue
-        logger.error(res.body)
-        raise
+      res.body.to_h_from_json.symbolize_names.dig(:data, :children).each do |child|
+        post = Post.new child[:data]
+        yield post if post.media_urls.any?
       end
     end
 
@@ -113,17 +108,20 @@ module Reddit
         http.request(req, body).body.to_h_from_json
       end
 
-      "Bearer #{ res['access_token'] }"
+      "Bearer #{ res.fetch('access_token') }"
     end
 
     def fetch_params
       params = { path: @path, with_decryption: true }
       logger.info "SSM:GetParametersByPath #{params.to_json}"
-      result = @ssm.get_parameters_by_path(**params).map(&:parameters).flatten.map do |param|
-        { File.basename(param.name) => param.value }
-      end.reduce(&:merge)
+      keyval = ->(param) { { File.basename(param.name) => param.value } }
+      result = @ssm.get_parameters_by_path(**params)
+        .flat_map(&:parameters)
+        .map(&keyval)
+        .reduce(&:merge)
+        .transform_keys(&:to_sym)
 
-      OpenStruct.new(result)
+      Struct.new(*result.keys).new(*result.values)
     end
   end
 end
