@@ -102,7 +102,8 @@ class Bluesky
       result = @ssm.get_parameters_by_path(**params).map(&:parameters).flatten.map do |param|
         { File.basename(param.name) => param.value }
       end.reduce(&:merge)
-      OpenStruct.new(result)
+      result.symbolize_names!
+      Struct.new(*result.keys).new(*result.values)
     end
   end
 
@@ -117,7 +118,8 @@ class Bluesky
         http.request(req, { identifier: username, password: password }.to_json)
       end
 
-      OpenStruct.new(res.body.to_h_from_json)
+      data = res.body.to_h_from_json.symbolize_names
+      Struct.new(*data.keys).new(*data.values)
     end
   end
 

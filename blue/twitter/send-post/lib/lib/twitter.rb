@@ -111,7 +111,8 @@ class Twitter
       result = @ssm.get_parameters_by_path(**params).map(&:parameters).flatten.map do |param|
         { File.basename(param.name) => param.value }
       end.reduce(&:merge)
-      OpenStruct.new(result)
+      result.symbolize_names!
+      Struct.new(*result.keys).new(*result.values)
     end
   end
 

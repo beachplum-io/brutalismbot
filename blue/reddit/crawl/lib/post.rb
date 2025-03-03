@@ -1,4 +1,5 @@
 require 'json'
+require 'ostruct'
 require 'time'
 
 module Reddit
