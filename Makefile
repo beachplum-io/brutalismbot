@@ -1,4 +1,3 @@
-GEMFILES  ?= $(shell git ls-tree -r --name-only @ | grep Gemfile$)
 LOCKFILES ?= $(shell git ls-tree -r --name-only @ | grep Gemfile.lock$)
 
 .PHONY: blue build clean global logs
@@ -10,7 +9,8 @@ build: $(LOCKFILES)
 	docker compose down --rmi local
 
 clean:
-	find . -type d -name vendor | xargs rm -rf
+	rm -rf **/vendor
+	rm -rf **/Gemfile.lock
 
 global:
 	terraform -chdir=$@ apply
