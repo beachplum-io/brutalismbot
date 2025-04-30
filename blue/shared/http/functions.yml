@@ -3,5 +3,5 @@ http:
   description: Make generic HTTP request
   handler: index.http
   memory_size: 512
-  runtime: ruby3.3
+  runtime: ruby3.4
   timeout: 30

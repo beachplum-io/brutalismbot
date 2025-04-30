@@ -90,7 +90,7 @@ resource "aws_lambda_function" "lambda" {
   handler          = "index.pop"
   memory_size      = 512
   role             = aws_iam_role.lambda.arn
-  runtime          = "ruby3.3"
+  runtime          = "ruby3.4"
   source_code_hash = data.archive_file.lambda.output_base64sha256
   tags             = local.tags
   timeout          = 10

@@ -1,6 +1,7 @@
 source 'https://rubygems.org/'
 
-gem 'yake', '~> 1.2'
+gem 'bigdecimal', '~> 3.1'
+gem 'yake',       '~> 1.2'
 
 group :development do
   gem 'aws-sdk-dynamodb',    '~> 1.0'
