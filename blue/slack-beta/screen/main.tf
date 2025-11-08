@@ -4,7 +4,7 @@
 
 locals {
   account = data.aws_caller_identity.current.account_id
-  region  = data.aws_region.current.name
+  region  = data.aws_region.current.region
   user_id = "UH9M57X6Z"
 
   app        = dirname(path.module)

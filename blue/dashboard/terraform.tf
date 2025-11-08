@@ -3,7 +3,7 @@
 ##############
 
 locals {
-  region = data.aws_region.current.name
+  region = data.aws_region.current.region
 
   tags = { "brutalismbot:app" = basename(path.module) }
 

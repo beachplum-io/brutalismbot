@@ -3,7 +3,7 @@
 ##############
 
 locals {
-  region = data.aws_region.current.name
+  region = data.aws_region.current.region
 
   app        = dirname(path.module)
   name       = "${terraform.workspace}-${local.app}-${basename(path.module)}"

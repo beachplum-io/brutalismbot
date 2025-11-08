@@ -4,7 +4,7 @@
 
 locals {
   account = data.aws_caller_identity.current.account_id
-  region  = data.aws_region.current.name
+  region  = data.aws_region.current.region
 
   app   = basename(path.module)
   name  = "${terraform.workspace}-${local.app}"
@@ -130,7 +130,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "mail" {
     status = "Enabled"
 
     expiration { days = 90 }
-	filter { prefix = "" }
+    filter { prefix = "" }
   }
 }
 

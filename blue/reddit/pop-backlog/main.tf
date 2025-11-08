@@ -4,7 +4,7 @@
 
 locals {
   account = data.aws_caller_identity.current.account_id
-  region  = data.aws_region.current.name
+  region  = data.aws_region.current.region
 
   app  = dirname(path.module)
   name = "${terraform.workspace}-${local.app}-${basename(path.module)}"
