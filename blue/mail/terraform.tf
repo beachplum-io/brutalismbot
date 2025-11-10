@@ -164,17 +164,46 @@ resource "aws_s3_bucket_public_access_block" "mail" {
 resource "aws_ses_receipt_rule" "mail" {
   depends_on    = [aws_lambda_permission.mail]
   enabled       = true
-  name          = local.name
-  recipients    = ["brutalismbot.com"]
+  name          = "receive"
   rule_set_name = aws_ses_receipt_rule_set.mail.rule_set_name
   scan_enabled  = true
 
+  recipients = [
+    "bluesky@brutalismbot.com",
+    "help@brutalismbot.com",
+    "slack@brutalismbot.com",
+    "twitter@brutalismbot.com",
+  ]
+
   s3_action {
-    bucket_name = aws_s3_bucket.mail.bucket
-    position    = 1
-    topic_arn   = aws_sns_topic.mail.arn
+    bucket_name       = aws_s3_bucket.mail.bucket
+    object_key_prefix = "receive/"
+    position          = 1
+    topic_arn         = aws_sns_topic.mail.arn
   }
 }
+
+resource "aws_ses_receipt_rule" "bounce" {
+  enabled       = true
+  name          = "bounce"
+  recipients    = ["brutalismbot.com"]
+  rule_set_name = aws_ses_receipt_rule_set.mail.rule_set_name
+
+  s3_action {
+    bucket_name       = aws_s3_bucket.mail.bucket
+    object_key_prefix = "bounce/"
+    position          = 1
+  }
+
+  bounce_action {
+    message         = "Mailbox does not exist"
+    position        = 2
+    sender          = "no-reply@brutalismbot.com"
+    smtp_reply_code = "550"
+    status_code     = "5.1.1"
+  }
+}
+
 
 resource "aws_ses_receipt_rule_set" "mail" {
   rule_set_name = local.name
