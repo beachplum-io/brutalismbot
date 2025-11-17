@@ -2,16 +2,17 @@ GEM
   remote: https://rubygems.org/
   specs:
     logger (1.7.0)
-    ostruct (0.6.1)
+    ostruct (0.6.3)
     yake (1.2.1)
       logger
       ostruct
 
 PLATFORMS
+  arm64-darwin-24
   ruby
 
 DEPENDENCIES
-  yake (~> 1.2)
+  yake
 
 BUNDLED WITH
-   2.6.6
+   2.7.2

@@ -1,8 +1,8 @@
 source 'https://rubygems.org/'
 
-gem 'x',    '~> 0.14'
-gem 'yake', '~> 1.2'
+gem 'x'
+gem 'yake'
 
 group :development do
-  gem 'aws-sdk-ssm', '~> 1.0'
+  gem 'aws-sdk-ssm'
 end

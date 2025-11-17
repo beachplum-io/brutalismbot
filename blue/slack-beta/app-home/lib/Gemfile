@@ -1,10 +1,10 @@
 source 'https://rubygems.org/'
 
-gem 'bigdecimal', '~> 3.1'
-gem 'yake',       '~> 1.2'
+gem 'bigdecimal'
+gem 'yake'
 
 group :development do
-  gem 'aws-sdk-dynamodb',    '~> 1.0'
-  gem 'aws-sdk-eventbridge', '~> 1.0'
-  gem 'aws-sdk-scheduler',   '~> 1.0'
+  gem 'aws-sdk-dynamodb'
+  gem 'aws-sdk-eventbridge'
+  gem 'aws-sdk-scheduler'
 end

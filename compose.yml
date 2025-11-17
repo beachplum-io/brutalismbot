@@ -3,5 +3,4 @@ services:
   build:
     build: .
     volumes:
-      - ./.bundle:/root/.bundle
       - ./${BUNDLE:-}:/var/task

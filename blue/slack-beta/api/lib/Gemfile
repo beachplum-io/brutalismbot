@@ -1,8 +1,8 @@
 source 'https://rubygems.org/'
 
-gem 'yake', '~> 1.2'
+gem 'yake'
 
 group :development do
-  gem 'aws-sdk-eventbridge', '~> 1.0'
-  gem 'aws-sdk-ssm',         '~> 1.0'
+  gem 'aws-sdk-eventbridge'
+  gem 'aws-sdk-ssm'
 end

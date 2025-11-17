@@ -2,8 +2,8 @@ GEM
   remote: https://rubygems.org/
   specs:
     aws-eventstream (1.4.0)
-    aws-partitions (1.1181.0)
-    aws-sdk-core (3.236.0)
+    aws-partitions (1.1182.0)
+    aws-sdk-core (3.237.0)
       aws-eventstream (~> 1, >= 1.3.0)
       aws-partitions (~> 1, >= 1.992.0)
       aws-sigv4 (~> 1.9)
@@ -14,9 +14,12 @@ GEM
     aws-sdk-kms (1.117.0)
       aws-sdk-core (~> 3, >= 3.234.0)
       aws-sigv4 (~> 1.5)
-    aws-sdk-s3 (1.203.0)
+    aws-sdk-s3 (1.203.1)
       aws-sdk-core (~> 3, >= 3.234.0)
       aws-sdk-kms (~> 1)
+      aws-sigv4 (~> 1.5)
+    aws-sdk-ssm (1.206.0)
+      aws-sdk-core (~> 3, >= 3.234.0)
       aws-sigv4 (~> 1.5)
     aws-sdk-states (1.99.0)
       aws-sdk-core (~> 3, >= 3.234.0)
@@ -51,14 +54,15 @@ GEM
       ostruct
 
 PLATFORMS
-  arm64-darwin-25
+  arm64-darwin-24
   ruby
 
 DEPENDENCIES
-  aws-sdk-s3 (~> 1.0)
-  aws-sdk-states (~> 1.0)
-  mail (~> 2.7)
-  yake (~> 1.2)
+  aws-sdk-s3
+  aws-sdk-ssm
+  aws-sdk-states
+  mail
+  yake
 
 BUNDLED WITH
    2.7.2
