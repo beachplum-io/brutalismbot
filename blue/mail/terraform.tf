@@ -252,7 +252,7 @@ resource "aws_iam_role_policy" "states" {
     Statement = {
       Sid      = "SendEmail"
       Effect   = "Allow"
-      Action   = "ses:SendEmail"
+      Action   = "ses:SendRawEmail"
       Resource = "*"
     }
   })

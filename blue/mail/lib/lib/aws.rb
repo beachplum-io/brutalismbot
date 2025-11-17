@@ -40,18 +40,7 @@ module Aws
     def forward_mail(state_machine_arn, mail)
       params = {
         state_machine_arn: state_machine_arn,
-        input: {
-          ToAddresses: mail.to,
-          FromEmailAddress: mail.from.first,
-          ReplyToAddresses: mail.reply_to,
-          Destination: { ToAddresses: mail.to },
-          Content: {
-            Simple: {
-              Subject: { Data: mail.subject, Charset: 'UTF-8'},
-              Body: { Text: { Data: mail.body.to_s, Charset: 'UTF-8' } },
-            }
-          }
-        }.to_json
+        input: { Content: { Raw: { Data: mail.to_s } } }.to_json
       }
       logger.info("states:StartExecution #{ params.to_json }")
       start_execution(**params)

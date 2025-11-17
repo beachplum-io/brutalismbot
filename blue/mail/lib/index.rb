@@ -24,6 +24,7 @@ handler :mail do |event|
 
     # Massage message for SES
     mail             = Mail.new(body)
+    mail.subject     = "[#{mail.to.select { |x| x =~ /@brutalismbot.com$/ }.join(',')}] #{mail.subject}"
     mail.to          = MAIL_TO
     mail.reply_to    = mail.from
     mail.from        = MAIL_FROM

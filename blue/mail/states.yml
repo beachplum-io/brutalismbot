@@ -1,12 +1,9 @@
 ---
+QueryLanguage: JSONata
 StartAt: SendEmail
 States:
   SendEmail:
     Type: Task
     Resource: arn:aws:states:::aws-sdk:sesv2:sendEmail
     End: true
-    Parameters:
-      Content.$: $.Content
-      Destination.$: $.Destination
-      FromEmailAddress.$: $.FromEmailAddress
-      ReplyToAddresses.$: $.ReplyToAddresses
+    Arguments: "{% $states.input %}"
