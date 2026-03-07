@@ -10,8 +10,9 @@ class Post < Struct.new('Post', :channel, :text, :link, :images)
   def self.images(text, media)
     media.map(&:first).each_with_index.map do |m, i|
       url   = m['u']
+      alt   = text
       title = media.one? ? 'r/brutalism' : "r/brutalism [#{i + 1}/#{media.count}]"
-      Image.new(url: url, alt: text, title: title)
+      Image.new(url:, alt:, title:)
     end
   end
 

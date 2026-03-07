@@ -19,7 +19,7 @@ class Bluesky
 
   def thread(text:, link:, media:)
     # Get alt
-    alt = text.length >= MAX_TEXT ? "#{text[...MAX_TEXT]}…" : "#{text}"
+    alt = ''
 
     # Get text
     max   = MAX_TEXT - R_BRUTALISM.length
@@ -33,15 +33,13 @@ class Bluesky
     # Post thread
     root = parent = nil
     posts.each_with_index.map do |post, i|
-      logger.info "THREAD @#{username} [#{i + 1}/#{posts.count}]"
+      logger.info "THREAD @#{identifier} [#{i + 1}/#{posts.count}]"
 
       # Expand post
       media, text = post
 
       # Get images
-      images = upload(*media).map do |blob|
-        { image: blob, alt: '' }
-      end
+      images = upload(*media).map { |image| { image:, alt: } }
 
       # Compose record
       embed = {
@@ -91,7 +89,7 @@ class Bluesky
       parent = ref
 
       # Yield post data
-      { data: data, ref: ref }
+      { data:, ref: }
     end
   end
 
@@ -111,11 +109,11 @@ class Bluesky
     @session ||= begin
       url  = File.join ENDPOINT, 'com.atproto.server.createSession'
       uri  = URI url
-      body =
+      body = { identifier:, password: }
       req  = Net::HTTP::Post.new(uri.path, 'content-type' => 'application/json')
       res  = Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
         logger.info("POST #{uri}")
-        http.request(req, { identifier: username, password: password }.to_json)
+        http.request(req, body.to_json)
       end
 
       data = res.body.to_h_from_json.symbolize_names
@@ -123,7 +121,7 @@ class Bluesky
     end
   end
 
-  def username
+  def identifier
     params.BLUESKY_USERNAME
   end
 

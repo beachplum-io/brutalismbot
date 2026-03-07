@@ -17,27 +17,23 @@ handler :screen do |event|
   media        = event['Media']
   link         = event['Permalink']
 
+  # Get images
+  images = Screener.images(text, media)
+
   # Set up request
   headers = {
     'authorization' => "Bearer #{token}",
     'content-type'  => 'application/json; charset=utf-8'
   }
-  screener = Screener.new(
-    channel:      channel,
-    text:         text,
-    link:         link,
-    images:       Screener.images(text, media),
-    execution_id: execution_id,
-    key:          key,
-  )
+  body = Screener.new(channel:, text:, link:, images:, execution_id:, key:)
 
   # Send request
   uri = URI URL
   req = Net::HTTP::Post.new(uri.path, **headers)
   res = Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
-    http.request(req, screener.to_json).body.to_h_from_json
+    http.request(req, body.to_json)
   end
 
   # Return response body
-  res
+  res.body.to_h_from_json
 end

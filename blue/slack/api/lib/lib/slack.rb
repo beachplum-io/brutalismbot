@@ -15,6 +15,8 @@ module Slack
     EVENT_SOURCE   ||= ENV['EVENT_SOURCE']
     PARAM_PATH     ||= ENV['PARAM_PATH']
 
+    attr_reader :event_bus_name, :source, :path
+
     def initialize(event_bus_name:nil, source:nil, path:nil)
       @event_bus_name = event_bus_name || EVENT_BUS_NAME
       @source         = source         || EVENT_SOURCE
@@ -48,17 +50,13 @@ module Slack
       end
 
       # Set up OAuth
-      payload = {
-        code:          query['code'],
-        client_id:     client_id,
-        client_secret: client_secret,
-        redirect_uri:  oauth_redirect_uri,
-      }.to_form
+      code         = query['code']
+      redirect_uri = oauth_redirect_uri
+      payload      = { code:, client_id:, client_secret:, redirect_uri: }.to_form
 
       # Execute OAuth and redirect
       uri        = URI 'https://slack.com/api/oauth.v2.access'
       result     = post uri, payload, 'content-type' => 'application/x-www-form-urlencoded'
-      app_id     = result['app_id']
       team_id    = result.dig 'team', 'id'
       channel_id = result.dig 'incoming_webhook', 'channel_id'
       location   = params.SLACK_OAUTH_SUCCESS_URI % [ team_id, channel_id ]
@@ -84,7 +82,7 @@ module Slack
 
     def params
       @params ||= begin
-        params = { path: @path, with_decryption: true }
+        params = { path:, with_decryption: true }
         logger.info "SSM:GetParametersByPath #{params.to_json}"
         result = @ssm.get_parameters_by_path(**params).map(&:parameters).flatten.map do |param|
           { File.basename(param.name) => param.value }
@@ -148,16 +146,11 @@ module Slack
       trace_header = event.dig('headers', 'x-amzn-trace-id')
 
       # Construct entry
-      entry = {
-        detail:         detail,
-        detail_type:    detail_type,
-        event_bus_name: @event_bus_name,
-        source:         @source,
-        trace_header:   trace_header
-      }
+      entry = { detail:, detail_type:, event_bus_name:, source:, trace_header: }
 
       # Publish to EventBridge
-      params = { entries: [ entry.to_h ] }
+      entries = [entry.to_h]
+      params  = { entries: }
       logger.info "EventBridge:PutEvents #{ params.to_json }"
       @eventbridge.put_events(**params).tap do |res|
         raise Yake::Errors::Forbidden, res.to_h.to_json unless res.failed_entry_count.zero?

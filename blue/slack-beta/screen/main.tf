@@ -232,7 +232,7 @@ resource "aws_sfn_state_machine" "states" {
   tags     = local.tags
 
   definition = jsonencode(yamldecode(templatefile("${path.module}/states.yml", {
-    channel_id        = local.user_id
+    channel_id        = local.channel_id
     http_function_arn = data.aws_lambda_function.http.arn
     param             = local.param
     screen_arn        = aws_lambda_function.lambda.arn

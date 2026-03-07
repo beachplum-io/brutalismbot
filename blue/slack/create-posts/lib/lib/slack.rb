@@ -30,13 +30,13 @@ module Slack
   def self.blocks(text, link, media)
     caption = Block.context(elements: [text.encode_link(link).mrkdwn])
     images  = media.map(&:first).each_with_index.map do |m, i|
-      url   = m['u']
-      alt   = text
-      title = media.one? ? 'r/brutalism' : "r/brutalism [#{i + 1}/#{media.count}]"
-      Block.image(image_url: url, alt_text: alt, title: title.plain_text)
+      image_url = m['u']
+      alt_text  = text
+      title     = (media.one? ? 'r/brutalism' : "r/brutalism [#{i + 1}/#{media.count}]").plain_text
+      Block.image(image_url:, alt_text:, title:)
     end
 
-    [ *images, caption ]
+    [*images, caption]
   end
 end
 

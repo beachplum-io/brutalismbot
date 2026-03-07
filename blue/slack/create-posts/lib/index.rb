@@ -16,18 +16,14 @@ handler :get_post do |event|
   url     = event['url']
 
   # Compose post body
-  post = Post.new(
-    channel: channel,
-    text:    text,
-    link:    link,
-    images:  Post.images(text, media),
-  )
+  images = Post.images(text, media)
+  post   = Post.new(channel:, text:, link:, images:)
 
   # Return request
   {
-    'method' => 'POST',
-    'url' => url,
-    'body' => post.to_h,
+    'method'  => 'POST',
+    'url'     => url,
+    'body'    => post.to_h,
     'headers' => {
       'authorization' => "Bearer #{token}",
       'content-type'  => 'application/json; charset=utf-8',
