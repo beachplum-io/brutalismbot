@@ -3,9 +3,10 @@
 ##############
 
 locals {
-  account = data.aws_caller_identity.current.account_id
-  region  = data.aws_region.current.region
-  user_id = "UH9M57X6Z"
+  account    = data.aws_caller_identity.current.account_id
+  region     = data.aws_region.current.region
+  channel_id = "CH0KP5789"
+  # user_id    = "UH9M57X6Z"
 
   app        = dirname(path.module)
   name       = "${terraform.workspace}-${local.app}-${basename(path.module)}"
