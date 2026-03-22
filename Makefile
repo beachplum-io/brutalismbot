@@ -19,5 +19,5 @@ logs:
 	aws logs tail --follow $(shell aws logs describe-log-groups | jq -r '.logGroups[].logGroupName' | grep brutalismbot | fzf --no-info --reverse --sync --height 10%)
 
 $(LOCKFILES): %.lock: % .ruby-version
-	BUNDLE=$(shell dirname $<) docker compose run --rm build update
+	BUNDLE=$(shell dirname $<) docker compose run --rm build update --all
 	BUNDLE=$(shell dirname $<) docker compose run --rm build install
