@@ -15,4 +15,5 @@
 .bundle/cache
 vendor/
 .rspec_status
+.ruby-version
 *.json
