@@ -238,6 +238,6 @@ resource "aws_sfn_state_machine" "states" {
     param             = local.param
     screen_arn        = aws_lambda_function.lambda.arn
     table_name        = data.aws_dynamodb_table.table.name
-    wait_time_seconds = 14400
+    wait_time_seconds = 28800 # 8hrs
   })))
 }
