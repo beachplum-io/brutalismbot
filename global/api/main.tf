@@ -14,7 +14,7 @@ data "aws_apigatewayv2_apis" "apis" {
 ##############
 
 locals {
-  region = data.aws_region.current.name
+  region = data.aws_region.current.id
 }
 
 ###################

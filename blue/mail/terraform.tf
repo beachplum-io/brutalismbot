@@ -171,6 +171,7 @@ resource "aws_ses_receipt_rule" "mail" {
   recipients = [
     "bluesky@brutalismbot.com",
     "help@brutalismbot.com",
+    "reddit@brutalismbot.com",
     "slack@brutalismbot.com",
     "twitter@brutalismbot.com",
   ]

@@ -283,6 +283,7 @@ resource "aws_ses_email_identity" "identities" {
     destination = var.MAIL_TO
     help        = "help@brutalismbot.com"
     no-reply    = "no-reply@brutalismbot.com"
+    reddit      = "reddit@brutalismbot.com"
     slack       = "slack@brutalismbot.com"
     twitter     = "twitter@brutalismbot.com"
   }
