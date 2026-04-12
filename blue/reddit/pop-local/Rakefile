@@ -1,0 +1,37 @@
+require_relative 'lib/aws'
+require_relative 'lib/reddit'
+
+AGE        ||= ENV.fetch('MIN_AGE_HOURS', '4').to_i.hours
+TABLE_NAME ||= ENV.fetch('TABLE_NAME', 'brutalismbot-blue')
+
+METRICS     ||= Aws::CloudWatch::Metrics.new
+STATE       ||= Aws::DynamoDB::State.new
+R_BRUTALISM ||= Reddit::Brutalism.new
+
+Yake.logger.formatter = ->(_sev, time, _prog, msg) do
+  "#{time.strftime('%Y-%m-%d %H:%M:%S')} - #{msg}\n"
+end
+
+task :build do
+  sh %{docker build --tag brutalismbot/reddit-pop .}
+end
+
+task :cursor do
+  @cursor = STATE.cursor
+end
+
+task :pop => :cursor do
+  queue = R_BRUTALISM.latest @cursor
+  post  = queue.shift if queue.first&.created_before?(UTC.now - AGE)
+
+  @queue_size = queue.size
+  @next_post  = post&.to_item
+end
+
+task :update_metrics => :pop do
+  METRICS.update_queue_size @queue_size
+end
+
+task :default => :update_metrics do
+  STATE.update @queue_size, @next_post
+end
