@@ -2,18 +2,16 @@ LOCKFILES ?= $(shell git ls-tree -r --name-only @ | grep Gemfile.lock$)
 
 .PHONY: blue build clean global logs
 
-blue:
-	terraform -chdir=$@ apply
-
 build: $(LOCKFILES)
 	docker compose down --rmi local
 
-clean:
-	rm -rf **/vendor
-	rm -rf **/Gemfile.lock
+apply:
+	terraform -chdir=blue apply
+	terraform -chdir=global apply
 
-global:
-	terraform -chdir=$@ apply
+clean:
+	find * -name vendor -type d | xargs rm -rf
+	find * -name Gemfile.lock | xargs rm
 
 logs:
 	aws logs tail --follow $(shell aws logs describe-log-groups | jq -r '.logGroups[].logGroupName' | grep brutalismbot | fzf --no-info --reverse --sync --height 10%)
