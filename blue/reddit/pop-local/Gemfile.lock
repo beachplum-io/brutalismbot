@@ -30,7 +30,7 @@ GEM
       ostruct
 
 PLATFORMS
-  arm64-darwin-25
+  aarch64-linux
   ruby
 
 DEPENDENCIES
@@ -55,4 +55,4 @@ CHECKSUMS
   yake (1.2.1) sha256=16f5901648c4d37df8fffdcfc10f6912fa922f03651634354d52ef8c29268f44
 
 BUNDLED WITH
-  4.0.10
+  4.0.9

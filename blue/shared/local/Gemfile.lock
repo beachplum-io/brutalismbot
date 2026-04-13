@@ -2,7 +2,7 @@ GEM
   remote: https://rubygems.org/
   specs:
     aws-eventstream (1.4.0)
-    aws-partitions (1.1229.0)
+    aws-partitions (1.1237.0)
     aws-sdk-core (3.244.0)
       aws-eventstream (~> 1, >= 1.3.0)
       aws-partitions (~> 1, >= 1.992.0)
@@ -17,16 +17,27 @@ GEM
     aws-sigv4 (1.12.1)
       aws-eventstream (~> 1, >= 1.0.2)
     base64 (0.3.0)
-    bigdecimal (4.0.1)
+    bigdecimal (4.1.1)
     jmespath (1.6.2)
     logger (1.7.0)
 
 PLATFORMS
-  arm64-darwin-24
+  aarch64-linux
   ruby
 
 DEPENDENCIES
   aws-sdk-dynamodb
 
+CHECKSUMS
+  aws-eventstream (1.4.0) sha256=116bf85c436200d1060811e6f5d2d40c88f65448f2125bc77ffce5121e6e183b
+  aws-partitions (1.1237.0) sha256=9b82f529b69ad83a8e4c5e123038924ed5e8f59bd6064a293ef20efc63364841
+  aws-sdk-core (3.244.0) sha256=3e458c078b0c5bdee95bc370c3a483374b3224cf730c1f9f0faf849a5d9a18ea
+  aws-sdk-dynamodb (1.165.0) sha256=3dbf049c12392aaefa5c676131873fde5e7807319ad34ea3102f40daa9c75ee0
+  aws-sigv4 (1.12.1) sha256=6973ff95cb0fd0dc58ba26e90e9510a2219525d07620c8babeb70ef831826c00
+  base64 (0.3.0) sha256=27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
+  bigdecimal (4.1.1) sha256=1c09efab961da45203c8316b0cdaec0ff391dfadb952dd459584b63ebf8054ca
+  jmespath (1.6.2) sha256=238d774a58723d6c090494c8879b5e9918c19485f7e840f2c1c7532cf84ebcb1
+  logger (1.7.0) sha256=196edec7cc44b66cfb40f9755ce11b392f21f7967696af15d274dde7edff0203
+
 BUNDLED WITH
-  4.0.6
+  4.0.9
