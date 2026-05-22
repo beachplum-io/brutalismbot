@@ -6,10 +6,10 @@ require 'yake/logger'
 class Bluesky
   include Yake::Logger
 
-  ENDPOINT   ||= 'https://bsky.social/xrpc'
-  MAX_TEXT   ||= 300
-  MAX_IMAGE  ||= 1000000
-  PARAM_PATH ||= ENV['PARAM_PATH']
+  ENDPOINT    ||= 'https://bsky.social/xrpc'
+  MAX_TEXT    ||= 300
+  MAX_IMAGE   ||= 1000000
+  PARAM_PATH  ||= ENV['PARAM_PATH']
   R_BRUTALISM ||= 'r/brutalism'
 
   def initialize(path:nil)
