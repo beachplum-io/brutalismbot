@@ -5,7 +5,7 @@
 locals {
   account    = data.aws_caller_identity.current.account_id
   region     = data.aws_region.current.region
-  channel_id = "CH0KP5789"
+  channel_id = "CHADHTV63" #screeners
   # user_id    = "UH9M57X6Z"
 
   app        = dirname(path.module)
