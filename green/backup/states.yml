@@ -1,0 +1,70 @@
+---
+QueryLanguage: JSONata
+StartAt: Query
+States:
+  Query:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:query
+    Next: EachItem
+    Arguments: "{% $states.input %}"
+    Assign:
+      Query: "{% $states.input %}"
+      LastEvaluatedKey: "{% $states.result.LastEvaluatedKey ? $states.result.LastEvaluatedKey : null %}"
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 3
+        MaxAttempts: 4
+        ErrorEquals:
+          - States.ALL
+  EachItem:
+    Type: Map
+    Next: NextPage?
+    Items: "{% $states.input.Items %}"
+    ItemProcessor:
+      StartAt: EachMedia
+      States:
+        EachMedia:
+          Type: Map
+          End: true
+          Items: >-
+            {% [$states.input.Media.S ~> $parse ~> $map(function($Images, $i) {{
+              'Prefix': 'r/brutalism/' & $states.input.Name.S & '/' & $i & '/',
+              'Images': $Images
+            }})] %}
+          ItemProcessor:
+            StartAt: EachUrl
+            States:
+              EachUrl:
+                Type: Map
+                End: true
+                Items: >-
+                  {% [$states.input.Images ~> $map(function($Image) {{
+                    'Prefix': $states.input.Prefix & $Image.x & 'x' & $Image.y & '/',
+                    'Url': $Image.u
+                  }}) ~> $filter(function($v) { $v.Url })] %}
+                ItemProcessor:
+                  StartAt: Download
+                  States:
+                    Download:
+                      Type: Task
+                      Resource: ${function_arn}
+                      End: true
+                      Arguments:
+                        Bucket: ${s3_bucket}
+                        Prefix: "{% $states.input.Prefix %}"
+                        Url: "{% $states.input.Url %}"
+  NextPage?:
+    Type: Choice
+    Default: Finish
+    Choices:
+      - Next: NextPage
+        Condition: "{% $LastEvaluatedKey != null %}"
+  Finish:
+    Type: Succeed
+  NextPage:
+    Type: Task
+    Resource: arn:aws:states:::states:startExecution
+    End: true
+    Arguments:
+      StateMachineArn: "{% $states.context.StateMachine.Id %}"
+      Input: "{% [$Query, {'ExclusiveStartKey': $LastEvaluatedKey }] ~> $merge %}"
