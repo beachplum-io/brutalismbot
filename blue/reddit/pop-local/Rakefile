@@ -24,17 +24,10 @@ task :build => 'new.json' do
   sh %{docker build --tag brutalismbot/reddit-pop .}
 end
 
-task :client => 'new.json' do
-  @client = Reddit::Brutalism.new('new.json')
-end
-
-task :cursor do
-  @cursor = STATE.cursor
-end
-
-task :pop => %i[cursor client] do
-  queue = @client.latest @cursor
-  post  = queue.shift if queue.first&.created_before?(UTC.now - AGE)
+task :pop => 'new.json' do
+  client = Reddit::Brutalism.new('new.json')
+  queue  = client.latest STATE.cursor
+  post   = queue.shift if queue.first&.created_before?(UTC.now - AGE)
 
   @queue_size = queue.size
   @next_post  = post&.to_item
