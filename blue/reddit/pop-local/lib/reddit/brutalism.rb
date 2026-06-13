@@ -10,18 +10,12 @@ module Reddit
     include Enumerable
     include Yake::Logger
 
-    USER_AGENT ||= ENV['USER_AGENT'] || 'Brutalismbot'
+    def initialize(filepath)
+      @data = JSON.parse File.read(filepath)
+    end
 
     def each
-      uri = URI('https://oauth.reddit.com/r/brutalism/new.json?raw_json=1')
-      hed = { 'user-agent' => USER_AGENT }
-      req = Net::HTTP::Get.new(uri, **hed)
-      res = Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
-        logger.info("GET #{ uri }")
-        http.request(req)
-      end
-
-      res.body.to_h_from_json.symbolize_names.dig(:data, :children).each do |child|
+      @data.symbolize_names.dig(:data, :children).each do |child|
         post = Post.new child[:data]
         yield post if post.media_urls.any?
       end

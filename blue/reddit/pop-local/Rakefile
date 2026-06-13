@@ -6,22 +6,34 @@ TABLE_NAME ||= ENV.fetch('TABLE_NAME', 'brutalismbot-blue')
 
 METRICS     ||= Aws::CloudWatch::Metrics.new
 STATE       ||= Aws::DynamoDB::State.new
-R_BRUTALISM ||= Reddit::Brutalism.new
 
 Yake.logger.formatter = ->(_sev, time, _prog, msg) do
   "#{time.strftime('%Y-%m-%d %H:%M:%S')} - #{msg}\n"
 end
 
-task :build do
+file 'new.json' do
+  sh %{open 'https://old.reddit.com/r/brutalism/new.json?raw_json=1'}
+  $stderr.write 'press RETURN when contents copied to clipboard... '
+  $stdin.gets
+  sh %{pbpaste > new.json.tmp}
+  sh %{jq . new.json.tmp > new.json}
+  rm 'new.json.tmp'
+end
+
+task :build => 'new.json' do
   sh %{docker build --tag brutalismbot/reddit-pop .}
+end
+
+task :client => 'new.json' do
+  @client = Reddit::Brutalism.new('new.json')
 end
 
 task :cursor do
   @cursor = STATE.cursor
 end
 
-task :pop => :cursor do
-  queue = R_BRUTALISM.latest @cursor
+task :pop => %i[cursor client] do
+  queue = @client.latest @cursor
   post  = queue.shift if queue.first&.created_before?(UTC.now - AGE)
 
   @queue_size = queue.size
