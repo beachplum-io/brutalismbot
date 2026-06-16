@@ -1,0 +1,19 @@
+---
+QueryLanguage: JSONata
+StartAt: GetState
+States:
+  GetState:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:sfn:startExecution
+    Next: Redirect
+    Arguments:
+      StateMachineArn: ${oauth_state_state_machine_arn}
+    Assign:
+      OAuthState: "{% $split($states.result.ExecutionArn, ':')[7] %}"
+  Redirect:
+    Type: Succeed
+    Output:
+      statusCode: 302
+      headers:
+        location: >-
+          {% '${oauth_install_uri}&redirect_uri=${oauth_redirect_uri_encoded}&state=' & $OAuthState %}

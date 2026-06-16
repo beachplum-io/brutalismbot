@@ -44,4 +44,10 @@ locals {
 #   MODULES   #
 ###############
 
-module "backup" { source = "./backup" }
+module "backup" { source = "./modules/backup" }
+module "bluesky" { source = "./modules/bluesky" }
+module "params" { source = "./modules/params" }
+module "reddit" { source = "./modules/reddit" }
+module "shared" { source = "./modules/shared" }
+module "slack" { source = "./modules/slack" }
+module "slack_beta_api" { source = "./modules/slack-beta-api" }

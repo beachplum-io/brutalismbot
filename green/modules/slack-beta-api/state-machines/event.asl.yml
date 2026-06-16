@@ -1,0 +1,39 @@
+---
+QueryLanguage: JSONata
+StartAt: AuthorizeAndTransform
+States:
+  AuthorizeAndTransform:
+    Type: Task
+    Resource: ${authorizer_function_arn}
+    Next: Challenge?
+    Arguments:
+      signature: "{% $states.input.signature %}"
+      ts: "{% $states.input.ts %}"
+      body: "{% $states.input.body ~> $base64decode %}"
+    Assign:
+      event: "{% $states.input.body ~> $base64decode ~> $parse %}"
+    Output:
+      EventBusName: ${event_bus_name}
+      Source: ${source}
+      DetailType: "{% $states.input.routeKey %}"
+      Detail: "{% $states.input.body ~> $base64decode ~> $parse %}"
+  Challenge?:
+    Type: Choice
+    Default: PublishEvent
+    Choices:
+      - Next: Respond
+        Condition: "{% $event.type = 'url_verification' %}"
+  PublishEvent:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:eventbridge:putEvents
+    End: true
+    Arguments:
+      Entries: "{% [$states.input] %}"
+    Output:
+      statusCode: 200
+  Respond:
+    Type: Succeed
+    Output:
+      statusCode: 200
+      body:
+        challenge: "{% $event.challenge %}"

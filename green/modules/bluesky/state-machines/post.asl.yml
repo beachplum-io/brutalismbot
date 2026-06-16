@@ -1,0 +1,50 @@
+---
+QueryLanguage: JSONata
+StartAt: SendPost
+States:
+  SendPost:
+    Type: Task
+    Resource: ${function_arns["post"]}
+    Next: EachPost
+    Arguments:
+      Title: "{% $states.input.dynamodb.NewImage.Title.S %}"
+      Permalink: "{% $states.input.dynamodb.NewImage.Permalink.S %}"
+      Media: "{% $states.input.dynamodb.NewImage.Media.S ~> $parse %}"
+    Assign:
+      Title: "{% $states.input.dynamodb.NewImage.Title %}"
+      Permalink: "{% $states.input.dynamodb.NewImage.Permalink %}"
+      Media: "{% $states.input.dynamodb.NewImage.Media %}"
+  EachPost:
+    Type: Map
+    End: true
+    Items: "{% $states.input %}"
+    ItemProcessor:
+      StartAt: PutPost
+      States:
+        PutPost:
+          Type: Task
+          Resource: arn:aws:states:::aws-sdk:dynamodb:putItem
+          End: true
+          Arguments:
+            TableName: ${table_name}
+            Item:
+              Title: "{% $Title %}"
+              Permalink: "{% $Permalink %}"
+              Name: "{% $Name %}"
+              Media: "{% $Media %}"
+              Id:
+                S: "{% $states.input.ref.uri %}"
+              Kind:
+                S: bluesky.post
+              CreatedUtc:
+                S: "{% $states.input.data.record.createdAt %}"
+              ExecutionId:
+                S: "{% $states.context.Execution.Id %}"
+              Json:
+                S: "{% $states.input ~> $string %}"
+          Retry:
+            - BackoffRate: 2
+              IntervalSeconds: 3
+              MaxAttempts: 4
+              ErrorEquals:
+                - States.ALL

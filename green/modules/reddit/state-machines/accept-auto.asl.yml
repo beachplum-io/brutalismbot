@@ -1,0 +1,61 @@
+---
+QueryLanguage: JSONata
+StartAt: PutScreener
+States:
+  PutScreener:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:putItem
+    Next: GetItem
+    Arguments:
+      TableName: ${table_name}
+      Item:
+        Id: "{% $states.input.dynamodb.Keys.Id %}"
+        Kind: "{% $states.input.dynamodb.Keys.Kind %}"
+        CreatedUtc: "{% $states.input.dynamodb.OldImage.CreatedUtc %}"
+        SlackTs: "{% $states.input.dynamodb.OldImage.SlackTs %}"
+        ExecutionId:
+          S: "{% $states.context.Execution.Id %}"
+        Status:
+          S: Auto-Accepted
+        UpdatedUtc:
+          S: "{% $now() %}"
+    Assign:
+      Id: "{% $states.input.dynamodb.Keys.Id %}"
+      SlackTs: "{% $states.input.dynamodb.OldImage.SlackTs.S %}"
+  GetItem:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:getItem
+    Next: PutItem
+    Arguments:
+      TableName: ${table_name}
+      Key:
+        Id: "{% $Id %}"
+        Kind:
+          S: reddit.post.new
+    Assign:
+      Item: "{% $states.result.Item %}"
+  PutItem:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:putItem
+    Next: DeleteSlackMessage
+    Arguments:
+      TableName: ${table_name}
+      Item: >-
+        {% [$Item, {
+          'Kind': { 'S': 'reddit.post' },
+          'ExecutionId': { 'S': $states.context.Execution.Id }
+        }] ~> $merge %}
+  DeleteSlackMessage:
+    Type: Task
+    Resource: arn:aws:states:::http:invoke
+    End: true
+    Arguments:
+      ApiEndpoint: https://slack.com/api/chat.delete
+      Method: POST
+      InvocationConfig:
+        ConnectionArn: ${connection_arn}
+      Headers:
+        Content-Type: application/json; charset=utf-8
+      RequestBody:
+        channel: "CHADHTV63" # screeners
+        ts: "{% $SlackTs %}"

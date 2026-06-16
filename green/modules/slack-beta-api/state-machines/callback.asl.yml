@@ -1,0 +1,47 @@
+---
+QueryLanguage: JSONata
+StartAt: AuthorizeAndTransform
+States:
+  AuthorizeAndTransform:
+    Type: Parallel
+    Next: PublishEvent
+    Output:
+      EventBusName: ${event_bus_name}
+      Source: ${source}
+      DetailType: "{% $states.input.routeKey %}"
+      Detail: "{% $states.result[1] %}"
+    Branches:
+      - StartAt: Authorize
+        States:
+          Authorize:
+            Type: Task
+            Resource: ${authorizer_function_arn}
+            End: true
+            Arguments:
+              signature: "{% $states.input.signature %}"
+              ts: "{% $states.input.ts %}"
+              body: "{% $states.input.body ~> $base64decode() %}"
+      - StartAt: Transform
+        States:
+          Transform:
+            Type: Succeed
+            Output: >-
+              {% (
+              $objectify := function($v, $i, $a) {{ $split($v, /=/)[0]: $split($v, /^.*?=/)[1] }};
+              $states.input.body
+              ~> $base64decode
+              ~> $split('&')
+              ~> $map($decodeUrlComponent)
+              ~> $map($objectify)
+              ~> $merge
+              ~> $lookup('payload')
+              ~> $parse
+              ) %}
+  PublishEvent:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:eventbridge:putEvents
+    End: true
+    Arguments:
+      Entries: "{% [$states.input] %}"
+    Output:
+      statusCode: 200

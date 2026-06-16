@@ -1,0 +1,8 @@
+---
+QueryLanguage: JSONata
+StartAt: Wait
+States:
+  Wait:
+    Type: Wait
+    Seconds: 30
+    End: true

@@ -1,0 +1,65 @@
+---
+QueryLanguage: JSONata
+StartAt: UpdateScreener
+States:
+  UpdateScreener:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:updateItem
+    Next: GetItem
+    Arguments:
+      TableName: ${table_name}
+      Key:
+        Id:
+          S: "{% $states.input.actions.value %}"
+        Kind:
+          S: reddit.post.screener
+      UpdateExpression: "SET #Status=:Status,#UpdatedUtc=:UpdatedUtc REMOVE #TTL"
+      ExpressionAttributeNames:
+        "#Status": Status
+        "#TTL": TTL
+        "#UpdatedUtc": UpdatedUtc
+      ExpressionAttributeValues:
+        ":Status":
+          S: Accepted
+        ":UpdatedUtc":
+          S: "{% $now() %}"
+    Assign:
+      Id: "{% $states.input.actions.value %}"
+      response_url: "{% $states.input.response_url %}"
+  GetItem:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:getItem
+    Next: PutItem
+    Arguments:
+      TableName: ${table_name}
+      Key:
+        Id:
+          S: "{% $Id %}"
+        Kind:
+          S: reddit.post.new
+    Assign:
+      Item: "{% $states.result.Item %}"
+  PutItem:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:putItem
+    Next: DeleteSlackMessage
+    Arguments:
+      TableName: ${table_name}
+      Item: >-
+        {% [$Item, {
+          'Kind': { 'S': 'reddit.post' },
+          'ExecutionId': { 'S': $states.context.Execution.Id }
+        }] ~> $merge %}
+  DeleteSlackMessage:
+    Type: Task
+    Resource: arn:aws:states:::http:invoke
+    End: true
+    Arguments:
+      ApiEndpoint: "{% $response_url %}"
+      Method: POST
+      InvocationConfig:
+        ConnectionArn: ${connection_arn}
+      Headers:
+        Content-Type: application/json; charset=utf-8
+      RequestBody:
+        delete_original: true

@@ -1,0 +1,47 @@
+---
+QueryLanguage: JSONata
+StartAt: PutItem
+States:
+  PutItem:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:putItem
+    End: true
+    Arguments:
+      TableName: ${table_name}
+      Item:
+        Id:
+          S: "{% $states.input.app_id & '.' & $states.input.team.id & '.' & $states.input.incoming_webhook.channel_id %}"
+        Kind:
+          S: slack.token
+        Enabled:
+          Bool: true
+        ExecutionId:
+          S: "{% $states.context.Execution.Id %}"
+        Json:
+          S: "{% $states.input ~> $string %}"
+        CreatedUtc:
+          S: "{% $now() %}"
+        AccessToken:
+          S: "{% $states.input.access_token %}"
+        AppId:
+          S: "{% $states.input.app_id %}"
+        ChannelId:
+          S: "{% $states.input.incoming_webhook.channel_id %}"
+        ChannelName:
+          S: "{% $states.input.incoming_webhook.channel %}"
+        Scope:
+          S: "{% $states.input.scope %}"
+        TeamId:
+          S: "{% $states.input.team.id %}"
+        TeamName:
+          S: "{% $states.input.team.name %}"
+        UserId:
+          S: "{% $states.input.authed_user.id %}"
+        WebhookUrl:
+          S: "{% $states.input.incoming_webhook.url %}"
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 3
+        MaxAttempts: 4
+        ErrorEquals:
+          - States.ALL

@@ -1,0 +1,74 @@
+---
+QueryLanguage: JSONata
+StartAt: GetFields
+States:
+  GetFields:
+    Type: Pass
+    Next: PostType?
+    Assign:
+      Key: "{% $states.input.dynamodb.Keys %}"
+      Item: "{% $states.input.dynamodb.NewImage %}"
+      Channel: "{% $states.input.dynamodb.NewImage.ChannelId.S %}"
+      Permalink: "{% $states.input.dynamodb.NewImage.Permalink.S %}"
+      Media: "{% $states.input.dynamodb.NewImage.Media.S ~> $parse %}"
+      Scope: "{% $states.input.dynamodb.NewImage.Scope.S %}"
+      Text: "{% $states.input.dynamodb.NewImage.Title.S %}"
+      Token: "{% $states.input.dynamodb.NewImage.AccessToken.S %}"
+      UserId: "{% $states.input.dynamodb.NewImage.UserId.S %}"
+      WebhookUrl: "{% $states.input.dynamodb.NewImage.WebhookUrl.S %}"
+  PostType?:
+    Type: Choice
+    Default: Webhook
+    Choices:
+      - Next: DirectMessage
+        Condition: "{% $Scope ~> $match(/chat:write/) ~> $exists and $Channel ~> $match(/^D/) ~> $exists %}"
+      - Next: Channel
+        Condition: "{% $Scope ~> $match(/chat:write/) ~> $exists %}"
+  DirectMessage:
+    Type: Pass
+    Next: GetRequest
+    Assign:
+      Channel: "{% $UserId %}"
+      Url: https://slack.com/api/chat.postMessage
+  Channel:
+    Type: Pass
+    Next: GetRequest
+    Assign:
+      Channel: "{% $Channel %}"
+      Url: https://slack.com/api/chat.postMessage
+  Webhook:
+    Type: Pass
+    Next: GetRequest
+    Assign:
+      Channel: "{% $Channel %}"
+      Url: "{% $WebhookUrl %}"
+  GetRequest:
+    Type: Task
+    Resource: ${function_arns["post"]}
+    Next: UpdateItem
+    Arguments:
+      Channel: "{% $Channel %}"
+      Permalink: "{% $Permalink %}"
+      Media: "{% $Media %}"
+      Text: "{% $Text %}"
+      Token: "{% $Token %}"
+      Url: "{% $Url %}"
+  UpdateItem:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:updateItem
+    End: true
+    Arguments:
+      TableName: ${table_name}
+      Key: "{% $Key %}"
+      UpdateExpression: "SET #Request=:Request, #Response=:Response, #StatusCode=:StatusCode"
+      ExpressionAttributeNames:
+        "#Request": Request
+        "#Response": Response
+        "#StatusCode": StatusCode
+      ExpressionAttributeValues:
+        ":Request":
+          S: "{% $states.input.Request ~> $string %}"
+        ":Response":
+          S: "{% $states.input.Response ~> $string %}"
+        ":StatusCode":
+          S: "{% $states.input.Response.statusCode %}"

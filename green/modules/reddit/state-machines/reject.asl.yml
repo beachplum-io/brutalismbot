@@ -1,0 +1,40 @@
+---
+QueryLanguage: JSONata
+StartAt: UpdateScreener
+States:
+  UpdateScreener:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:updateItem
+    Next: DeleteSlackMessage
+    Arguments:
+      TableName: ${table_name}
+      Key:
+        Id:
+          S: "{% $states.input.actions.value %}"
+        Kind:
+          S: reddit.post.screener
+      UpdateExpression: "SET #Status=:Status,#UpdatedUtc=:UpdatedUtc REMOVE #TTL"
+      ExpressionAttributeNames:
+        "#Status": Status
+        "#TTL": TTL
+        "#UpdatedUtc": UpdatedUtc
+      ExpressionAttributeValues:
+        ":Status":
+          S: Rejected
+        ":UpdatedUtc":
+          S: "{% $now() %}"
+    Assign:
+      response_url: "{% $states.input.response_url %}"
+  DeleteSlackMessage:
+    Type: Task
+    Resource: arn:aws:states:::http:invoke
+    End: true
+    Arguments:
+      ApiEndpoint: "{% $response_url %}"
+      Method: POST
+      InvocationConfig:
+        ConnectionArn: ${connection_arn}
+      Headers:
+        Content-Type: application/json; charset=utf-8
+      RequestBody:
+        delete_original: true

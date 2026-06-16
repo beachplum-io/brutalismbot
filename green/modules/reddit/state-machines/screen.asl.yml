@@ -1,0 +1,167 @@
+---
+QueryLanguage: JSONata
+StartAt: GetCursor
+States:
+  GetCursor:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:getItem
+    Next: GetPosts
+    Arguments:
+      TableName: ${table_name}
+      Key:
+        Id:
+          S: r/brutalism
+        Kind:
+          S: cursor
+      ProjectionExpression: CreatedUtc
+    Assign:
+      CreatedUtc: "{% $states.result.Item.CreatedUtc %}"
+  GetPosts:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:query
+    Next: EachPost
+    Arguments:
+      TableName: ${table_name}
+      IndexName: Kind
+      Limit: 1
+      KeyConditionExpression: "#Kind = :Kind AND #CreatedUtc > :CreatedUtc"
+      ExpressionAttributeNames:
+        "#CreatedUtc": CreatedUtc
+        "#Kind": Kind
+      ExpressionAttributeValues:
+        ":CreatedUtc": "{% $CreatedUtc %}"
+        ":Kind":
+          S: reddit.post.new
+  EachPost:
+    Type: Map
+    End: true
+    Items: "{% $states.input.Items %}"
+    ItemProcessor:
+      StartAt: GetMedia
+      States:
+        GetMedia:
+          Type: Pass
+          Next: EachMedia
+          Assign:
+            Item: "{% $states.input %}"
+            MediaUrls: "{% [$states.input.Media.S ~> $parse ~> $map(function($v) { $v[0].u })] %}"
+        EachMedia:
+          Type: Map
+          Next: PostMessage
+          Items: >-
+            {% [$MediaUrls ~> $map(function($v, $i) {{
+              'image_url': $v,
+              'alt_text': $Item.Title.S,
+              'title': 'r/brutalism' & ($count($MediaUrls) > 1 ? (' [' & ($i + 1) & '/' & $count($MediaUrls) &  ']') : '')
+            }})] %}
+          ItemProcessor:
+            StartAt: GetAttachment
+            States:
+              GetAttachment:
+                Type: Pass
+                End: true
+                Output:
+                  type: image
+                  image_url: "{% $states.input.image_url %}"
+                  alt_text: "{% $states.input.alt_text %}"
+                  title:
+                    type: plain_text
+                    text: "{% $states.input.title %}"
+          Output:
+            channel: "CHADHTV63" # screeners
+            text: "{% $Item.Title.S %}"
+            blocks:
+              - type: section
+                text:
+                  type: plain_text
+                  text: "{% $Item.Title.S %}"
+                  emoji: false
+              - type: actions
+                elements:
+                  - type: button
+                    action_id: reddit_screen_accept
+                    value: "{% $Item.Id.S %}"
+                    text:
+                      type: plain_text
+                      text: Accept
+                  - type: button
+                    action_id: reddit_screen_reject
+                    style: danger
+                    value: "{% $Item.Id.S %}"
+                    text:
+                      type: plain_text
+                      text: Reject
+                    confirm:
+                      style: danger
+                      title:
+                        type: plain_text
+                        text: Are you sure?
+                      text:
+                        type: plain_text
+                        text: This cannot be undone
+                      confirm:
+                        type: plain_text
+                        text: Reject
+                      deny:
+                        type: plain_text
+                        text: Cancel
+            attachments:
+              - color: "#06E886"
+                blocks: "{% $states.result %}"
+        PostMessage:
+          Type: Task
+          Resource: arn:aws:states:::http:invoke
+          Next: PutScreener
+          Arguments:
+            ApiEndpoint: https://slack.com/api/chat.postMessage
+            Method: POST
+            InvocationConfig:
+              ConnectionArn: ${connection_arn}
+            Headers:
+              Content-Type: application/json; charset=utf-8
+            RequestBody: "{% $states.input %}"
+          Assign:
+            SlackTs: "{% $states.result.ResponseBody.ts %}"
+        PutScreener:
+          Type: Task
+          Resource: arn:aws:states:::aws-sdk:dynamodb:putItem
+          Next: UpdateCursor
+          Arguments:
+            TableName: ${table_name}
+            Item:
+              Id: "{% $Item.Id %}"
+              Json: "{% $Item.Json %}"
+              Media: "{% $Item.Media %}"
+              Name: "{% $Item.Name %}"
+              Permalink: "{% $Item.Permalink %}"
+              Title: "{% $Item.Title %}"
+              CreatedUtc:
+                S: "{% $now() %}"
+              Kind:
+                S: reddit.post.screener
+              ExecutionId:
+                S: "{% $states.context.Execution.Id %}"
+              SlackTs:
+                S: "{% $SlackTs %}"
+              Status:
+                S: Screening
+              TTL:
+                "N": "{% (($millis() / 1000 ~> $round) + (60 * 60 * 12)) ~> $string %}"
+              UpdatedUtc:
+                S: "{% $now() %}"
+        UpdateCursor:
+          Type: Task
+          Resource: arn:aws:states:::aws-sdk:dynamodb:updateItem
+          End: true
+          Arguments:
+            TableName: ${table_name}
+            Key:
+              Id:
+                S: r/brutalism
+              Kind:
+                S: cursor
+            UpdateExpression: "SET #CreatedUtc=:CreatedUtc"
+            ExpressionAttributeNames:
+              "#CreatedUtc": CreatedUtc
+            ExpressionAttributeValues:
+              ":CreatedUtc": "{% $Item.CreatedUtc %}"

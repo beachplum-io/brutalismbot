@@ -1,0 +1,65 @@
+---
+QueryLanguage: JSONata
+StartAt: GetItem
+States:
+  GetItem:
+    Type: Pass
+    Next: GetTokens
+    Assign:
+      Item: "{% $states.input.dynamodb.NewImage %}"
+    Output:
+      TableName: ${table_name}
+      IndexName: Kind
+      Limit: 25
+      KeyConditionExpression: "Kind=:Kind"
+      FilterExpression: "Enabled=:Enabled AND begins_with(Id,:IdPrefix)"
+      ProjectionExpression: Id,AccessToken,AppId,ChannelId,ChannelName,#Scope,TeamId,TeamName,UserId,WebhookUrl
+      ExpressionAttributeNames:
+        "#Scope": "Scope"
+      ExpressionAttributeValues:
+        ":Enabled":
+          Bool: true
+        ":Kind":
+          S: "slack.token"
+        ":IdPrefix":
+          S: "AH0KW28C9."
+  GetTokens:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:query
+    Next: PutItems
+    Arguments: "{% $states.input %}"
+    Assign:
+      Query: "{% $states.input %}"
+      LastEvaluatedKey: "{% $states.result.LastEvaluatedKey ? $states.result.LastEvaluatedKey : null %}"
+      Items: >-
+        {% $states.result.Items ~> $map(function($v) {
+          [$v, $Item, {
+            'Id': { 'S': $v.Id.S & '.' & $Item.Name.S },
+            'Kind': { 'S': 'slack.post' }
+          }] ~> $merge
+        }) %}
+    Retry:
+      - BackoffRate: 2
+        IntervalSeconds: 3
+        MaxAttempts: 4
+        ErrorEquals:
+          - States.ALL
+  PutItems:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:dynamodb:batchWriteItem
+    Next: NextPage?
+    Arguments:
+      RequestItems:
+        ${table_name}: "{% $Items ~> $map(function($v) { { 'PutRequest': { 'Item': $v } } }) %}"
+  NextPage?:
+    Type: Choice
+    Default: Finish
+    Choices:
+      - Next: NextPage
+        Condition: "{% $LastEvaluatedKey != null %}"
+  Finish:
+    Type: Succeed
+  NextPage:
+    Type: Pass
+    Next: GetTokens
+    Output: "{% [$Query, { 'ExclusiveStartKey': $LastEvaluatedKey }] ~> $merge %}"

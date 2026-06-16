@@ -1,0 +1,58 @@
+---
+QueryLanguage: JSONata
+StartAt: GetState
+States:
+  GetState:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:sfn:describeExecution
+    Next: ValidState?
+    Arguments:
+      ExecutionArn: "{% '${oauth_state_state_machine_arn}' & $states.input.state %}"
+    Assign:
+      OAuth: "{% $states.input %}"
+      StateOK: "{% $states.result.Status = 'RUNNING' %}"
+    Catch:
+      - Next: OAuthError
+        ErrorEquals:
+          - States.ALL
+  ValidState?:
+    Type: Choice
+    Default: OAuthError
+    Choices:
+      - Next: CompleteOAuth
+        Condition: "{% $StateOK %}"
+  CompleteOAuth:
+    Type: Task
+    Resource: ${oauth_function_arn}
+    Next: OK?
+    Arguments:
+      redirect_uri: ${oauth_redirect_uri}
+      code: "{% $Code %}"
+    Assign:
+      OK: "{% $states.result.ok %}"
+  OK?:
+    Type: Choice
+    Default: OAuthError
+    Choices:
+      - Next: PublishEvent
+        Condition: "{% $OK %}"
+  OAuthError:
+    Type: Succeed
+    Output:
+      statusCode: 302
+      headers:
+        location: ${oauth_error_uri}
+  PublishEvent:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:eventbridge:putEvents
+    End: true
+    Arguments:
+      Entries:
+        - EventBusName: ${event_bus_name}
+          Source: ${source}
+          DetailType: GET /oauth
+          Detail: "{% $OAuth ~> $string %}"
+    Output:
+      statusCode: 302
+      headers:
+        location: ${oauth_success_uri}
