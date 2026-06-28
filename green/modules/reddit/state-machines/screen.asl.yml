@@ -13,9 +13,9 @@ States:
           S: r/brutalism
         Kind:
           S: cursor
-      ProjectionExpression: CreatedUtc
+      ProjectionExpression: CreatedAt
     Assign:
-      CreatedUtc: "{% $states.result.Item.CreatedUtc %}"
+      CreatedAt: "{% $states.result.Item.CreatedAt %}"
   GetPosts:
     Type: Task
     Resource: arn:aws:states:::aws-sdk:dynamodb:query
@@ -24,12 +24,12 @@ States:
       TableName: ${table_name}
       IndexName: Kind
       Limit: 1
-      KeyConditionExpression: "#Kind = :Kind AND #CreatedUtc > :CreatedUtc"
+      KeyConditionExpression: "#Kind = :Kind AND #CreatedAt > :CreatedAt"
       ExpressionAttributeNames:
-        "#CreatedUtc": CreatedUtc
+        "#CreatedAt": CreatedAt
         "#Kind": Kind
       ExpressionAttributeValues:
-        ":CreatedUtc": "{% $CreatedUtc %}"
+        ":CreatedAt": "{% $CreatedAt %}"
         ":Kind":
           S: reddit.post.new
   EachPost:
@@ -135,7 +135,7 @@ States:
               Name: "{% $Item.Name %}"
               Permalink: "{% $Item.Permalink %}"
               Title: "{% $Item.Title %}"
-              CreatedUtc:
+              CreatedAt:
                 S: "{% $now() %}"
               Kind:
                 S: reddit.post.screener
@@ -147,7 +147,7 @@ States:
                 S: Screening
               TTL:
                 "N": "{% (($millis() / 1000 ~> $round) + (60 * 60 * 12)) ~> $string %}"
-              UpdatedUtc:
+              UpdatedAt:
                 S: "{% $now() %}"
         UpdateCursor:
           Type: Task
@@ -160,8 +160,8 @@ States:
                 S: r/brutalism
               Kind:
                 S: cursor
-            UpdateExpression: "SET #CreatedUtc=:CreatedUtc"
+            UpdateExpression: "SET #CreatedAt=:CreatedAt"
             ExpressionAttributeNames:
-              "#CreatedUtc": CreatedUtc
+              "#CreatedAt": CreatedAt
             ExpressionAttributeValues:
-              ":CreatedUtc": "{% $Item.CreatedUtc %}"
+              ":CreatedAt": "{% $Item.CreatedAt %}"

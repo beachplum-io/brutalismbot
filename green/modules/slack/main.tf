@@ -3,6 +3,8 @@
 ##############
 
 locals {
+  enabled = true
+
   region = data.aws_region.current.region
 
   app  = basename(path.module)
@@ -91,7 +93,7 @@ resource "aws_cloudwatch_event_rule" "events" {
 
     install = {
       description = "Handle Slack installation events"
-      state       = "ENABLED"
+      state       = local.enabled ? "ENABLED" : "DISABLED"
       event_pattern = {
         source      = ["api.brutalismbot.com/slack", "api.brutalismbot.com/slack/beta"]
         detail-type = ["GET /oauth/v2"]
@@ -100,7 +102,7 @@ resource "aws_cloudwatch_event_rule" "events" {
 
     send-post = {
       description = "Send post to Slack"
-      state       = "ENABLED"
+      state       = local.enabled ? "ENABLED" : "DISABLED"
       event_pattern = {
         source      = ["Pipe ${terraform.workspace}"]
         detail-type = ["Event from aws:dynamodb"]

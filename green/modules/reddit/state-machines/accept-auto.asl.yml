@@ -11,13 +11,13 @@ States:
       Item:
         Id: "{% $states.input.dynamodb.Keys.Id %}"
         Kind: "{% $states.input.dynamodb.Keys.Kind %}"
-        CreatedUtc: "{% $states.input.dynamodb.OldImage.CreatedUtc %}"
+        CreatedAt: "{% $states.input.dynamodb.OldImage.CreatedAt %}"
         SlackTs: "{% $states.input.dynamodb.OldImage.SlackTs %}"
         ExecutionId:
           S: "{% $states.context.Execution.Id %}"
         Status:
           S: Auto-Accepted
-        UpdatedUtc:
+        UpdatedAt:
           S: "{% $now() %}"
     Assign:
       Id: "{% $states.input.dynamodb.Keys.Id %}"

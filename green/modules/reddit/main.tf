@@ -3,6 +3,8 @@
 ##############
 
 locals {
+  enabled = true
+
   region = data.aws_region.current.region
 
   app  = basename(path.module)
@@ -174,7 +176,7 @@ resource "aws_scheduler_schedule" "scheduler" {
   name                = local.name
   group_name          = terraform.workspace
   schedule_expression = "rate(1 hour)"
-  state               = "ENABLED"
+  state               = local.enabled ? "ENABLED" : "DISABLED"
 
   flexible_time_window {
     mode = "OFF"

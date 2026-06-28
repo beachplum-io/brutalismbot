@@ -68,7 +68,7 @@ resource "aws_dynamodb_table" "table" {
   }
 
   attribute {
-    name = "CreatedUtc"
+    name = "CreatedAt"
     type = "S"
   }
 
@@ -84,7 +84,7 @@ resource "aws_dynamodb_table" "table" {
     }
 
     key_schema {
-      attribute_name = "CreatedUtc"
+      attribute_name = "CreatedAt"
       key_type       = "RANGE"
     }
   }
@@ -105,9 +105,9 @@ resource "aws_dynamodb_table_item" "cursor" {
   range_key  = aws_dynamodb_table.table.range_key
 
   item = jsonencode({
-    Id         = { S = "r/brutalism" }
-    Kind       = { S = "cursor" }
-    CreatedUtc = { S = "1970-01-01T00:00:00Z" }
+    Id        = { S = "r/brutalism" }
+    Kind      = { S = "cursor" }
+    CreatedAt = { S = "1970-01-01T00:00:00Z" }
   })
 
   lifecycle {

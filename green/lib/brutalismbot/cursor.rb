@@ -17,7 +17,7 @@ module Brutalismbot
     end
 
     def <=>(other)
-      Time.parse(item['CreatedUtc']) <=> other
+      Time.parse(item['CreatedAt']) <=> other
     end
   end
 end

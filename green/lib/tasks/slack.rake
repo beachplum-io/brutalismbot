@@ -21,9 +21,9 @@ namespace :slack do
     }
     $stderr.write("dynamodb:Query #{params.to_json}\n")
     source.query(**params).items.each do |item|
-      item['Id']         = item['Id'].gsub(/\//, '.')
-      item['Kind']       = item['Kind'].gsub(/\//, '.')
-      item['CreatedUtc'] = now
+      item['Id']        = item['Id'].gsub(/\//, '.')
+      item['Kind']      = item['Kind'].gsub(/\//, '.')
+      item['CreatedAt'] = now
       $stderr.write("dynamodb:PutItem #{item.slice('Id', 'Kind').to_json}\n")
       target.put_item(item:)
     end

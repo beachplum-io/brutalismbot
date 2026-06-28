@@ -33,14 +33,14 @@ module Reddit
 
     def to_item
       {
-        Id:         "r/brutalism/#{@data['name']}",
-        Kind:       'reddit.post.new',
-        CreatedUtc: created_utc.iso8601,
-        Json:       @data.to_json,
-        Media:      media_urls.to_json,
-        Name:       @data['name'],
-        Permalink:  permalink_url,
-        Title:      @data['title'],
+        Id:        "r/brutalism/#{@data['name']}",
+        Kind:      'reddit.post.new',
+        CreatedAt: created_utc.iso8601,
+        Json:      @data.to_json,
+        Media:     media_urls.to_json,
+        Name:      @data['name'],
+        Permalink: permalink_url,
+        Title:     @data['title'],
       }
     end
 

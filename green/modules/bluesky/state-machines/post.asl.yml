@@ -36,7 +36,7 @@ States:
                 S: "{% $states.input.ref.uri %}"
               Kind:
                 S: bluesky.post
-              CreatedUtc:
+              CreatedAt:
                 S: "{% $states.input.data.record.createdAt %}"
               ExecutionId:
                 S: "{% $states.context.Execution.Id %}"

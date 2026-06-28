@@ -19,7 +19,7 @@ States:
           S: "{% $states.context.Execution.Id %}"
         Json:
           S: "{% $states.input ~> $string %}"
-        CreatedUtc:
+        CreatedAt:
           S: "{% $now() %}"
         AccessToken:
           S: "{% $states.input.access_token %}"

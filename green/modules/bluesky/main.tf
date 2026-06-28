@@ -3,6 +3,8 @@
 ##############
 
 locals {
+  enabled = true
+
   account = data.aws_caller_identity.current.account_id
   region  = data.aws_region.current.region
 
@@ -81,7 +83,7 @@ resource "aws_cloudwatch_event_rule" "events" {
   for_each = {
     post = {
       description = "Post to Bluesky"
-      state       = "ENABLED"
+      state       = local.enabled ? "ENABLED" : "DISABLED"
       event_pattern = {
         source      = ["Pipe ${terraform.workspace}"]
         detail-type = ["Event from aws:dynamodb"]

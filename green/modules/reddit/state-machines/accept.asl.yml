@@ -13,15 +13,15 @@ States:
           S: "{% $states.input.actions.value %}"
         Kind:
           S: reddit.post.screener
-      UpdateExpression: "SET #Status=:Status,#UpdatedUtc=:UpdatedUtc REMOVE #TTL"
+      UpdateExpression: "SET #Status=:Status,#UpdatedAt=:UpdatedAt REMOVE #TTL"
       ExpressionAttributeNames:
         "#Status": Status
         "#TTL": TTL
-        "#UpdatedUtc": UpdatedUtc
+        "#UpdatedAt": UpdatedAt
       ExpressionAttributeValues:
         ":Status":
           S: Accepted
-        ":UpdatedUtc":
+        ":UpdatedAt":
           S: "{% $now() %}"
     Assign:
       Id: "{% $states.input.actions.value %}"
