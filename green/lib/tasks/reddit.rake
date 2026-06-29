@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative '../brutalismbot'
 require_relative '../reddit'
 
 namespace :reddit do
@@ -28,7 +29,7 @@ namespace :reddit do
   desc 'Sync listing with DynamoDB'
   task :sync => 'new.json' do
     listing = Reddit::Listing.load('new.json')
-    items   = listing.latest(Brutalismbot.cursor).map(&:to_item)
+    items   = listing.latest(Brutalismbot.latest).map(&:to_item)
     items.each { |item| Brutalismbot << item }
   end
 
