@@ -35,7 +35,8 @@ States:
         {% $states.result.Items ~> $map(function($v) {
           [$v, $Item, {
             'Id': { 'S': $v.Id.S & '.' & $Item.Name.S },
-            'Kind': { 'S': 'slack.post' }
+            'Kind': { 'S': 'slack.post' },
+            'ExecutionId': { 'S': $states.context.Execution.Id }
           }] ~> $merge
         }) %}
     Retry:

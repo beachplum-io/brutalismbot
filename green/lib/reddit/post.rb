@@ -3,6 +3,8 @@ require 'time'
 
 module Reddit
   class Post
+    attr_reader :data
+
     def initialize(data)
       @data = data
     end
@@ -31,6 +33,10 @@ module Reddit
       "https://www.reddit.com#{@data['permalink']}"
     end
 
+    def title
+      @data['title']
+    end
+
     def to_item
       {
         Id:        "r/brutalism/#{@data['name']}",
@@ -49,9 +55,9 @@ module Reddit
     ##
     # Get media URLs from gallery
     def media_gallery
-      area = -> (x) {  x[:x] * x[:y] }
+      area = -> (x) {  x['x'] * x['y'] }
       imgs = -> (x) do
-        img = @data.dig('media_metadata', x['media_id'].to_sym)
+        img = @data.dig('media_metadata', x['media_id'])
         (img['p'] + [img['s']]).sort_by(&area).reverse
       rescue
         nil

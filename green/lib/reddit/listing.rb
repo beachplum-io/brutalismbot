@@ -6,6 +6,8 @@ module Reddit
   class Listing
     include Enumerable
 
+    attr_reader :data
+
     def self.load(filepath)
       new JSON.parse File.read(filepath)
     end
