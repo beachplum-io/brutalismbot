@@ -76,7 +76,6 @@ resource "aws_cloudwatch_event_rule" "events" {
   for_each = {
     accept-auto = {
       description = "Auto-accept Reddit screener"
-      state       = "ENABLED"
       event_pattern = {
         source      = ["Pipe ${terraform.workspace}"]
         detail-type = ["Event from aws:dynamodb"]
@@ -92,7 +91,6 @@ resource "aws_cloudwatch_event_rule" "events" {
 
     accept = {
       description = "Accept Reddit screener"
-      state       = "ENABLED"
       event_pattern = {
         source      = ["api.brutalismbot.com/slack/beta"]
         detail-type = ["POST /callbacks"]
@@ -106,7 +104,6 @@ resource "aws_cloudwatch_event_rule" "events" {
 
     reject = {
       description = "Reject Reddit screener"
-      state       = "ENABLED"
       event_pattern = {
         source      = ["api.brutalismbot.com/slack/beta"]
         detail-type = ["POST /callbacks"]
@@ -123,7 +120,7 @@ resource "aws_cloudwatch_event_rule" "events" {
   event_bus_name = data.aws_cloudwatch_event_bus.bus.name
   event_pattern  = jsonencode(each.value.event_pattern)
   name           = "${local.name}-${each.key}"
-  state          = each.value.state
+  state          = local.enabled ? "ENABLED" : "DISABLED"
   tags           = local.tags
 }
 
