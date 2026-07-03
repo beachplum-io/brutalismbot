@@ -72,6 +72,11 @@ resource "aws_dynamodb_table" "table" {
     type = "S"
   }
 
+  attribute {
+    name = "Name"
+    type = "S"
+  }
+
   global_secondary_index {
     name            = "Kind"
     projection_type = "ALL"
@@ -85,6 +90,23 @@ resource "aws_dynamodb_table" "table" {
 
     key_schema {
       attribute_name = "CreatedAt"
+      key_type       = "RANGE"
+    }
+  }
+
+  global_secondary_index {
+    name            = "Name"
+    projection_type = "ALL"
+    read_capacity   = 0
+    write_capacity  = 0
+
+    key_schema {
+      attribute_name = "Name"
+      key_type       = "HASH"
+    }
+
+    key_schema {
+      attribute_name = "Kind"
       key_type       = "RANGE"
     }
   }
