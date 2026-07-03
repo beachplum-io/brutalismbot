@@ -10,7 +10,7 @@ States:
     Output:
       TableName: ${table_name}
       IndexName: Kind
-      Limit: 25
+      Limit: 10
       KeyConditionExpression: "Kind=:Kind"
       FilterExpression: "Enabled=:Enabled AND begins_with(Id,:IdPrefix)"
       ProjectionExpression: Id,AccessToken,AppId,ChannelId,ChannelName,#Scope,TeamId,TeamName,UserId,WebhookUrl
@@ -32,13 +32,13 @@ States:
       Query: "{% $states.input %}"
       LastEvaluatedKey: "{% $states.result.LastEvaluatedKey ? $states.result.LastEvaluatedKey : null %}"
       Items: >-
-        {% $states.result.Items ~> $map(function($v) {
+        {% [$states.result.Items ~> $map(function($v) {
           [$v, $Item, {
             'Id': { 'S': $v.Id.S & '.' & $Item.Name.S },
             'Kind': { 'S': 'slack.post' },
             'ExecutionId': { 'S': $states.context.Execution.Id }
           }] ~> $merge
-        }) %}
+        })] %}
     Retry:
       - BackoffRate: 2
         IntervalSeconds: 3
@@ -51,7 +51,7 @@ States:
     Next: NextPage?
     Arguments:
       RequestItems:
-        ${table_name}: "{% $Items ~> $map(function($v) { { 'PutRequest': { 'Item': $v } } }) %}"
+        ${table_name}: "{% [$Items ~> $map(function($v) { { 'PutRequest': { 'Item': $v } } })] %}"
   NextPage?:
     Type: Choice
     Default: Finish
