@@ -73,9 +73,8 @@ States:
             blocks:
               - type: section
                 text:
-                  type: plain_text
-                  text: "{% $Item.Title.S %}"
-                  emoji: false
+                  type: mrkdwn
+                  text: "{% '<' & $Item.Permalink.S & '|' & $Item.Title.S & '>'%}"
               - type: actions
                 elements:
                   - type: button

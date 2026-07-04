@@ -10,7 +10,7 @@ States:
     Output:
       TableName: ${table_name}
       IndexName: Kind
-      Limit: 10
+      Limit: 5
       KeyConditionExpression: "Kind=:Kind"
       FilterExpression: "Enabled=:Enabled AND begins_with(Id,:IdPrefix)"
       ProjectionExpression: Id,AccessToken,AppId,ChannelId,ChannelName,#Scope,TeamId,TeamName,UserId,WebhookUrl

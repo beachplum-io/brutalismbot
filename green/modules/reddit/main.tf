@@ -172,7 +172,7 @@ resource "aws_iam_role_policy" "scheduler" {
 resource "aws_scheduler_schedule" "scheduler" {
   name                = local.name
   group_name          = terraform.workspace
-  schedule_expression = "rate(1 hour)"
+  schedule_expression = "rate(3 hour)"
   state               = local.enabled ? "ENABLED" : "DISABLED"
 
   flexible_time_window {
