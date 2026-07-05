@@ -68,6 +68,7 @@ States:
                     type: plain_text
                     text: "{% $states.input.title %}"
           Output:
+            unfurl_links: false
             channel: "CHADHTV63" # screeners
             text: "{% $Item.Title.S %}"
             blocks:
