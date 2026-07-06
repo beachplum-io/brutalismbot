@@ -31,8 +31,8 @@ class Bluesky
     text << R_BRUTALISM
 
     # Zip media & text
-    size  = (media.count % 4).between?(1, 2) ? 3 : 4
-    posts = media.each_slice(size).zip([text])
+    slice = (media.count.to_f / (media.count / 10.0).ceil).ceil
+    posts = media.each_slice(slice).zip([text])
 
     # Post thread
     root = parent = nil
@@ -43,12 +43,19 @@ class Bluesky
       media, text = post
 
       # Get images
-      images = upload(*media).map { |image| { image:, alt: } }
+      images = upload(*media).map do |image|
+        {
+          :'$type'     => 'app.bsky.embed.gallery#image',
+          :image       => image,
+          :alt         => alt,
+          :aspectRatio => { width: 4, height: 3 },
+        }
+      end
 
       # Compose record
       embed = {
-        :'$type' => 'app.bsky.embed.images',
-        :images  => images,
+        :'$type' => 'app.bsky.embed.gallery',
+        :items => images,
       }
       facets = [{
         :features => [{
