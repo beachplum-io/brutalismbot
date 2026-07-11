@@ -4,7 +4,8 @@ require_relative '../brutalismbot'
 require_relative '../reddit'
 
 namespace :reddit do
-  file 'new.json' do
+  desc 'Sync listing with DynamoDB'
+  task :sync do
     # Open JSON in browser
     sh %{open 'https://old.reddit.com/r/brutalism/new.json?limit=100&raw_json=1'}
 
@@ -14,20 +15,8 @@ namespace :reddit do
 
     # Paste into file
     sh %{pbpaste > new.json}
-  end
 
-  desc 'Create new.json listing'
-  task :init => 'new.json'
-
-  desc 'Remove new.json listing'
-  task :clean do
-    sh(%{gum confirm 'Remove new.json?'}, verbose: false) do |ok|
-      rm %{new.json} if ok
-    end
-  end
-
-  desc 'Sync listing with DynamoDB'
-  task :sync => 'new.json' do
+    # Load
     listing = Reddit::Listing.load('new.json')
     items   = listing.latest(Brutalismbot.latest).map(&:to_item)
     items.each { |item| Brutalismbot << item }
