@@ -238,7 +238,7 @@ resource "aws_lambda_function" "lambda" {
   handler          = each.value.handler
   memory_size      = each.value.memory_size
   role             = aws_iam_role.lambda.arn
-  runtime          = "ruby3.4"
+  runtime          = "ruby4.0"
   source_code_hash = data.archive_file.lambda[each.key].output_base64sha256
   tags             = local.tags
   timeout          = each.value.timeout

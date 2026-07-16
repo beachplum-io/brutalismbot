@@ -92,7 +92,7 @@ resource "aws_lambda_function" "lambda" {
   function_name    = local.name
   handler          = "index.mail"
   role             = aws_iam_role.lambda.arn
-  runtime          = "ruby3.4"
+  runtime          = "ruby4.0"
   source_code_hash = data.archive_file.lambda.output_base64sha256
   tags             = local.tags
   timeout          = 15
