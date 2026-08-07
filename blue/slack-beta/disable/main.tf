@@ -6,9 +6,10 @@ locals {
   account = data.aws_caller_identity.current.account_id
   region  = data.aws_region.current.region
 
+  workspace  = "brutalismbot-blue"
   app        = dirname(path.module)
-  name       = "${terraform.workspace}-${local.app}-${basename(path.module)}"
-  param_path = "/${replace(terraform.workspace, "-", "/")}/${local.app}/"
+  name       = "${local.workspace}-${local.app}-${basename(path.module)}"
+  param_path = "/${replace(local.workspace, "-", "/")}/${local.app}/"
   tags       = { "brutalismbot:app" = local.app }
 }
 
@@ -20,11 +21,11 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_cloudwatch_event_bus" "bus" {
-  name = terraform.workspace
+  name = local.workspace
 }
 
 data "aws_sfn_state_machine" "app-home" {
-  name = "${terraform.workspace}-${local.app}-app-home"
+  name = "${local.workspace}-${local.app}-app-home"
 }
 
 ##############
@@ -122,7 +123,7 @@ resource "aws_iam_role_policy" "states" {
         Sid      = "DisableRule"
         Effect   = "Allow"
         Action   = ["events:DisableRule"]
-        Resource = "arn:aws:events:${local.region}:${local.account}:rule/${terraform.workspace}/*"
+        Resource = "arn:aws:events:${local.region}:${local.account}:rule/${local.workspace}/*"
       },
       {
         Sid    = "DisableSchedule"
@@ -133,8 +134,8 @@ resource "aws_iam_role_policy" "states" {
           "scheduler:UpdateSchedule",
         ]
         Resource = [
-          "arn:aws:iam::${local.account}:role/${local.region}-${terraform.workspace}-*",
-          "arn:aws:scheduler:${local.region}:${local.account}:schedule/${terraform.workspace}/*",
+          "arn:aws:iam::${local.account}:role/${local.region}-${local.workspace}-*",
+          "arn:aws:scheduler:${local.region}:${local.account}:schedule/${local.workspace}/*",
         ]
       },
       {

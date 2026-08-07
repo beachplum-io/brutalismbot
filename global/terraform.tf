@@ -5,10 +5,10 @@
 terraform {
   required_version = "~> 1.0"
 
-  cloud {
-    organization = "beachplum"
-
-    workspaces { name = "brutalismbot-global" }
+  backend "s3" {
+    bucket = "beachplum-terraform"
+    key    = "beachplum-io/brutalismbot/global/terraform.tfstate"
+    region = "us-west-2"
   }
 
   required_providers {

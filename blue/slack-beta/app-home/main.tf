@@ -6,9 +6,10 @@ locals {
   account = data.aws_caller_identity.current.account_id
   region  = data.aws_region.current.region
 
+  workspace  = "brutalismbot-blue"
   app        = dirname(path.module)
-  name       = "${terraform.workspace}-${local.app}-${basename(path.module)}"
-  param_path = "/${replace(terraform.workspace, "-", "/")}/${local.app}/"
+  name       = "${local.workspace}-${local.app}-${basename(path.module)}"
+  param_path = "/${replace(local.workspace, "-", "/")}/${local.app}/"
   param      = "${local.param_path}SLACK_API_TOKEN"
   tags       = { "brutalismbot:app" = local.app }
 }
@@ -21,15 +22,15 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_cloudwatch_event_bus" "bus" {
-  name = terraform.workspace
+  name = local.workspace
 }
 
 data "aws_dynamodb_table" "table" {
-  name = terraform.workspace
+  name = local.workspace
 }
 
 data "aws_lambda_function" "http" {
-  function_name = "${terraform.workspace}-shared-http"
+  function_name = "${local.workspace}-shared-http"
 }
 
 ##############
@@ -135,7 +136,7 @@ resource "aws_iam_role_policy" "lambda" {
         Sid      = "DescribeRule"
         Effect   = "Allow"
         Action   = "events:DescribeRule"
-        Resource = "arn:aws:events:${local.region}:${local.account}:rule/${terraform.workspace}/*"
+        Resource = "arn:aws:events:${local.region}:${local.account}:rule/${local.workspace}/*"
       },
       {
         Sid      = "GetItem"
@@ -148,7 +149,7 @@ resource "aws_iam_role_policy" "lambda" {
         Sid      = "GetSchedule"
         Effect   = "Allow"
         Action   = "scheduler:GetSchedule"
-        Resource = "arn:aws:scheduler:${local.region}:${local.account}:schedule/${terraform.workspace}/*"
+        Resource = "arn:aws:scheduler:${local.region}:${local.account}:schedule/${local.workspace}/*"
       },
       {
         Sid      = "Logs"
@@ -176,7 +177,7 @@ resource "aws_lambda_function" "lambda" {
     variables = {
       TABLE_NAME     = data.aws_dynamodb_table.table.name
       EVENT_BUS_NAME = data.aws_cloudwatch_event_bus.bus.name
-      SCHEDULE_GROUP = terraform.workspace
+      SCHEDULE_GROUP = local.workspace
     }
   }
 }

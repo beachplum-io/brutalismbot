@@ -6,9 +6,10 @@ locals {
   account = data.aws_caller_identity.current.account_id
   region  = data.aws_region.current.region
 
+  workspace  = "brutalismbot-blue"
   app        = dirname(path.module)
-  name       = "${terraform.workspace}-${local.app}-${basename(path.module)}"
-  param_path = "/${replace(terraform.workspace, "-", "/")}/${local.app}/"
+  name       = "${local.workspace}-${local.app}-${basename(path.module)}"
+  param_path = "/${replace(local.workspace, "-", "/")}/${local.app}/"
   tags       = { "brutalismbot:app" = local.app }
 }
 
@@ -20,11 +21,11 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_cloudwatch_event_bus" "bus" {
-  name = terraform.workspace
+  name = local.workspace
 }
 
 data "aws_dynamodb_table" "table" {
-  name = terraform.workspace
+  name = local.workspace
 }
 
 ##############
@@ -203,7 +204,7 @@ resource "aws_iam_role_policy" "scheduler" {
 
 resource "aws_scheduler_schedule" "scheduler" {
   name                = local.name
-  group_name          = terraform.workspace
+  group_name          = local.workspace
   schedule_expression = "rate(1 hour)"
   state               = "DISABLED"
 
@@ -279,7 +280,7 @@ resource "aws_sfn_state_machine" "states" {
   tags     = local.tags
 
   definition = jsonencode(yamldecode(templatefile("${path.module}/states.yml", {
-    cloudwatch_namespace = terraform.workspace
+    cloudwatch_namespace = local.workspace
     reddit_pop_arn       = aws_lambda_function.lambda.arn
     table_name           = data.aws_dynamodb_table.table.name
   })))

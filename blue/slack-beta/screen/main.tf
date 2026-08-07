@@ -8,9 +8,10 @@ locals {
   channel_id = "CHADHTV63" #screeners
   # user_id    = "UH9M57X6Z"
 
+  workspace  = "brutalismbot-blue"
   app        = dirname(path.module)
-  name       = "${terraform.workspace}-${local.app}-${basename(path.module)}"
-  param_path = "/${replace(terraform.workspace, "-", "/")}/${local.app}/"
+  name       = "${local.workspace}-${local.app}-${basename(path.module)}"
+  param_path = "/${replace(local.workspace, "-", "/")}/${local.app}/"
   param      = "${local.param_path}SLACK_API_TOKEN"
   tags       = { "brutalismbot:app" = local.app }
 
@@ -24,15 +25,15 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_cloudwatch_event_bus" "bus" {
-  name = terraform.workspace
+  name = local.workspace
 }
 
 data "aws_dynamodb_table" "table" {
-  name = terraform.workspace
+  name = local.workspace
 }
 
 data "aws_lambda_function" "http" {
-  function_name = "${terraform.workspace}-shared-http"
+  function_name = "${local.workspace}-shared-http"
 }
 
 ##############
@@ -76,7 +77,7 @@ resource "aws_cloudwatch_event_rule" "events" {
   tags           = local.tags
 
   event_pattern = jsonencode({
-    source      = ["Pipe ${terraform.workspace}"]
+    source      = ["Pipe ${local.workspace}"]
     detail-type = ["Event from aws:dynamodb"]
     detail = {
       eventName = ["INSERT"]

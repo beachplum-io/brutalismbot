@@ -5,9 +5,10 @@
 locals {
   region = data.aws_region.current.region
 
-  app  = basename(path.module)
-  name = "${terraform.workspace}-${local.app}"
-  tags = { "brutalismbot:app" = local.app }
+  workspace = "brutalismbot-blue"
+  app       = basename(path.module)
+  name      = "${local.workspace}-${local.app}"
+  tags      = { "brutalismbot:app" = local.app }
 
   mime_map = {
     css         = "text/css"
@@ -43,7 +44,7 @@ data "aws_cloudfront_origin_access_identities" "website" {
 #################
 
 resource "aws_s3_bucket" "website" {
-  bucket = "${local.region}-${terraform.workspace}-${local.app}"
+  bucket = "${local.region}-${local.workspace}-${local.app}"
   tags   = local.tags
 }
 

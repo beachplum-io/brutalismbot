@@ -3,10 +3,11 @@
 ##############
 
 locals {
-  app    = dirname(path.module)
-  name   = "${terraform.workspace}-${local.app}-${basename(path.module)}"
-  region = data.aws_region.current.region
-  tags   = { "brutalismbot:app" = local.app }
+  workspace = "brutalismbot-blue"
+  app       = dirname(path.module)
+  name      = "${local.workspace}-${local.app}-${basename(path.module)}"
+  region    = data.aws_region.current.region
+  tags      = { "brutalismbot:app" = local.app }
 }
 
 ############

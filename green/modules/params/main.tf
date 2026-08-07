@@ -3,9 +3,10 @@
 ##############
 
 locals {
-  app  = basename(path.module)
-  name = "${terraform.workspace}-${local.app}"
-  tags = { "brutalismbot:app" = local.app }
+  workspace = "brutalismbot-green"
+  app       = basename(path.module)
+  name      = "${local.workspace}-${local.app}"
+  tags      = { "brutalismbot:app" = local.app }
 
   strings = {
     "bluesky/BLUESKY_USERNAME"                = "brutalismbot.com"
@@ -33,7 +34,7 @@ locals {
 resource "aws_ssm_parameter" "strings" {
   for_each = {
     for key, val in local.strings :
-    "/${replace(terraform.workspace, "-", "/")}/${key}" => val
+    "/${replace(local.workspace, "-", "/")}/${key}" => val
   }
 
   name  = each.key
@@ -44,7 +45,7 @@ resource "aws_ssm_parameter" "strings" {
 resource "aws_ssm_parameter" "secure_strings" {
   for_each = {
     for key, val in local.secure_strings :
-    "/${replace(terraform.workspace, "-", "/")}/${key}" => val
+    "/${replace(local.workspace, "-", "/")}/${key}" => val
   }
 
   name  = each.key

@@ -5,6 +5,8 @@
 locals {
   region = data.aws_region.current.region
 
+  workspace = "brutalismbot-blue"
+
   tags = { "brutalismbot:app" = basename(path.module) }
 
   functions = {
@@ -35,7 +37,7 @@ data "aws_region" "current" {}
 data "aws_lambda_function" "functions" {
   for_each = toset(concat([
     for app, names in local.functions :
-    [for name in names : "${terraform.workspace}-${app}-${name}"]
+    [for name in names : "${local.workspace}-${app}-${name}"]
   ]...))
   function_name = each.key
 }
@@ -43,7 +45,7 @@ data "aws_lambda_function" "functions" {
 data "aws_sfn_state_machine" "state_machines" {
   for_each = toset(concat([
     for app, names in local.state_machines :
-    [for name in names : "${terraform.workspace}-${app}-${name}"]
+    [for name in names : "${local.workspace}-${app}-${name}"]
   ]...))
   name = each.key
 }
@@ -53,7 +55,7 @@ data "aws_sfn_state_machine" "state_machines" {
 ############################
 
 resource "aws_cloudwatch_dashboard" "dashboard" {
-  dashboard_name = terraform.workspace
+  dashboard_name = local.workspace
   dashboard_body = jsonencode(yamldecode(templatefile("${path.module}/dashboard.yml", {
     duration = jsonencode([
       for function in keys(data.aws_lambda_function.functions) :

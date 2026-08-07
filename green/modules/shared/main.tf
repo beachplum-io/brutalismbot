@@ -13,8 +13,9 @@ locals {
   account = data.aws_caller_identity.current.account_id
   region  = data.aws_region.current.region
 
-  app  = basename(path.module)
-  name = terraform.workspace
+  workspace = "brutalismbot-green"
+  app       = basename(path.module)
+  name      = local.workspace
 
   tags = {
     "brutalismbot:app" = local.app

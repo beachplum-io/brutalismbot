@@ -6,9 +6,10 @@ locals {
   account = data.aws_caller_identity.current.account_id
   region  = data.aws_region.current.region
 
-  app  = dirname(path.module)
-  name = "${terraform.workspace}-${local.app}-${basename(path.module)}"
-  tags = { "brutalismbot:app" = local.app }
+  workspace = "brutalismbot-blue"
+  app       = dirname(path.module)
+  name      = "${local.workspace}-${local.app}-${basename(path.module)}"
+  tags      = { "brutalismbot:app" = local.app }
 }
 
 ############
@@ -19,11 +20,11 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_cloudwatch_event_bus" "bus" {
-  name = terraform.workspace
+  name = local.workspace
 }
 
 data "aws_dynamodb_table" "table" {
-  name = terraform.workspace
+  name = local.workspace
 }
 
 ##############
@@ -125,7 +126,7 @@ resource "aws_iam_role_policy" "scheduler" {
 
 resource "aws_scheduler_schedule" "scheduler" {
   name                = local.name
-  group_name          = terraform.workspace
+  group_name          = local.workspace
   schedule_expression = "rate(3 hour)"
   state               = "DISABLED"
 

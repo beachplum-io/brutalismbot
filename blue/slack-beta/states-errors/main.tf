@@ -7,9 +7,10 @@ locals {
   region  = data.aws_region.current.region
   user_id = "UH9M57X6Z"
 
+  workspace  = "brutalismbot-blue"
   app        = dirname(path.module)
-  name       = "${terraform.workspace}-${local.app}-${basename(path.module)}"
-  param_path = "/${replace(terraform.workspace, "-", "/")}/${local.app}/"
+  name       = "${local.workspace}-${local.app}-${basename(path.module)}"
+  param_path = "/${replace(local.workspace, "-", "/")}/${local.app}/"
   param      = "${local.param_path}SLACK_API_TOKEN"
   tags       = { "brutalismbot:app" = local.app }
 }
@@ -22,7 +23,7 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_lambda_function" "http" {
-  function_name = "${terraform.workspace}-shared-http"
+  function_name = "${local.workspace}-shared-http"
 }
 
 ##############
@@ -69,7 +70,7 @@ resource "aws_cloudwatch_event_rule" "events" {
     detail-type = ["Step Functions Execution Status Change"]
 
     detail = {
-      executionArn    = [{ prefix = "arn:aws:states:${local.region}:${local.account}:execution:${terraform.workspace}-" }]
+      executionArn    = [{ prefix = "arn:aws:states:${local.region}:${local.account}:execution:${local.workspace}-" }]
       stateMachineArn = [{ anything-but = [aws_sfn_state_machine.states.arn] }]
       status          = ["FAILED", "TIMED_OUT"]
     }

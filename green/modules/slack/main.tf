@@ -7,9 +7,10 @@ locals {
 
   region = data.aws_region.current.region
 
-  app  = basename(path.module)
-  name = "${terraform.workspace}-${local.app}"
-  tags = { "brutalismbot:app" = local.app }
+  workspace = "brutalismbot-green"
+  app       = basename(path.module)
+  name      = "${local.workspace}-${local.app}"
+  tags      = { "brutalismbot:app" = local.app }
 
   functions = {
     post = {
@@ -35,11 +36,11 @@ data "aws_region" "current" {
 }
 
 data "aws_cloudwatch_event_bus" "bus" {
-  name = terraform.workspace
+  name = local.workspace
 }
 
 data "aws_dynamodb_table" "table" {
-  name = terraform.workspace
+  name = local.workspace
 }
 
 ##############
@@ -82,7 +83,7 @@ resource "aws_cloudwatch_event_rule" "events" {
       description = "Create posts for Slack"
       state       = "ENABLED"
       event_pattern = {
-        source      = ["Pipe ${terraform.workspace}"]
+        source      = ["Pipe ${local.workspace}"]
         detail-type = ["Event from aws:dynamodb"]
         detail = {
           eventName = ["INSERT"]
@@ -104,7 +105,7 @@ resource "aws_cloudwatch_event_rule" "events" {
       description = "Send post to Slack"
       state       = local.enabled ? "ENABLED" : "DISABLED"
       event_pattern = {
-        source      = ["Pipe ${terraform.workspace}"]
+        source      = ["Pipe ${local.workspace}"]
         detail-type = ["Event from aws:dynamodb"]
         detail = {
           eventName = ["INSERT"]

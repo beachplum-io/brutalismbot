@@ -6,9 +6,10 @@ locals {
   account = data.aws_caller_identity.current.account_id
   region  = data.aws_region.current.region
 
+  workspace  = "brutalismbot-blue"
   app        = dirname(path.module)
-  name       = "${terraform.workspace}-${local.app}-${basename(path.module)}"
-  param_path = "/${replace(terraform.workspace, "-", "/")}/${local.app}/"
+  name       = "${local.workspace}-${local.app}-${basename(path.module)}"
+  param_path = "/${replace(local.workspace, "-", "/")}/${local.app}/"
   tags       = { "brutalismbot:app" = local.app }
 
   routes = [
@@ -30,7 +31,7 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_cloudwatch_event_bus" "bus" {
-  name = terraform.workspace
+  name = local.workspace
 }
 
 ################
@@ -171,7 +172,7 @@ resource "aws_lambda_function" "lambda" {
 
   environment {
     variables = {
-      EVENT_BUS    = terraform.workspace
+      EVENT_BUS    = local.workspace
       EVENT_SOURCE = "slack"
       PARAM_PATH   = local.param_path
     }

@@ -5,10 +5,10 @@
 terraform {
   required_version = "~> 1.0"
 
-  cloud {
-    organization = "beachplum"
-
-    workspaces { name = "brutalismbot-blue" }
+  backend "s3" {
+    bucket = "beachplum-terraform"
+    key    = "beachplum-io/brutalismbot/blue/terraform.tfstate"
+    region = "us-west-2"
   }
 
   required_providers {
@@ -41,10 +41,8 @@ locals {
   region = "us-west-2"
 
   tags = {
-    "brutalismbot:env"       = split("-", terraform.workspace)[1]
-    "terraform:organization" = "beachplum"
-    "terraform:workspace"    = terraform.workspace
-    "git:repo"               = "beachplum-io/brutalismbot"
+    "brutalismbot:env" = "blue"
+    "git:repo"         = "beachplum-io/brutalismbot"
   }
 }
 

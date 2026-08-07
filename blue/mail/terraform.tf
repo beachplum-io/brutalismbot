@@ -6,10 +6,11 @@ locals {
   account = data.aws_caller_identity.current.account_id
   region  = data.aws_region.current.region
 
-  app   = basename(path.module)
-  name  = "${terraform.workspace}-${local.app}"
-  param = "/${replace(terraform.workspace, "-", "/")}/${local.app}/MAIL_TO"
-  tags  = { "brutalismbot:app" = local.app }
+  workspace = "brutalismbot-blue"
+  app       = basename(path.module)
+  name      = "${local.workspace}-${local.app}"
+  param     = "/${replace(local.workspace, "-", "/")}/${local.app}/MAIL_TO"
+  tags      = { "brutalismbot:app" = local.app }
 }
 
 ############

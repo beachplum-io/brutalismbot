@@ -7,9 +7,10 @@ locals {
 
   region = data.aws_region.current.region
 
-  app  = basename(path.module)
-  name = "${terraform.workspace}-${local.app}"
-  tags = { "brutalismbot:app" = local.app }
+  workspace = "brutalismbot-green"
+  app       = basename(path.module)
+  name      = "${local.workspace}-${local.app}"
+  tags      = { "brutalismbot:app" = local.app }
 
   state_machines = {
     accept-auto = "STANDARD"
@@ -27,15 +28,15 @@ data "aws_region" "current" {
 }
 
 data "aws_cloudwatch_event_bus" "bus" {
-  name = terraform.workspace
+  name = local.workspace
 }
 
 data "aws_cloudwatch_event_connection" "slack" {
-  name = "${terraform.workspace}-slack-beta-api"
+  name = "${local.workspace}-slack-beta-api"
 }
 
 data "aws_dynamodb_table" "table" {
-  name = terraform.workspace
+  name = local.workspace
 }
 
 ##############
@@ -77,7 +78,7 @@ resource "aws_cloudwatch_event_rule" "events" {
     accept-auto = {
       description = "Auto-accept Reddit screener"
       event_pattern = {
-        source      = ["Pipe ${terraform.workspace}"]
+        source      = ["Pipe ${local.workspace}"]
         detail-type = ["Event from aws:dynamodb"]
         detail = {
           eventName = ["REMOVE"]
@@ -171,7 +172,7 @@ resource "aws_iam_role_policy" "scheduler" {
 
 resource "aws_scheduler_schedule" "scheduler" {
   name                = local.name
-  group_name          = terraform.workspace
+  group_name          = local.workspace
   schedule_expression = "rate(3 hour)"
   state               = local.enabled ? "ENABLED" : "DISABLED"
 

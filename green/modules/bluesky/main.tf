@@ -8,10 +8,11 @@ locals {
   account = data.aws_caller_identity.current.account_id
   region  = data.aws_region.current.region
 
+  workspace  = "brutalismbot-green"
   app        = basename(path.module)
-  name       = "${terraform.workspace}-${local.app}"
+  name       = "${local.workspace}-${local.app}"
   tags       = { "brutalismbot:app" = local.app }
-  param_path = "/${replace(terraform.workspace, "-", "/")}/bluesky/"
+  param_path = "/${replace(local.workspace, "-", "/")}/bluesky/"
 
   functions = {
     post = {
@@ -38,11 +39,11 @@ data "aws_region" "current" {
 }
 
 data "aws_cloudwatch_event_bus" "bus" {
-  name = terraform.workspace
+  name = local.workspace
 }
 
 data "aws_dynamodb_table" "table" {
-  name = terraform.workspace
+  name = local.workspace
 }
 
 ##############
@@ -85,7 +86,7 @@ resource "aws_cloudwatch_event_rule" "events" {
       description = "Post to Bluesky"
       state       = local.enabled ? "ENABLED" : "DISABLED"
       event_pattern = {
-        source      = ["Pipe ${terraform.workspace}"]
+        source      = ["Pipe ${local.workspace}"]
         detail-type = ["Event from aws:dynamodb"]
         detail = {
           eventName = ["INSERT"]

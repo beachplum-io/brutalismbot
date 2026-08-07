@@ -6,7 +6,7 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_cloudwatch_event_bus" "bus" {
-  name = terraform.workspace
+  name = local.workspace
 }
 
 data "aws_ssm_parameter" "params" {
@@ -21,7 +21,7 @@ data "aws_ssm_parameter" "params" {
     SLACK_SIGNING_SECRET     = true
   }
 
-  name            = "/${replace(terraform.workspace, "-", "/")}/${local.app}/${each.key}"
+  name            = "/${replace(local.workspace, "-", "/")}/${local.app}/${each.key}"
   with_decryption = each.value
 }
 
@@ -33,9 +33,10 @@ locals {
   account = data.aws_caller_identity.current.account_id
   region  = data.aws_region.current.region
 
-  app  = basename(path.module)
-  name = "${terraform.workspace}-${local.app}"
-  tags = { "brutalismbot:app" = local.app }
+  workspace = "brutalismbot-green"
+  app       = basename(path.module)
+  name      = "${local.workspace}-${local.app}"
+  tags      = { "brutalismbot:app" = local.app }
 
   api_token          = data.aws_ssm_parameter.params["SLACK_API_TOKEN"].value
   client_id          = data.aws_ssm_parameter.params["SLACK_CLIENT_ID"].value
