@@ -1,0 +1,84 @@
+---
+QueryLanguage: JSONata
+StartAt: S3:PutObject
+States:
+  S3:PutObject:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:s3:putObject
+    Next: MUX
+    Arguments:
+      Bucket: brutalismbot
+      Key: "{% 'reddit/' & ($states.input.body ~> $parse).data.id & '.json' %}"
+      Body: "{% $states.input.body %}"
+      ContentType: application/json
+    Assign:
+      Bucket: brutalismbot
+      Prefix: "{% 'reddit/' & ($states.input.body ~> $parse).data.id %}"
+      Item: "{% ($states.input.body ~> $parse).data %}"
+  MUX:
+    Type: Choice
+    Default: GetMediaPreviews
+    Choices:
+      - Next: IsSelf
+        Condition: "{% $Item.is_self = true %}"
+      - Next: GetGalleryImages
+        Condition: "{% $Item.is_gallery = true %}"
+  IsSelf:
+    Type: Succeed
+  GetGalleryImages:
+    Type: Pass
+    Next: GetMessage
+    Output: "{% $Item.gallery_data.items %}"
+    Assign:
+      Media: "{% $Item.gallery_data.items %}"
+  GetMediaPreviews:
+    Type: Map
+    Next: GetMessage
+    Items: "{% $Item.preview.images %}"
+    ItemSelector:
+      Bucket: "{% $Bucket %}"
+      Prefix: "{% $Prefix & '/' & $states.context.Map.Item.Index ~> $string ~> $pad(-2, '0') %}"
+      Item: "{% $states.context.Map.Item.Value %}"
+    ItemProcessor:
+      StartAt: EachImage
+      States:
+        EachImage:
+          Type: Map
+          End: true
+          Items: "{% [$states.input.Item.source, $states.input.Item.resolutions ~> $reverse] %}"
+          ItemSelector:
+            Bucket: "{% $states.input.Bucket %}"
+            Key: >-
+              {% $states.input.Prefix
+              & '/' & ($states.context.Map.Item.Index ~> $string ~> $pad(-2, '0'))
+              & '/' & ($states.context.Map.Item.Value.url ~> $replace(/.*\//, '')) %}
+            Url: "{% $states.context.Map.Item.Value.url %}"
+          ItemProcessor:
+            StartAt: Download
+            States:
+              Download:
+                Type: Task
+                Resource: arn:aws:states:::lambda:invoke
+                End: true
+                Arguments:
+                  FunctionName: brutalismbot-functions-s3-download
+                  Payload: "{% $states.input %}"
+                Output: "{% $states.input %}"
+  GetMessage:
+    Type: Pass
+    Next: SQS:SendMessage
+    Output:
+      CreatedAt: "{% $Item.created * 1000 ~> $fromMillis() %}"
+      ExecutionId: "{% $states.context.Execution.Id %}"
+      Json: "{% $Item ~> $string %}"
+      Media: "{% $states.input ~> $string %}"
+      Id: "{% $Item.id %}"
+      Title: "{% $Item.title %}"
+      Permalink: "{% $Item.permalink %}"
+  SQS:SendMessage:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:sqs:sendMessage
+    End: true
+    Arguments:
+      QueueUrl: ${queue_url}
+      MessageBody: "{% $states.input ~> $string %}"
