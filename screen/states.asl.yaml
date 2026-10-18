@@ -1,0 +1,6 @@
+---
+QueryLanguage: JSONata
+StartAt: Pass
+States:
+  Pass:
+    Type: Succeed
